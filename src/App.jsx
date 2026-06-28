@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, Component } from 'react'
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AppProvider, useApp } from './contexts/AppContext'
@@ -10,6 +10,37 @@ import AddTransaction from './components/budget/AddTransaction'
 import AuthPage from './pages/AuthPage'
 import ReportsPage from './pages/ReportsPage'
 import ReceiptsPage from './pages/ReceiptsPage'
+
+class ErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null } }
+  static getDerivedStateFromError(e) { return { error: e } }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{
+          minHeight: '100dvh', display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          padding: 24, background: '#F2F2F7', gap: 16, textAlign: 'center',
+        }}>
+          <div style={{ fontSize: 48 }}>⚠️</div>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1C1C1E' }}>משהו השתבש</h2>
+          <p style={{ fontSize: 13, color: '#6C6C70', maxWidth: 280 }}>
+            {this.state.error?.message || 'שגיאה לא ידועה'}
+          </p>
+          <button
+            onClick={() => { this.setState({ error: null }); window.location.hash = '/' }}
+            style={{
+              background: '#16A349', color: 'white', border: 'none',
+              borderRadius: 32, padding: '12px 28px', fontSize: 15,
+              fontWeight: 600, cursor: 'pointer',
+            }}
+          >חזור לדף הבית</button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 const pageVariants = {
   initial: { opacity: 0, y: 12 },
@@ -31,11 +62,11 @@ function AnimatedRoutes() {
         style={{ minHeight: '100dvh' }}
       >
         <Routes location={location}>
-          <Route path="/"         element={<BudgetPage />} />
-          <Route path="/reports"  element={<ReportsPage />} />
-          <Route path="/shopping" element={<ShoppingPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/receipts" element={<ReceiptsPage />} />
+          <Route path="/"         element={<ErrorBoundary><BudgetPage /></ErrorBoundary>} />
+          <Route path="/reports"  element={<ErrorBoundary><ReportsPage /></ErrorBoundary>} />
+          <Route path="/shopping" element={<ErrorBoundary><ShoppingPage /></ErrorBoundary>} />
+          <Route path="/settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
+          <Route path="/receipts" element={<ErrorBoundary><ReceiptsPage /></ErrorBoundary>} />
         </Routes>
       </motion.div>
     </AnimatePresence>
