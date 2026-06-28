@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create *)",
+      "Read(//usr/local/**)",
+      "Read(//c/Users/yishai/.nvm/**)"
+    ]
+  }
+}
