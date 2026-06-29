@@ -203,36 +203,35 @@ function ReceiptCard({ receipt, onDelete }) {
           <>
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 300 }}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 300 }}
               onClick={() => setConfirmDelete(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 40 }}
               style={{
                 position: 'fixed',
-                top: '50%', left: '50%',
-                transform: 'translate(-50%, -50%)',
+                bottom: 0, left: 0, right: 0,
                 background: 'var(--c-card)',
-                borderRadius: 'var(--r-xl)',
-                padding: '24px 20px',
-                width: 'min(300px, 88vw)',
+                borderRadius: 'var(--r-xl) var(--r-xl) 0 0',
+                padding: '28px 20px calc(var(--safe-bottom) + 24px)',
                 zIndex: 301, textAlign: 'center',
               }}
             >
-              <div style={{ fontSize: 40, marginBottom: 10 }}>🗑</div>
-              <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 20 }}>{t('receipts.deleteConfirm')}</div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button className="btn btn-secondary btn-full" onClick={() => setConfirmDelete(false)}>
-                  {t('common.cancel')}
-                </button>
+              <div style={{ fontSize: 44, marginBottom: 8 }}>🗑</div>
+              <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 6 }}>{t('receipts.deleteConfirm')}</div>
+              <div style={{ fontSize: 13, color: 'var(--c-text2)', marginBottom: 24 }}>לא ניתן לשחזר את החשבונית</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <button
                   className="btn btn-full"
-                  style={{ background: 'rgba(217,107,107,0.12)', color: 'var(--c-danger)' }}
+                  style={{ padding: 15, fontSize: 16, background: 'rgba(217,107,107,0.12)', color: 'var(--c-danger)', fontWeight: 700 }}
                   onClick={() => { onDelete(receipt.id, receipt.storagePath); setConfirmDelete(false) }}
                 >
                   {t('common.delete')}
+                </button>
+                <button className="btn btn-secondary btn-full" style={{ padding: 15, fontSize: 16 }} onClick={() => setConfirmDelete(false)}>
+                  {t('common.cancel')}
                 </button>
               </div>
             </motion.div>
