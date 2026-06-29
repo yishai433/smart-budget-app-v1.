@@ -304,18 +304,27 @@ body {
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }
-.sheet {
+/* Wrapper tracks the visible viewport (above the keyboard on iOS) */
+.sheet-viewport {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
   width: 100%;
   max-width: 430px;
-  margin: 0 auto;
+  top: var(--kb-top, 0px);
+  height: var(--kb-height, 100dvh);
+  z-index: 201;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+.sheet {
+  pointer-events: auto;
+  width: 100%;
   background: var(--c-card);
   border-radius: var(--r-xl) var(--r-xl) 0 0;
-  z-index: 201;
-  max-height: 92svh;
+  max-height: 100%;
   display: flex;
   flex-direction: column;
 }

@@ -1,4 +1,4 @@
-import { useState, Component } from 'react'
+import { useState, Component, useEffect } from 'react'
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AppProvider, useApp } from './contexts/AppContext'
@@ -130,6 +130,22 @@ function GlobalFAB({ onOpen }) {
 function AppInner() {
   const { loading, user } = useApp()
   const [showAdd, setShowAdd] = useState(false)
+
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    const update = () => {
+      document.documentElement.style.setProperty('--kb-height', `${vv.height}px`)
+      document.documentElement.style.setProperty('--kb-top', `${vv.offsetTop}px`)
+    }
+    vv.addEventListener('resize', update)
+    vv.addEventListener('scroll', update)
+    update()
+    return () => {
+      vv.removeEventListener('resize', update)
+      vv.removeEventListener('scroll', update)
+    }
+  }, [])
 
   if (loading) return <LoadingScreen />
 

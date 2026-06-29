@@ -34,6 +34,7 @@ function AddItemSheet({ onClose }) {
   return (
     <>
       <motion.div className="sheet-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
+      <div className="sheet-viewport">
       <motion.div
         className="sheet"
         initial={{ y: '100%' }}
@@ -103,6 +104,7 @@ function AddItemSheet({ onClose }) {
           </button>
         </div>
       </motion.div>
+      </div>
     </>
   )
 }

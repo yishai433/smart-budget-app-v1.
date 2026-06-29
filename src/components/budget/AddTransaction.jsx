@@ -78,38 +78,40 @@ export default function AddTransaction({ onClose }) {
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           onClick={onClose}
         />
-        <motion.div
-          className="sheet"
-          initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-          transition={{ type: 'spring', stiffness: 380, damping: 36 }}
-        >
-          <div className="sheet-handle" />
-          <div className="sheet-body" style={{ alignItems: 'center', textAlign: 'center', padding: '32px 24px' }}>
-            <div style={{ fontSize: 56, marginBottom: 12 }}>🧾</div>
-            <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>
-              {t('receipts.attachAfterSave')}
-            </h2>
-            <p style={{ fontSize: 14, color: 'var(--c-text2)', marginBottom: 28, lineHeight: 1.5 }}>
-              {t('receipts.attachDesc')}
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
-              <button
-                className="btn btn-primary btn-full"
-                style={{ fontSize: 16, padding: '15px' }}
-                onClick={() => { setShowReceiptPrompt(false); setShowScanner(true) }}
-              >
-                📷 {t('receipts.attach')}
-              </button>
-              <button
-                className="btn btn-secondary btn-full"
-                style={{ fontSize: 15 }}
-                onClick={onClose}
-              >
-                {t('receipts.skip')}
-              </button>
+        <div className="sheet-viewport">
+          <motion.div
+            className="sheet"
+            initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+            transition={{ type: 'spring', stiffness: 380, damping: 36 }}
+          >
+            <div className="sheet-handle" />
+            <div className="sheet-body" style={{ alignItems: 'center', textAlign: 'center', padding: '32px 24px' }}>
+              <div style={{ fontSize: 56, marginBottom: 12 }}>🧾</div>
+              <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>
+                {t('receipts.attachAfterSave')}
+              </h2>
+              <p style={{ fontSize: 14, color: 'var(--c-text2)', marginBottom: 28, lineHeight: 1.5 }}>
+                {t('receipts.attachDesc')}
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
+                <button
+                  className="btn btn-primary btn-full"
+                  style={{ fontSize: 16, padding: '15px' }}
+                  onClick={() => { setShowReceiptPrompt(false); setShowScanner(true) }}
+                >
+                  📷 {t('receipts.attach')}
+                </button>
+                <button
+                  className="btn btn-secondary btn-full"
+                  style={{ fontSize: 15 }}
+                  onClick={onClose}
+                >
+                  {t('receipts.skip')}
+                </button>
+              </div>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        </div>
       </>
     )
   }
@@ -123,6 +125,7 @@ export default function AddTransaction({ onClose }) {
         exit={{ opacity: 0 }}
         onClick={onClose}
       />
+      <div className="sheet-viewport">
       <motion.div
         className="sheet"
         initial={{ y: '100%' }}
@@ -302,6 +305,7 @@ export default function AddTransaction({ onClose }) {
           </button>
         </div>
       </motion.div>
+      </div>
     </>
   )
 }
