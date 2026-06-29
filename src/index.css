@@ -335,23 +335,24 @@ body {
 .sheet-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
 
 /* Category grid */
-.cat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.cat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .cat-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 10px 4px;
-  border-radius: var(--r-md);
+  gap: 6px;
+  padding: 14px 4px;
+  border-radius: var(--r-lg);
   border: 2px solid transparent;
   background: var(--c-bg);
   cursor: pointer;
   transition: all 0.15s;
   font-family: inherit;
 }
-.cat-btn .cat-emoji { font-size: 22px; }
-.cat-btn .cat-label { font-size: 11px; font-weight: 500; color: var(--c-text2); text-align: center; }
+.cat-btn .cat-emoji { font-size: 28px; }
+.cat-btn .cat-label { font-size: 12px; font-weight: 600; color: var(--c-text2); text-align: center; line-height: 1.2; }
 .cat-btn.selected { border-color: var(--c-primary); background: var(--c-primary-light); }
+.cat-btn.selected .cat-label { color: var(--c-primary); }
 
 /* Progress bar */
 .progress-bar { height: 6px; background: var(--c-sep); border-radius: 3px; overflow: hidden; }

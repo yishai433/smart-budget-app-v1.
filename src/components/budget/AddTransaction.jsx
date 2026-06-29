@@ -170,7 +170,6 @@ export default function AddTransaction({ onClose }) {
               value={amount}
               onChange={e => setAmount(e.target.value)}
               style={{ fontSize: 28, fontWeight: 700, textAlign: 'center', letterSpacing: -0.5 }}
-              autoFocus
             />
           </div>
 
