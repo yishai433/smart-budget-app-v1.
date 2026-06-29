@@ -6,7 +6,7 @@ import { SettingsAvatar } from '../components/UserAvatar'
 import UserAvatar from '../components/UserAvatar'
 import AvatarCreator from '../components/AvatarCreator'
 import { db } from '../firebase'
-import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, getDoc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore'
+import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, getDoc, setDoc, Timestamp } from 'firebase/firestore'
 
 function SettingRow({ icon, label, subtitle, right, onClick, danger }) {
   return (
@@ -71,37 +71,32 @@ export default function SettingsPage() {
     setTimeout(() => setToast(''), 2500)
   }
 
-  // Generate a one-time invite code (8 chars, expires in 24h)
+  // Generate a one-time invite code stored inside the household doc (no new collection needed)
   const createInvite = async () => {
     if (!user) return
     setCreatingInvite(true)
     try {
-      const part = () => Math.random().toString(36).substring(2, 6).toUpperCase()
+      const part = () => Math.random().toString(36).substring(2, 5).toUpperCase()
       const code = part() + part()
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
-      await setDoc(doc(db, 'invites', code), {
-        householdId: activeHouseholdId || user.uid,
-        createdBy: user.uid,
-        createdAt: serverTimestamp(),
-        expiresAt: Timestamp.fromDate(expiresAt),
-        used: false,
-        usedBy: null,
+      const hhId = activeHouseholdId || user.uid
+      await updateDoc(doc(db, 'households', hhId), {
+        activeInvite: { code, expiresAt: Timestamp.fromDate(expiresAt), used: false }
       })
       setCurrentInvite({ code, expiresAt })
-    } catch { showToast('שגיאה ביצירת קוד') }
+    } catch (e) { showToast('שגיאה ביצירת קוד: ' + (e.code || e.message)) }
     setCreatingInvite(false)
   }
 
   const copyInviteCode = () => {
     if (!currentInvite) return
-    navigator.clipboard?.writeText(currentInvite.code)
-      .then(() => showToast('📋 קוד הועתק!'))
+    navigator.clipboard?.writeText(currentInvite.code).then(() => showToast('📋 קוד הועתק!'))
   }
 
   const shareInvite = async () => {
     if (!currentInvite) return
     const name = user?.displayName || 'חבר'
-    const text = `${name} מזמין אותך לתקציב משותף 💰\nהקוד שלך: ${currentInvite.code}\n(תקף 24 שעות)`
+    const text = `${name} מזמין אותך לתקציב משותף 💰\nהקוד: ${currentInvite.code}\n(תקף 24 שעות)`
     if (navigator.share) {
       try { await navigator.share({ title: 'תקציב חכם', text }) } catch {}
     } else {
@@ -116,21 +111,29 @@ export default function SettingsPage() {
     setJoinResult(null)
     try {
       const code = joinCode.trim().toUpperCase()
-      const inviteSnap = await getDoc(doc(db, 'invites', code))
-      if (!inviteSnap.exists()) { setJoinResult('error'); setJoining(false); return }
-      const invite = inviteSnap.data()
+      // Search in households collection — no new collection, no rules issues
+      const q = query(collection(db, 'households'), where('activeInvite.code', '==', code))
+      const snap = await getDocs(q)
+      if (snap.empty) { setJoinResult('error'); setJoining(false); return }
+      const hhDoc = snap.docs[0]
+      const invite = hhDoc.data().activeInvite
       if (invite.used) { setJoinResult('used'); setJoining(false); return }
       if (invite.expiresAt.toDate() < new Date()) { setJoinResult('expired'); setJoining(false); return }
-      if (invite.householdId === (activeHouseholdId || user.uid)) { setJoinResult('self'); setJoining(false); return }
+      const ownerUid = hhDoc.id
+      if (ownerUid === (activeHouseholdId || user.uid)) { setJoinResult('self'); setJoining(false); return }
 
-      const ownerUid = invite.householdId
-      await updateDoc(doc(db, 'households', ownerUid), { members: arrayUnion(user.uid) })
+      await updateDoc(doc(db, 'households', ownerUid), {
+        members: arrayUnion(user.uid),
+        'activeInvite.used': true,
+      })
       await setDoc(doc(db, 'userProfiles', user.uid), { linkedHouseholdId: ownerUid }, { merge: true })
-      await updateDoc(doc(db, 'invites', code), { used: true, usedBy: user.uid })
       setJoinResult('ok')
       setJoinCode('')
       setTimeout(() => window.location.reload(), 1500)
-    } catch { setJoinResult('error') }
+    } catch (e) {
+      console.error('join error', e)
+      setJoinResult('error')
+    }
     setJoining(false)
   }
 
