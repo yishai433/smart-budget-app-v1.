@@ -5,8 +5,9 @@ import {
   query, where, orderBy, setDoc, getDoc, getDocs, serverTimestamp, arrayUnion
 } from 'firebase/firestore'
 import { ref, deleteObject } from 'firebase/storage'
-import { onAuthStateChanged, signOut } from 'firebase/auth'
+import { onAuthStateChanged, signOut, updateProfile } from 'firebase/auth'
 import i18n from '../i18n'
+import { buildAvatarUrl } from '../utils/avatar'
 
 const AppContext = createContext(null)
 
@@ -47,6 +48,8 @@ export function AppProvider({ children }) {
     receiptsEnabled: false,
   })
   const [loading, setLoading] = useState(true)
+  const [avatarConfig, setAvatarConfig] = useState(null)
+  const [avatarUrl, setAvatarUrl] = useState(null)
 
   // Auth init — wait for Firebase to restore session automatically
   useEffect(() => {
@@ -66,6 +69,18 @@ export function AppProvider({ children }) {
   }, [])
 
   const initHousehold = async (uid) => {
+    // Load avatar config
+    try {
+      const profileSnap = await getDoc(doc(db, 'userProfiles', uid))
+      if (profileSnap.exists() && profileSnap.data().avatarConfig) {
+        const cfg = profileSnap.data().avatarConfig
+        setAvatarConfig(cfg)
+        setAvatarUrl(buildAvatarUrl(cfg))
+      }
+    } catch (e) {
+      console.error('avatar load error', e)
+    }
+
     const hhRef = doc(db, 'households', uid)
     const snap = await getDoc(hhRef)
     if (!snap.exists()) {
@@ -256,6 +271,19 @@ export function AppProvider({ children }) {
     return true
   }, [addShoppingItem])
 
+  const saveAvatar = useCallback(async (config) => {
+    if (!user) return
+    await setDoc(doc(db, 'userProfiles', user.uid), { avatarConfig: config }, { merge: true })
+    const url = buildAvatarUrl(config)
+    setAvatarConfig(config)
+    setAvatarUrl(url)
+    try {
+      await updateProfile(auth.currentUser, { photoURL: url })
+    } catch (e) {
+      console.error('updateProfile error', e)
+    }
+  }, [user])
+
   const changeLanguage = useCallback((lang) => {
     i18n.changeLanguage(lang)
     localStorage.setItem('sb_lang', lang)
@@ -278,6 +306,7 @@ export function AppProvider({ children }) {
 
   const value = {
     user, household, loading, settings,
+    avatarConfig, avatarUrl, saveAvatar,
     transactions, monthTransactions,
     totalIncome, totalExpenses, balance,
     shoppingItems, CATEGORIES,

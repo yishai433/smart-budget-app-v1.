@@ -104,6 +104,7 @@ export default function AuthPage() {
       if (mode === 'register') {
         const { user } = await createUserWithEmailAndPassword(auth, email, password)
         if (name.trim()) await updateProfile(user, { displayName: name.trim() })
+        localStorage.setItem('sb_new_user', '1')
       } else {
         await signInWithEmailAndPassword(auth, email, password)
       }

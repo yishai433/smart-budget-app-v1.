@@ -1,8 +1,4 @@
-import { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { updateProfile } from 'firebase/auth'
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { auth, storage } from '../firebase'
 import { useApp } from '../contexts/AppContext'
 
 const AVATAR_COLORS = [
@@ -24,28 +20,11 @@ function getInitial(user) {
   return '?'
 }
 
-// Compress + crop image to 200×200 JPEG
-async function compressImage(file) {
-  return new Promise(resolve => {
-    const canvas = document.createElement('canvas')
-    canvas.width = 200; canvas.height = 200
-    const ctx = canvas.getContext('2d')
-    const img = new Image()
-    img.onload = () => {
-      const s = Math.min(img.width, img.height)
-      const sx = (img.width - s) / 2
-      const sy = (img.height - s) / 2
-      ctx.drawImage(img, sx, sy, s, s, 0, 0, 200, 200)
-      canvas.toBlob(resolve, 'image/jpeg', 0.82)
-    }
-    img.src = URL.createObjectURL(file)
-  })
-}
-
 // A single avatar circle — exported for reuse
-export function AvatarCircle({ user, size = 44, fontSize = 18, style = {}, onClick, uploading }) {
+export function AvatarCircle({ user, size = 44, fontSize = 18, style = {}, onClick, uploading, avatarUrlOverride }) {
   const [from, to] = getColor(user?.uid)
-  const hasPhoto = !!user?.photoURL
+  const displayUrl = avatarUrlOverride || user?.photoURL
+  const hasPhoto = !!displayUrl
 
   return (
     <div
@@ -66,7 +45,7 @@ export function AvatarCircle({ user, size = 44, fontSize = 18, style = {}, onCli
       }}
     >
       {hasPhoto
-        ? <img src={user.photoURL} alt="avatar"
+        ? <img src={displayUrl} alt="avatar"
             style={{ width:'100%', height:'100%', objectFit:'cover' }} />
         : getInitial(user)
       }
@@ -85,7 +64,7 @@ export function AvatarCircle({ user, size = 44, fontSize = 18, style = {}, onCli
 
 // Header avatar (small, no edit)
 export default function UserAvatar() {
-  const { user, household } = useApp()
+  const { user, household, avatarUrl } = useApp()
   const isPartnerConnected = household?.members?.length > 1
 
   return (
@@ -101,7 +80,7 @@ export default function UserAvatar() {
             <AvatarCircle user={{ uid: household.members[1] }} size={38} fontSize={16} style={{ opacity: 0.85 }} />
           </div>
           <div style={{ position: 'absolute', insetInlineStart: 20, top: 3 }}>
-            <AvatarCircle user={user} size={40} fontSize={17} />
+            <AvatarCircle user={user} size={40} fontSize={17} avatarUrlOverride={avatarUrl} />
           </div>
           <div style={{
             position: 'absolute', bottom: 0, insetInlineEnd: 0,
@@ -111,7 +90,7 @@ export default function UserAvatar() {
         </div>
       ) : (
         <div style={{ position: 'relative' }}>
-          <AvatarCircle user={user} size={44} fontSize={18} />
+          <AvatarCircle user={user} size={44} fontSize={18} avatarUrlOverride={avatarUrl} />
           <div style={{
             position: 'absolute', bottom: 0, insetInlineEnd: 0,
             width: 13, height: 13, borderRadius: '50%',
@@ -123,59 +102,31 @@ export default function UserAvatar() {
   )
 }
 
-// Large editable avatar for Settings
-export function EditableAvatar({ size = 88 }) {
-  const { user } = useApp()
-  const fileRef = useRef()
-  const [uploading, setUploading] = useState(false)
-  const [error, setError] = useState('')
-
-  const handleFile = async (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (!file.type.startsWith('image/')) { setError('בחר קובץ תמונה'); return }
-    setError('')
-    setUploading(true)
-    try {
-      const blob = await compressImage(file)
-      const storageRef = ref(storage, `avatars/${auth.currentUser.uid}`)
-      await uploadBytes(storageRef, blob)
-      const url = await getDownloadURL(storageRef)
-      await updateProfile(auth.currentUser, { photoURL: url })
-      // Force React re-render by reloading user
-      await auth.currentUser.reload()
-      window.location.reload()
-    } catch (err) {
-      console.error(err)
-      setError('שגיאה בהעלאה, נסה שוב')
-    }
-    setUploading(false)
-  }
+// Large avatar display for Settings (edit opens AvatarCreator externally)
+export function SettingsAvatar({ size = 88, onEdit }) {
+  const { user, avatarUrl } = useApp()
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
       <div style={{ position: 'relative' }}>
-        <AvatarCircle user={user} size={size} fontSize={size * 0.38} uploading={uploading} />
+        <AvatarCircle user={user} size={size} fontSize={size * 0.38} avatarUrlOverride={avatarUrl} />
         <button
-          onClick={() => fileRef.current?.click()}
+          onClick={onEdit}
           style={{
             position: 'absolute', bottom: 0, insetInlineEnd: 0,
             width: 30, height: 30, borderRadius: '50%',
             background: 'var(--c-primary)', border: '2.5px solid white',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', fontSize: 14,
+            cursor: 'pointer', fontSize: 15,
           }}
         >
-          📷
+          ✏️
         </button>
       </div>
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontWeight: 700, fontSize: 17 }}>{user?.displayName || '—'}</div>
         <div style={{ fontSize: 13, color: 'var(--c-text2)' }}>{user?.email}</div>
       </div>
-      {error && <div style={{ color: 'var(--c-danger)', fontSize: 12 }}>{error}</div>}
-      <input ref={fileRef} type="file" accept="image/*" capture="user"
-        style={{ display: 'none' }} onChange={handleFile} />
     </div>
   )
 }

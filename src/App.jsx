@@ -10,6 +10,7 @@ import AddTransaction from './components/budget/AddTransaction'
 import AuthPage from './pages/AuthPage'
 import ReportsPage from './pages/ReportsPage'
 import ReceiptsPage from './pages/ReceiptsPage'
+import AvatarCreator from './components/AvatarCreator'
 
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null } }
@@ -130,6 +131,7 @@ function GlobalFAB({ onOpen }) {
 function AppInner() {
   const { loading, user } = useApp()
   const [showAdd, setShowAdd] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
   useEffect(() => {
     const vv = window.visualViewport
@@ -147,10 +149,25 @@ function AppInner() {
     }
   }, [])
 
+  useEffect(() => {
+    if (user && localStorage.getItem('sb_new_user')) {
+      setShowOnboarding(true)
+    }
+  }, [user])
+
   if (loading) return <LoadingScreen />
 
   // Not logged in → show auth screen
   if (!user) return <AuthPage />
+
+  // New user → avatar onboarding
+  if (showOnboarding) {
+    const done = () => {
+      localStorage.removeItem('sb_new_user')
+      setShowOnboarding(false)
+    }
+    return <AvatarCreator isOnboarding onSave={done} onSkip={done} />
+  }
 
   return (
     <>

@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '../contexts/AppContext'
-import { EditableAvatar } from '../components/UserAvatar'
+import { SettingsAvatar } from '../components/UserAvatar'
+import AvatarCreator from '../components/AvatarCreator'
 import { db } from '../firebase'
 import { collection, query, where, getDocs, updateDoc, doc, arrayUnion } from 'firebase/firestore'
 
@@ -39,6 +40,8 @@ function Toggle({ checked, onChange }) {
 export default function SettingsPage() {
   const { t } = useTranslation()
   const { settings, changeLanguage, updateSettings, household, user, logout } = useApp()
+  const { avatarConfig } = useApp()
+  const [editingAvatar, setEditingAvatar] = useState(false)
   const [joinCode, setJoinCode] = useState('')
   const [joining, setJoining] = useState(false)
   const [toast, setToast] = useState('')
@@ -132,6 +135,18 @@ export default function SettingsPage() {
 
   const CURRENCIES = ['₪', '$', '€', '£']
 
+  // Show full-screen avatar creator when editing
+  if (editingAvatar) {
+    return (
+      <AvatarCreator
+        initialConfig={avatarConfig}
+        onSave={() => setEditingAvatar(false)}
+        onSkip={() => setEditingAvatar(false)}
+        isOnboarding={false}
+      />
+    )
+  }
+
   return (
     <div className="page">
       <div className="page-header" style={{ paddingBottom: 28 }}>
@@ -140,10 +155,10 @@ export default function SettingsPage() {
 
       <div style={{ padding: '16px 16px 0' }}>
 
-        {/* Profile photo */}
+        {/* Avatar */}
         <div className="card" style={{ marginBottom: 24 }}>
           <div className="card-inner" style={{ display:'flex', justifyContent:'center', padding: '24px 20px' }}>
-            <EditableAvatar size={90} />
+            <SettingsAvatar size={90} onEdit={() => setEditingAvatar(true)} />
           </div>
         </div>
 
