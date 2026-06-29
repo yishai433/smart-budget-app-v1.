@@ -4,7 +4,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { storage } from '../firebase'
 import { useApp } from '../contexts/AppContext'
 import { useTranslation } from 'react-i18next'
-import { preprocessForOCR, parseReceiptText, compressImage, receiptName } from '../utils/receiptOCR'
+import { preprocessForOCR, parseReceiptText, compressImage, imageToBase64, receiptName } from '../utils/receiptOCR'
 
 export default function ReceiptScanner({ onClose, onSaved, transactionId, transactionDesc, date }) {
   const { t } = useTranslation()
@@ -24,7 +24,6 @@ export default function ReceiptScanner({ onClose, onSaved, transactionId, transa
 
   const handleFile = async (file) => {
     if (!file) return
-    // Keep a readable JPEG for storage; build a cleaned image just for OCR
     const compressed = await compressImage(file)
     setBlob(compressed)
     setPreview(URL.createObjectURL(compressed))
@@ -80,33 +79,20 @@ export default function ReceiptScanner({ onClose, onSaved, transactionId, transa
     if (!blob || !user) return
     setUploading(true)
     setError('')
-    const withTimeout = (p, ms = 15000) =>
-      Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))])
     try {
+      // Convert to base64 — stored directly in Firestore, no Storage CORS needed
+      const imageData = blob ? await imageToBase64(blob) : null
       const receiptDate = result.date || new Date().toISOString().split('T')[0]
-      const ts = Date.now()
-      const fileName = `${receiptName(result.merchant, receiptDate)}_${ts}.jpg`
-      const storagePath = `receipts/${user.uid}/${fileName}`
-
-      // Try to upload image — if Storage is blocked/slow, save data without it
-      let imageUrl = null
-      try {
-        const storageRef = ref(storage, storagePath)
-        await withTimeout(uploadBytes(storageRef, blob))
-        imageUrl = await withTimeout(getDownloadURL(storageRef))
-      } catch (storageErr) {
-        console.warn('Storage upload failed, saving data only:', storageErr.message)
-      }
-
-      await withTimeout(addReceipt({
-        imageUrl,
-        storagePath: imageUrl ? storagePath : null,
+      await addReceipt({
+        imageData,
+        imageUrl: null,
+        storagePath: null,
         date: receiptDate,
         transactionId: transactionId || null,
         description: result.merchant || transactionDesc || '',
         total: result.total ? parseFloat(result.total) : null,
         rawText: rawText || '',
-      }), 10000)
+      })
       onSaved?.()
       onClose()
     } catch (err) {

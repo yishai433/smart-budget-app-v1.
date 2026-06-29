@@ -31,12 +31,24 @@ function formatDay(dateStr) {
   return `${parts[2]}.${parts[1]}.${parts[0].slice(2)}`
 }
 
-async function downloadReceipt(imageUrl, fileBase) {
+async function downloadReceipt(receipt, fileBase) {
   const name = `${fileBase}.jpg`
+  // Prefer base64 stored in Firestore; fall back to Storage URL
+  const src = receipt.imageData || receipt.imageUrl
+  if (!src) return
+
+  const getBlob = async () => {
+    if (receipt.imageData) {
+      const res = await fetch(receipt.imageData)
+      return res.blob()
+    }
+    const res = await fetch(receipt.imageUrl)
+    return res.blob()
+  }
+
   if (navigator.share) {
     try {
-      const res = await fetch(imageUrl)
-      const blob = await res.blob()
+      const blob = await getBlob()
       const file = new File([blob], name, { type: 'image/jpeg' })
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: fileBase })
@@ -45,18 +57,15 @@ async function downloadReceipt(imageUrl, fileBase) {
     } catch {}
   }
   try {
-    const res = await fetch(imageUrl)
-    const blob = await res.blob()
+    const blob = await getBlob()
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
-    a.href = url
-    a.download = name
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
+    a.href = url; a.download = name
+    document.body.appendChild(a); a.click(); document.body.removeChild(a)
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   } catch {
-    window.open(imageUrl, '_blank')
+    const src2 = receipt.imageData || receipt.imageUrl
+    if (src2) window.open(src2, '_blank')
   }
 }
 
@@ -68,9 +77,10 @@ function ReceiptCard({ receipt, onDelete }) {
 
   const handleDownload = async () => {
     setDownloading(true)
-    await downloadReceipt(receipt.imageUrl, receiptName(receipt.description, receipt.date))
+    await downloadReceipt(receipt, receiptName(receipt.description, receipt.date))
     setDownloading(false)
   }
+  const imgSrc = receipt.imageData || receipt.imageUrl
 
   return (
     <>
@@ -88,20 +98,19 @@ function ReceiptCard({ receipt, onDelete }) {
       >
         {/* Thumbnail */}
         <div
-          onClick={() => setViewing(true)}
+          onClick={() => imgSrc && setViewing(true)}
           style={{
             width: '100%', height: 160,
             background: '#f0f0f0',
             overflow: 'hidden',
-            cursor: 'pointer',
+            cursor: imgSrc ? 'pointer' : 'default',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
-          <img
-            src={receipt.imageUrl}
-            alt="receipt"
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
+          {imgSrc
+            ? <img src={imgSrc} alt="receipt" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            : <span style={{ fontSize: 40 }}>🧾</span>
+          }
         </div>
 
         {/* Info */}
@@ -155,7 +164,7 @@ function ReceiptCard({ receipt, onDelete }) {
             }}
           >
             <motion.img
-              src={receipt.imageUrl}
+              src={imgSrc}
               alt="full"
               initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
