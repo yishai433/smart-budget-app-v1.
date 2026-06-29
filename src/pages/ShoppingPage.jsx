@@ -5,52 +5,85 @@ import ShoppingList from '../components/shopping/ShoppingList'
 import { useApp } from '../contexts/AppContext'
 
 function CheckoutModal({ total, onConfirm, onCancel }) {
-  const { t } = useTranslation()
   const { settings } = useApp()
   const cur = settings.currency
+  const [addExpense, setAddExpense] = useState(true)
+  const [saveTemplate, setSaveTemplate] = useState(false)
+
+  const Toggle = ({ checked, onChange, label, sub }) => (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      background: 'var(--c-bg)', borderRadius: 'var(--r-md)', padding: '12px 14px',
+    }}>
+      <div>
+        <div style={{ fontWeight: 600, fontSize: 14 }}>{label}</div>
+        {sub && <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2 }}>{sub}</div>}
+      </div>
+      <label className="toggle">
+        <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} />
+        <div className="toggle-track" />
+        <div className="toggle-thumb" />
+      </label>
+    </div>
+  )
 
   return (
     <>
       <motion.div className="sheet-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onCancel} />
-      <motion.div
-        className="sheet"
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        transition={{ type: 'spring', stiffness: 380, damping: 36 }}
-        style={{ padding: '0 20px calc(var(--safe-bottom) + 24px)' }}
-      >
-        <div className="sheet-handle" />
-        <div style={{ textAlign: 'center', padding: '32px 0 24px' }}>
-          <div style={{ fontSize: 56, marginBottom: 16 }}>🛍️</div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>
-            {t('shopping.checkout')}
-          </h2>
-          <p style={{ color: 'var(--c-text2)', fontSize: 15 }}>
-            {t('shopping.checkoutConfirm', { amount: total.toFixed(2) })}
-          </p>
-          <div style={{ fontSize: 40, fontWeight: 800, color: 'var(--c-danger)', margin: '20px 0' }}>
-            {cur}{total.toFixed(2)}
+      <div className="sheet-viewport">
+        <motion.div
+          className="sheet"
+          initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+          transition={{ type: 'spring', stiffness: 380, damping: 36 }}
+        >
+          <div className="sheet-handle" />
+          <div className="sheet-body">
+            <div style={{ textAlign: 'center', padding: '8px 0 4px' }}>
+              <div style={{ fontSize: 48, marginBottom: 10 }}>🛍️</div>
+              <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 6 }}>סיים קניה</h2>
+              <div style={{ fontSize: 36, fontWeight: 800, color: 'var(--c-danger)', margin: '8px 0' }}>
+                {cur}{total.toFixed(2)}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <Toggle
+                checked={addExpense}
+                onChange={setAddExpense}
+                label="הוסף להוצאות"
+                sub={addExpense ? `תירשם הוצאה של ${cur}${total.toFixed(2)}` : 'לא תירשם הוצאה'}
+              />
+              <Toggle
+                checked={saveTemplate}
+                onChange={setSaveTemplate}
+                label="שמור רשימה לפעם הבאה"
+                sub="תוכל לטעון אותה שוב בקליק"
+              />
+            </div>
           </div>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <button className="btn btn-primary btn-full" onClick={onConfirm}>
-            ✓ {t('shopping.addToExpenses')}
-          </button>
-          <button className="btn btn-secondary btn-full" onClick={onCancel}>
-            {t('common.cancel')}
-          </button>
-        </div>
-      </motion.div>
+
+          <div className="sheet-footer">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button className="btn btn-primary btn-full" onClick={() => onConfirm({ addExpense, saveTemplate })}>
+                ✓ סיים קניה
+              </button>
+              <button className="btn btn-secondary btn-full" onClick={onCancel}>
+                ביטול
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
     </>
   )
 }
 
 export default function ShoppingPage() {
   const { t } = useTranslation()
-  const { checkoutShopping, clearShoppingList, shoppingItems } = useApp()
+  const { checkoutShopping, clearShoppingList, loadShoppingTemplate, shoppingItems } = useApp()
   const [checkoutTotal, setCheckoutTotal] = useState(null)
   const [toast, setToast] = useState('')
+  const hasTemplate = !!localStorage.getItem('sb_shopping_template')
 
   const showToast = (msg) => {
     setToast(msg)
@@ -59,10 +92,10 @@ export default function ShoppingPage() {
 
   const handleCheckout = (total) => setCheckoutTotal(total)
 
-  const handleConfirmCheckout = async () => {
-    await checkoutShopping(checkoutTotal)
+  const handleConfirmCheckout = async ({ addExpense, saveTemplate }) => {
+    await checkoutShopping(checkoutTotal, { addExpense, saveTemplate })
     setCheckoutTotal(null)
-    showToast('✅ ' + t('shopping.checkout'))
+    showToast(saveTemplate ? '✅ הקניה הסתיימה ורשימה נשמרה' : '✅ הקניה הסתיימה')
   }
 
   const handleClear = async () => {
@@ -70,25 +103,36 @@ export default function ShoppingPage() {
     showToast(t('shopping.listCleared'))
   }
 
+  const handleLoadTemplate = async () => {
+    const loaded = await loadShoppingTemplate()
+    showToast(loaded ? '📋 הרשימה השמורה נטענה' : 'אין רשימה שמורה')
+  }
+
   return (
     <div className="page">
-      {/* Header */}
       <div className="page-header" style={{ paddingBottom: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h1 style={{ fontSize: 28, fontWeight: 800 }}>{t('shopping.title')}</h1>
           <div style={{ display: 'flex', gap: 8 }}>
+            {shoppingItems.length === 0 && hasTemplate && (
+              <button
+                onClick={handleLoadTemplate}
+                style={{
+                  background: 'rgba(255,255,255,0.15)', border: 'none',
+                  borderRadius: 20, padding: '8px 14px',
+                  color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                }}
+              >
+                📋 טען רשימה
+              </button>
+            )}
             {shoppingItems.length > 0 && (
               <button
                 onClick={handleClear}
                 style={{
-                  background: 'rgba(255,255,255,0.15)',
-                  border: 'none',
-                  borderRadius: 20,
-                  padding: '8px 14px',
-                  color: 'white',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: 'pointer',
+                  background: 'rgba(255,255,255,0.15)', border: 'none',
+                  borderRadius: 20, padding: '8px 14px',
+                  color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer',
                 }}
               >
                 🗑 {t('shopping.clearList')}
@@ -105,7 +149,6 @@ export default function ShoppingPage() {
         <ShoppingList onCheckout={handleCheckout} />
       </div>
 
-      {/* Checkout modal */}
       <AnimatePresence>
         {checkoutTotal !== null && (
           <CheckoutModal
@@ -116,7 +159,6 @@ export default function ShoppingPage() {
         )}
       </AnimatePresence>
 
-      {/* Toast */}
       <AnimatePresence>
         {toast && (
           <motion.div

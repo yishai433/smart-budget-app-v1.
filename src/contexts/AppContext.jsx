@@ -227,17 +227,33 @@ export function AppProvider({ children }) {
     await Promise.all(shoppingItems.map(i => deleteDoc(doc(db, 'shoppingItems', i.id))))
   }, [shoppingItems])
 
-  const checkoutShopping = useCallback(async (total) => {
-    await addTransaction({
-      type: 'expense',
-      category: 'food',
-      amount: total,
-      description: i18n.t('shopping.title'),
-      date: new Date().toISOString().split('T')[0],
-      isRecurring: false,
-    })
+  const checkoutShopping = useCallback(async (total, { addExpense = true, saveTemplate = false } = {}) => {
+    if (saveTemplate) {
+      const template = shoppingItems.map(({ name, category, quantity, estimatedPrice, otherLabel }) =>
+        ({ name, category, quantity: quantity || 1, estimatedPrice: estimatedPrice || 0, otherLabel: otherLabel || '' })
+      )
+      localStorage.setItem('sb_shopping_template', JSON.stringify(template))
+    }
+    if (addExpense && total > 0) {
+      await addTransaction({
+        type: 'expense',
+        category: 'food',
+        amount: total,
+        description: i18n.t('shopping.title'),
+        date: new Date().toISOString().split('T')[0],
+        isRecurring: false,
+      })
+    }
     await clearShoppingList()
-  }, [addTransaction, clearShoppingList])
+  }, [addTransaction, clearShoppingList, shoppingItems])
+
+  const loadShoppingTemplate = useCallback(async () => {
+    const raw = localStorage.getItem('sb_shopping_template')
+    if (!raw) return false
+    const template = JSON.parse(raw)
+    await Promise.all(template.map(item => addShoppingItem(item)))
+    return true
+  }, [addShoppingItem])
 
   const changeLanguage = useCallback((lang) => {
     i18n.changeLanguage(lang)
@@ -267,7 +283,7 @@ export function AppProvider({ children }) {
     receipts, addReceipt, deleteReceipt,
     addTransaction, deleteTransaction,
     addShoppingItem, updateShoppingItem, deleteShoppingItem,
-    clearShoppingList, checkoutShopping,
+    clearShoppingList, checkoutShopping, loadShoppingTemplate,
     changeLanguage, updateSettings, logout,
   }
 
