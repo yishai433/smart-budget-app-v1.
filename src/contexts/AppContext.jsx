@@ -39,13 +39,18 @@ export function AppProvider({ children }) {
   const [transactions, setTransactions] = useState([])
   const [shoppingItems, setShoppingItems] = useState([])
   const [receipts, setReceipts] = useState([])
-  const [settings, setSettings] = useState({
-    language: localStorage.getItem('sb_lang') || 'he',
-    currency: '₪',
-    notificationsEnabled: false,
-    reminderTime: '20:00',
-    reminderFrequency: 'daily',
-    receiptsEnabled: false,
+  const [settings, setSettings] = useState(() => {
+    let saved = {}
+    try { saved = JSON.parse(localStorage.getItem('sb_settings') || '{}') } catch {}
+    return {
+      language: localStorage.getItem('sb_lang') || 'he',
+      currency: '₪',
+      notificationsEnabled: false,
+      reminderTime: '20:00',
+      reminderFrequency: 'daily',
+      receiptsEnabled: false,
+      ...saved,
+    }
   })
   const [loading, setLoading] = useState(true)
   const [avatarConfig, setAvatarConfig] = useState(null)
@@ -287,7 +292,11 @@ export function AppProvider({ children }) {
   }, [])
 
   const updateSettings = useCallback((patch) => {
-    setSettings(s => ({ ...s, ...patch }))
+    setSettings(s => {
+      const next = { ...s, ...patch }
+      localStorage.setItem('sb_settings', JSON.stringify(next))
+      return next
+    })
   }, [])
 
   // Derived stats for current month
