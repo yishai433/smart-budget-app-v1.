@@ -304,29 +304,34 @@ body {
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }
-/* Wrapper tracks the visible viewport (above the keyboard on iOS) */
+/* Wrapper tracks the visible viewport above the keyboard on iOS.
+   It carries the white background so no dark overlay shows through. */
 .sheet-viewport {
   position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  margin: 0 auto;
   width: 100%;
   max-width: 430px;
   top: var(--kb-top, 0px);
   height: var(--kb-height, 100dvh);
   z-index: 201;
+  pointer-events: none;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  pointer-events: none;
 }
 .sheet {
   pointer-events: auto;
   width: 100%;
   background: var(--c-card);
   border-radius: var(--r-xl) var(--r-xl) 0 0;
-  max-height: 100%;
+  /* Fill from sheet top all the way down — no gap between sheet and keyboard */
   display: flex;
   flex-direction: column;
+  max-height: 100%;
+  /* Extend background visually past bottom edge so no gap shows */
+  box-shadow: 0 200px 0 200px var(--c-card);
 }
 .sheet-body {
   flex: 1;
