@@ -91,6 +91,14 @@ export function AppProvider({ children }) {
           })
         }
       }
+      // Always keep displayName + email in profile so other members can see them
+      const u = auth.currentUser
+      if (u) {
+        setDoc(doc(db, 'userProfiles', uid), {
+          displayName: u.displayName || '',
+          email: u.email || '',
+        }, { merge: true }).catch(() => {})
+      }
     } catch (e) {
       console.error('profile load error', e)
     }

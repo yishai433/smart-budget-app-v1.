@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '../contexts/AppContext'
@@ -6,7 +6,7 @@ import { SettingsAvatar } from '../components/UserAvatar'
 import UserAvatar from '../components/UserAvatar'
 import AvatarCreator from '../components/AvatarCreator'
 import { db } from '../firebase'
-import { collection, query, where, getDocs, updateDoc, doc, arrayUnion } from 'firebase/firestore'
+import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, getDoc } from 'firebase/firestore'
 
 function SettingRow({ icon, label, subtitle, right, onClick, danger }) {
   return (
@@ -45,8 +45,24 @@ export default function SettingsPage() {
   const [editingAvatar, setEditingAvatar] = useState(false)
   const [joinCode, setJoinCode] = useState('')
   const [joining, setJoining] = useState(false)
+  const [joinResult, setJoinResult] = useState(null) // 'ok' | 'error' | null
   const [toast, setToast] = useState('')
+  const [members, setMembers] = useState([])
   const [notifPerm, setNotifPerm] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'default')
+
+  // Load member profiles whenever household changes
+  useEffect(() => {
+    if (!household?.members?.length) return
+    Promise.all(
+      household.members.map(async uid => {
+        try {
+          const snap = await getDoc(doc(db, 'userProfiles', uid))
+          const data = snap.exists() ? snap.data() : {}
+          return { uid, name: data.displayName || data.email || uid.slice(0, 8), email: data.email || '' }
+        } catch { return { uid, name: uid.slice(0, 8), email: '' } }
+      })
+    ).then(setMembers)
+  }, [household])
 
   const showToast = (msg) => {
     setToast(msg)
@@ -86,22 +102,26 @@ export default function SettingsPage() {
   const joinHousehold = async () => {
     if (!joinCode.trim() || !user) return
     setJoining(true)
+    setJoinResult(null)
     try {
       const code = joinCode.trim().toUpperCase()
+      if (code === household?.inviteCode) {
+        setJoinResult('self')
+        setJoining(false)
+        return
+      }
       const q = query(collection(db, 'households'), where('inviteCode', '==', code))
       const snap = await getDocs(q)
       if (snap.empty) {
-        showToast('❌ Code not found')
+        setJoinResult('error')
       } else {
         const hhDoc = snap.docs[0]
-        await updateDoc(doc(db, 'households', hhDoc.id), {
-          members: arrayUnion(user.uid)
-        })
-        showToast('✅ ' + t('settings.partnerConnected'))
+        await updateDoc(doc(db, 'households', hhDoc.id), { members: arrayUnion(user.uid) })
+        setJoinResult('ok')
         setJoinCode('')
       }
-    } catch (e) {
-      showToast('❌ Error joining')
+    } catch {
+      setJoinResult('error')
     }
     setJoining(false)
   }
@@ -263,70 +283,126 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Household */}
+        {/* Shared Household */}
         <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text2)', padding: '0 4px 8px', letterSpacing: 0.5, textTransform: 'uppercase' }}>
-          {t('settings.household')}
+          👥 חשבון משותף
         </h3>
-        <div className="card" style={{ marginBottom: 20 }}>
-          <div className="card-inner" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Your code */}
-            <div>
-              <p style={{ fontSize: 13, color: 'var(--c-text2)', marginBottom: 8 }}>{t('settings.yourCode')}</p>
-              <div className="code-display">{household?.inviteCode || '------'}</div>
 
-              {/* Share / Copy buttons */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 10 }}>
-                <button className="btn btn-secondary btn-full" onClick={copyCode}>
-                  📋 העתק קוד
-                </button>
-                <button
-                  className="btn btn-primary btn-full"
-                  onClick={shareInvite}
-                  style={{ boxShadow: '0 4px 14px rgba(22,163,73,0.3)' }}
-                >
-                  🔗 שלח הזמנה
-                </button>
-              </div>
-
-              {/* Preview of invite link */}
+        {/* Status card */}
+        <div className="card" style={{ marginBottom: 12 }}>
+          <div className="card-inner" style={{ padding: '16px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{
-                marginTop: 10,
-                background: 'var(--c-bg)',
-                borderRadius: 'var(--r-md)',
-                padding: '10px 14px',
-                fontSize: 12,
-                color: 'var(--c-text2)',
-                wordBreak: 'break-all',
-                lineHeight: 1.5,
+                width: 44, height: 44, borderRadius: 22,
+                background: members.length > 1 ? 'rgba(22,163,73,0.12)' : 'var(--c-bg)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0,
               }}>
-                🔗 {getInviteLink()}
+                {members.length > 1 ? '👥' : '👤'}
               </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 15 }}>
+                  {members.length > 1 ? `חשבון משותף (${members.length} חברים)` : 'חשבון פרטי'}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2 }}>
+                  {members.length > 1
+                    ? members.map(m => m.name).join(' · ')
+                    : 'הזמן בן/בת זוג לשיתוף תקציב'}
+                </div>
+              </div>
+              {members.length > 1 && (
+                <div style={{
+                  background: 'rgba(22,163,73,0.12)', color: 'var(--c-primary)',
+                  fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20,
+                }}>פעיל</div>
+              )}
             </div>
+          </div>
+        </div>
 
-            <div style={{ height: 1, background: 'var(--c-sep)' }} />
-
-            {/* Join household */}
+        {/* Invite section */}
+        <div className="card" style={{ marginBottom: 12 }}>
+          <div className="card-inner" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
-              <p style={{ fontSize: 13, color: 'var(--c-text2)', marginBottom: 8 }}>{t('settings.joinHousehold')}</p>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  className="input-field"
-                  placeholder={t('settings.enterCode')}
-                  value={joinCode}
-                  onChange={e => setJoinCode(e.target.value.toUpperCase())}
-                  maxLength={6}
-                  style={{ letterSpacing: 3, fontWeight: 700, flex: 1 }}
-                />
-                <button
-                  className="btn btn-primary"
-                  onClick={joinHousehold}
-                  disabled={!joinCode.trim() || joining}
-                  style={{ padding: '13px 18px', opacity: !joinCode.trim() ? 0.5 : 1, flexShrink: 0 }}
-                >
-                  {joining ? '...' : t('settings.join')}
-                </button>
+              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>📤 הזמן בן/בת זוג</div>
+              <div style={{ fontSize: 13, color: 'var(--c-text2)' }}>שלח את הקוד הזה ובן הזוג יזין אותו באפליקציה</div>
+            </div>
+
+            {/* Big code display */}
+            <div style={{
+              background: 'var(--c-bg)', borderRadius: 'var(--r-lg)',
+              padding: '18px 20px', textAlign: 'center',
+            }}>
+              <div style={{ fontSize: 11, color: 'var(--c-text3)', marginBottom: 6, letterSpacing: 0.5 }}>קוד ההזמנה שלך</div>
+              <div style={{
+                fontSize: 32, fontWeight: 800, letterSpacing: 8,
+                color: 'var(--c-primary)', fontFamily: 'monospace',
+              }}>
+                {household?.inviteCode || '------'}
               </div>
             </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <button className="btn btn-secondary btn-full" onClick={copyCode} style={{ padding: '12px 8px', fontSize: 14 }}>
+                📋 העתק קוד
+              </button>
+              <button className="btn btn-primary btn-full" onClick={shareInvite}
+                style={{ padding: '12px 8px', fontSize: 14, boxShadow: '0 4px 14px rgba(22,163,73,0.3)' }}>
+                💬 שלח הזמנה
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Join section */}
+        <div className="card" style={{ marginBottom: 20 }}>
+          <div className="card-inner" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>📥 הצטרף לחשבון</div>
+              <div style={{ fontSize: 13, color: 'var(--c-text2)' }}>קיבלת קוד הזמנה? הזן אותו כאן</div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                className="input-field"
+                placeholder="ABC123"
+                value={joinCode}
+                onChange={e => { setJoinCode(e.target.value.toUpperCase()); setJoinResult(null) }}
+                maxLength={6}
+                style={{ letterSpacing: 4, fontWeight: 800, fontSize: 18, flex: 1, textAlign: 'center' }}
+              />
+              <button
+                className="btn btn-primary"
+                onClick={joinHousehold}
+                disabled={joinCode.trim().length < 4 || joining}
+                style={{ padding: '13px 20px', flexShrink: 0, opacity: joinCode.trim().length < 4 ? 0.4 : 1 }}
+              >
+                {joining ? '⏳' : 'הצטרף'}
+              </button>
+            </div>
+
+            <AnimatePresence>
+              {joinResult === 'ok' && (
+                <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                  style={{ background: 'rgba(22,163,73,0.1)', borderRadius: 'var(--r-md)', padding: '10px 14px',
+                    fontSize: 13, color: 'var(--c-primary)', fontWeight: 600 }}>
+                  ✅ הצטרפת בהצלחה! כל הנתונים משותפים כעת
+                </motion.div>
+              )}
+              {joinResult === 'error' && (
+                <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                  style={{ background: 'rgba(217,107,107,0.1)', borderRadius: 'var(--r-md)', padding: '10px 14px',
+                    fontSize: 13, color: 'var(--c-danger)', fontWeight: 600 }}>
+                  ❌ קוד לא נמצא — בדוק שוב
+                </motion.div>
+              )}
+              {joinResult === 'self' && (
+                <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                  style={{ background: 'rgba(255,149,0,0.1)', borderRadius: 'var(--r-md)', padding: '10px 14px',
+                    fontSize: 13, color: 'var(--c-warning)', fontWeight: 600 }}>
+                  זה הקוד שלך — הזן את הקוד של בן/בת הזוג
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
