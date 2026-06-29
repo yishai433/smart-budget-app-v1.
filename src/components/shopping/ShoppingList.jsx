@@ -20,7 +20,7 @@ function AddItemSheet({ onClose }) {
   const [otherLabel, setOtherLabel] = useState('')
 
   const handleAdd = async () => {
-    if (!name.trim()) return
+    if (!name.trim() || !(parseFloat(price) > 0)) return
     await addShoppingItem({
       name: name.trim(),
       quantity: parseFloat(qty) || 1,
@@ -99,7 +99,7 @@ function AddItemSheet({ onClose }) {
         </div>
 
         <div className="sheet-footer">
-          <button className="btn btn-primary btn-full" onClick={handleAdd} disabled={!name.trim()}>
+          <button className="btn btn-primary btn-full" onClick={handleAdd} disabled={!name.trim() || !(parseFloat(price) > 0)}>
             {t('common.add')}
           </button>
         </div>
