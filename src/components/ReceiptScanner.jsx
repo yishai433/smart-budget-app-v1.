@@ -80,34 +80,38 @@ export default function ReceiptScanner({ onClose, onSaved, transactionId, transa
     if (!blob || !user) return
     setUploading(true)
     setError('')
-    const withTimeout = (p, ms = 25000) =>
+    const withTimeout = (p, ms = 15000) =>
       Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))])
     try {
       const receiptDate = result.date || new Date().toISOString().split('T')[0]
       const ts = Date.now()
       const fileName = `${receiptName(result.merchant, receiptDate)}_${ts}.jpg`
       const storagePath = `receipts/${user.uid}/${fileName}`
-      const storageRef = ref(storage, storagePath)
-      await withTimeout(uploadBytes(storageRef, blob))
-      const imageUrl = await withTimeout(getDownloadURL(storageRef))
+
+      // Try to upload image — if Storage is blocked/slow, save data without it
+      let imageUrl = null
+      try {
+        const storageRef = ref(storage, storagePath)
+        await withTimeout(uploadBytes(storageRef, blob))
+        imageUrl = await withTimeout(getDownloadURL(storageRef))
+      } catch (storageErr) {
+        console.warn('Storage upload failed, saving data only:', storageErr.message)
+      }
+
       await withTimeout(addReceipt({
         imageUrl,
-        storagePath,
+        storagePath: imageUrl ? storagePath : null,
         date: receiptDate,
         transactionId: transactionId || null,
         description: result.merchant || transactionDesc || '',
         total: result.total ? parseFloat(result.total) : null,
         rawText: rawText || '',
-      }))
+      }), 10000)
       onSaved?.()
       onClose()
     } catch (err) {
-      console.error('receipt upload error:', err)
-      setError(
-        err.message === 'timeout'
-          ? '⏱ הכנסייה לוקחת יותר מדי זמן — בדוק חיבור ונסה שוב'
-          : `שגיאה בשמירת החשבונית: ${err.code || err.message}`
-      )
+      console.error('receipt save error:', err)
+      setError(`שגיאה בשמירה: ${err.code || err.message}`)
     } finally {
       setUploading(false)
     }
