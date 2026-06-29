@@ -40,41 +40,48 @@ export function preprocessForOCR(file) {
       for (let i = 0, p = 0; i < ad.length; i += 4, p++)
         gray[p] = (ad[i] * 0.299 + ad[i + 1] * 0.587 + ad[i + 2] * 0.114) | 0
 
-      // ── 2. Row / column brightness projections to locate the receipt
-      // Thermal paper is very white (>165). Wood/tables are usually darker.
-      const BRIGHT = 165
-      const colScore = new Float32Array(aw)
-      const rowScore = new Float32Array(ah)
+      // ── 2. Row / column brightness projections to locate the receipt.
+      // We use MEAN brightness per column/row (0-255), then threshold at
+      // 65% of the maximum — fully adaptive to the actual lighting in the photo.
+      // Receipt paper (near-white ≥220) will score near 255; wood/background
+      // much lower, so the relative threshold separates them reliably.
+      const colMean = new Float32Array(aw)
+      const rowMean = new Float32Array(ah)
       for (let y = 0; y < ah; y++)
         for (let x = 0; x < aw; x++) {
-          const b = gray[y * aw + x] > BRIGHT ? 1 : 0
-          colScore[x] += b; rowScore[y] += b
+          const v = gray[y * aw + x]
+          colMean[x] += v; rowMean[y] += v
         }
-      for (let x = 0; x < aw; x++) colScore[x] /= ah
-      for (let y = 0; y < ah; y++) rowScore[y] /= aw
+      for (let x = 0; x < aw; x++) colMean[x] /= ah
+      for (let y = 0; y < ah; y++) rowMean[y] /= aw
 
-      // Smooth projections (5-tap moving average) to avoid jagged crop edges
+      // Smooth projections (7-tap moving average)
       const smooth = (a) => {
         const out = new Float32Array(a.length)
         for (let i = 0; i < a.length; i++) {
           let s = 0, c = 0
-          for (let d = -2; d <= 2; d++) {
-            const j = i + d
+          for (let k = -3; k <= 3; k++) {
+            const j = i + k
             if (j >= 0 && j < a.length) { s += a[j]; c++ }
           }
           out[i] = s / c
         }
         return out
       }
-      const cs = smooth(colScore), rs = smooth(rowScore)
+      const cs = smooth(colMean), rs = smooth(rowMean)
 
-      // Find first/last column and row where bright-pixel ratio exceeds MIN
-      const MIN = 0.35
+      // Adaptive threshold: 65% of the brightest column / row
+      const maxC = Math.max(...Array.from(cs))
+      const maxR = Math.max(...Array.from(rs))
+      const tC = maxC * 0.65
+      const tR = maxR * 0.65
+
       let cx1 = 0, cx2 = aw - 1, cy1 = 0, cy2 = ah - 1
-      for (let x = 0; x < aw; x++) if (cs[x] > MIN) { cx1 = x; break }
-      for (let x = aw - 1; x >= 0; x--) if (cs[x] > MIN) { cx2 = x; break }
-      for (let y = 0; y < ah; y++) if (rs[y] > MIN) { cy1 = y; break }
-      for (let y = ah - 1; y >= 0; y--) if (rs[y] > MIN) { cy2 = y; break }
+      for (let x = 0; x < aw; x++) if (cs[x] >= tC) { cx1 = x; break }
+      for (let x = aw - 1; x >= 0; x--) if (cs[x] >= tC) { cx2 = x; break }
+      for (let y = 0; y < ah; y++) if (rs[y] >= tR) { cy1 = y; break }
+      for (let y = ah - 1; y >= 0; y--) if (rs[y] >= tR) { cy2 = y; break }
+      console.log('[crop] box', cx1, cy1, cx2, cy2, '| maxC', maxC.toFixed(0), 'tC', tC.toFixed(0))
 
       // Map crop box back to original image coords + 2% padding
       const pad = 0.02

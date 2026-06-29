@@ -51,8 +51,8 @@ export default function ReceiptScanner({ onClose, onSaved, transactionId, transa
           }
         },
       })
-      // PSM 6 = assume a uniform block of text — best for receipts
-      await worker.setParameters({ tessedit_pageseg_mode: '6' })
+      // PSM 4 = single column of variable-size text — best for receipts
+      await worker.setParameters({ tessedit_pageseg_mode: '4' })
       const { data: { text } } = await worker.recognize(ocrBlob)
       await worker.terminate()
 
