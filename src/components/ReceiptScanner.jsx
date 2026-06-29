@@ -4,77 +4,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { storage } from '../firebase'
 import { useApp } from '../contexts/AppContext'
 import { useTranslation } from 'react-i18next'
-
-function compressImage(file) {
-  return new Promise((resolve) => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      URL.revokeObjectURL(url)
-      const MAX = 1500
-      let w = img.width, h = img.height
-      if (w > MAX || h > MAX) {
-        if (w > h) { h = Math.round(h * MAX / w); w = MAX }
-        else { w = Math.round(w * MAX / h); h = MAX }
-      }
-      const canvas = document.createElement('canvas')
-      canvas.width = w; canvas.height = h
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h)
-      canvas.toBlob(resolve, 'image/jpeg', 0.85)
-    }
-    img.src = url
-  })
-}
-
-function parseReceiptText(text) {
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
-
-  // Total — search bottom-up, labeled rows first
-  let total = null
-  const totalLabel = /(?:סה[״"'`]?כ|לתשלום|לסה|total|amount|סכום\s*לתשלום)[^\d]*(\d[\d,.]*)/i
-  for (let i = lines.length - 1; i >= 0; i--) {
-    const m = lines[i].match(totalLabel)
-    if (m) {
-      const n = parseFloat(m[1].replace(/,/g, '.'))
-      if (!isNaN(n) && n > 0) { total = n; break }
-    }
-  }
-  // Fallback: largest XX.XX amount in last 10 lines
-  if (!total) {
-    const nums = []
-    lines.slice(-10).forEach(l => {
-      ;[...l.matchAll(/\d+[.,]\d{2}/g)].forEach(m =>
-        nums.push(parseFloat(m[0].replace(',', '.')))
-      )
-    })
-    if (nums.length) total = Math.max(...nums)
-  }
-
-  // Date
-  let date = null
-  const dateRe = /(\d{1,2})[./\-](\d{1,2})[./\-](\d{2,4})/
-  for (const l of lines) {
-    const m = l.match(dateRe)
-    if (m) {
-      let [, day, month, year] = m
-      if (year.length === 2) year = '20' + year
-      const [d, mo, y] = [+day, +month, +year]
-      if (d >= 1 && d <= 31 && mo >= 1 && mo <= 12 && y >= 2000 && y <= 2099) {
-        date = `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`
-        break
-      }
-    }
-  }
-
-  // Merchant — first line with letters
-  const merchant = lines.find(l => /[א-תa-zA-Z]/.test(l) && l.length > 1) || ''
-
-  return {
-    total: total ? Math.round(total * 100) / 100 : null,
-    date: date || new Date().toISOString().split('T')[0],
-    merchant: merchant.slice(0, 60),
-  }
-}
+import { preprocessForOCR, parseReceiptText, compressImage } from '../utils/receiptOCR'
 
 export default function ReceiptScanner({ onClose, onSaved, transactionId, transactionDesc, date }) {
   const { t } = useTranslation()
@@ -85,6 +15,8 @@ export default function ReceiptScanner({ onClose, onSaved, transactionId, transa
   const [progress, setProgress] = useState(0)
   const [progressLabel, setProgressLabel] = useState('')
   const [result, setResult] = useState({ merchant: '', total: '', date: date || new Date().toISOString().split('T')[0] })
+  const [rawText, setRawText] = useState('')
+  const [showRaw, setShowRaw] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const cameraRef = useRef(null)
@@ -92,33 +24,40 @@ export default function ReceiptScanner({ onClose, onSaved, transactionId, transa
 
   const handleFile = async (file) => {
     if (!file) return
+    // Keep a readable JPEG for storage; build a cleaned image just for OCR
     const compressed = await compressImage(file)
     setBlob(compressed)
     setPreview(URL.createObjectURL(compressed))
-    runOCR(compressed)
+    runOCR(file)
   }
 
-  const runOCR = async (imageBlob) => {
+  const runOCR = async (file) => {
     setStep('analyzing')
     setProgress(0)
-    setProgressLabel('מאתחל...')
+    setProgressLabel('מכין תמונה...')
     try {
+      // Preprocess: grayscale + contrast + binarization → much cleaner for OCR
+      const ocrBlob = await preprocessForOCR(file)
+
       const { createWorker } = await import('tesseract.js')
       const worker = await createWorker(['heb', 'eng'], 1, {
         logger: ({ status, progress: p }) => {
-          if (status.includes('loading')) {
+          if (status.includes('loading') || status.includes('initializ')) {
             setProgressLabel('טוען מנוע זיהוי...')
-            setProgress(Math.round((p || 0) * 40))
+            setProgress(Math.round((p || 0) * 35))
           } else if (status === 'recognizing text') {
             setProgressLabel('מזהה טקסט...')
-            setProgress(40 + Math.round((p || 0) * 60))
+            setProgress(35 + Math.round((p || 0) * 65))
           }
         },
       })
-      const { data: { text } } = await worker.recognize(imageBlob)
+      // PSM 6 = assume a uniform block of text — best for receipts
+      await worker.setParameters({ tessedit_pageseg_mode: '6' })
+      const { data: { text } } = await worker.recognize(ocrBlob)
       await worker.terminate()
 
       const parsed = parseReceiptText(text)
+      setRawText(parsed.rawText)
       setResult({
         merchant: parsed.merchant || transactionDesc || '',
         total: parsed.total?.toString() || '',
@@ -127,6 +66,7 @@ export default function ReceiptScanner({ onClose, onSaved, transactionId, transa
       setStep('confirm')
     } catch (e) {
       console.error('OCR error:', e)
+      setRawText('')
       setResult({
         merchant: transactionDesc || '',
         total: '',
@@ -154,6 +94,7 @@ export default function ReceiptScanner({ onClose, onSaved, transactionId, transa
         transactionId: transactionId || null,
         description: result.merchant || transactionDesc || '',
         total: result.total ? parseFloat(result.total) : null,
+        rawText: rawText || '',
       })
       onSaved?.()
       onClose()
@@ -164,7 +105,7 @@ export default function ReceiptScanner({ onClose, onSaved, transactionId, transa
     setUploading(false)
   }
 
-  const reset = () => { setStep('pick'); setPreview(null); setBlob(null); setError('') }
+  const reset = () => { setStep('pick'); setPreview(null); setBlob(null); setError(''); setRawText(''); setShowRaw(false) }
 
   return (
     <>
@@ -243,9 +184,15 @@ export default function ReceiptScanner({ onClose, onSaved, transactionId, transa
                   </div>
                 )}
 
-                <div style={{ background: 'rgba(22,163,73,0.08)', borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 13, color: 'var(--c-primary)', fontWeight: 600 }}>
-                  ✓ זוהה — בדוק ותקן אם נדרש
-                </div>
+                {(result.merchant || result.total) ? (
+                  <div style={{ background: 'rgba(22,163,73,0.08)', borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 13, color: 'var(--c-primary)', fontWeight: 600 }}>
+                    ✓ זוהה — בדוק ותקן אם נדרש
+                  </div>
+                ) : (
+                  <div style={{ background: 'rgba(255,149,0,0.1)', borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 13, color: 'var(--c-warning)', fontWeight: 600 }}>
+                    ⚠️ לא הצלחתי לקרוא הכל — מלא ידנית
+                  </div>
+                )}
 
                 <div className="input-group">
                   <label className="input-label">🏪 שם עסק</label>
@@ -269,6 +216,28 @@ export default function ReceiptScanner({ onClose, onSaved, transactionId, transa
                       onChange={e => setResult(s => ({ ...s, date: e.target.value }))} />
                   </div>
                 </div>
+
+                {rawText && (
+                  <div>
+                    <button
+                      onClick={() => setShowRaw(v => !v)}
+                      style={{ background: 'none', border: 'none', color: 'var(--c-text2)',
+                        fontSize: 12, cursor: 'pointer', padding: '2px 0', fontWeight: 600 }}
+                    >
+                      {showRaw ? '▾ הסתר טקסט גולמי' : '▸ הצג טקסט שזוהה'}
+                    </button>
+                    {showRaw && (
+                      <pre style={{
+                        marginTop: 6, background: 'var(--c-bg)', borderRadius: 'var(--r-md)',
+                        padding: '10px 12px', fontSize: 11, lineHeight: 1.5, color: 'var(--c-text2)',
+                        maxHeight: 140, overflow: 'auto', whiteSpace: 'pre-wrap',
+                        fontFamily: 'inherit', direction: 'rtl', textAlign: 'right',
+                      }}>
+                        {rawText}
+                      </pre>
+                    )}
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button className="btn btn-secondary" style={{ flex: 1 }} onClick={reset}>
