@@ -107,7 +107,16 @@ export function AppProvider({ children }) {
       })
       setHousehold({ id: uid, owner: uid, members: [uid], inviteCode: code })
     } else {
-      setHousehold({ id: uid, ...snap.data() })
+      const hhData = snap.data()
+      setHousehold({ id: uid, ...hhData })
+      // Load persisted settings from household doc
+      if (hhData.settings) {
+        setSettings(s => {
+          const merged = { ...s, ...hhData.settings }
+          localStorage.setItem('sb_settings', JSON.stringify(merged))
+          return merged
+        })
+      }
     }
 
     // Auto-join if there's a pending invite from a shared link
@@ -304,13 +313,18 @@ export function AppProvider({ children }) {
     setSettings(s => {
       const next = { ...s, ...patch }
       localStorage.setItem('sb_settings', JSON.stringify(next))
-      // Save full settings to Firestore — survives Safari ITP cache clears
-      if (user) {
-        setDoc(doc(db, 'userProfiles', user.uid), { settings: next }, { merge: true })
-          .catch(e => console.error('settings save error', e))
-      }
       return next
     })
+    // Save to both Firestore collections for maximum reliability
+    if (user) {
+      const uid = user.uid
+      updateDoc(doc(db, 'households', uid), { settings: patch })
+        .catch(() =>
+          setDoc(doc(db, 'households', uid), { settings: patch }, { merge: true })
+        )
+      setDoc(doc(db, 'userProfiles', uid), { settings: patch }, { merge: true })
+        .catch(e => console.error('settings save error', e))
+    }
   }, [user])
 
   // Derived stats for current month
