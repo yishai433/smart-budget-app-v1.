@@ -35,6 +35,8 @@
 html {
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
+  /* Eliminate 300ms tap delay on all interactive elements */
+  touch-action: manipulation;
 }
 
 body {
@@ -51,7 +53,9 @@ body {
   margin: 0 auto;
   min-height: 100dvh;
   position: relative;
-  overflow: hidden;
+  /* clip instead of hidden — avoids creating a scroll context that breaks momentum */
+  overflow-x: clip;
+  overflow-y: auto;
   background: var(--c-bg);
   box-shadow: 0 0 60px rgba(0,0,0,0.15);
 }
@@ -60,6 +64,8 @@ body {
 .page {
   min-height: 100dvh;
   padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 8px);
+  /* Momentum scroll for iOS inside page */
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Header gradient */
@@ -69,6 +75,9 @@ body {
   color: white;
   position: relative;
   overflow: hidden;
+  /* Promote header to its own GPU layer so it paints once */
+  transform: translateZ(0);
+  will-change: transform;
 }
 .page-header::after {
   content: '';
@@ -127,8 +136,10 @@ body {
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  /* Faster than 0.15s — makes taps feel instant */
+  transition: all 0.08s ease;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .btn:active { transform: scale(0.96); }
 

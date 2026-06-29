@@ -1,4 +1,4 @@
-import { useState, Component, useEffect } from 'react'
+import { useState, Component, useEffect, useRef } from 'react'
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AppProvider, useApp } from './contexts/AppContext'
@@ -43,24 +43,37 @@ class ErrorBoundary extends Component {
   }
 }
 
-const pageVariants = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0 },
-  exit:    { opacity: 0, y: -8 },
-}
+// Tab order matches BottomNav visual order (RTL: settings→receipts→shopping→reports→budget)
+const TAB_ORDER = ['/', '/reports', '/shopping', '/receipts', '/settings']
+const SLIDE_X = 28
 
 function AnimatedRoutes() {
   const location = useLocation()
+  const prevPath = useRef(location.pathname)
+  const slideDir = useRef(0)
+
+  // Compute slide direction synchronously before render (React-safe ref mutation)
+  if (prevPath.current !== location.pathname) {
+    const prev = TAB_ORDER.indexOf(prevPath.current)
+    const curr = TAB_ORDER.indexOf(location.pathname)
+    slideDir.current = (prev !== -1 && curr !== -1) ? Math.sign(curr - prev) : 0
+    prevPath.current = location.pathname
+  }
+
+  const d = slideDir.current
+  // RTL: higher tab index is visually on the LEFT → invert slide direction
+  const isRTL = document.documentElement.dir === 'rtl'
+  const x = d * SLIDE_X * (isRTL ? -1 : 1)
+
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence mode="popLayout">
       <motion.div
         key={location.pathname}
-        variants={pageVariants}
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        transition={{ duration: 0.2, ease: 'easeInOut' }}
-        style={{ minHeight: '100dvh' }}
+        initial={{ opacity: 0, x }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -x }}
+        transition={{ type: 'spring', stiffness: 420, damping: 38, mass: 0.7 }}
+        style={{ minHeight: '100dvh', width: '100%', willChange: 'transform' }}
       >
         <Routes location={location}>
           <Route path="/"         element={<ErrorBoundary><BudgetPage /></ErrorBoundary>} />
