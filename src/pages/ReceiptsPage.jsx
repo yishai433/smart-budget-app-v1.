@@ -215,7 +215,7 @@ function ReceiptCard({ receipt, onDelete }) {
                 bottom: 0, left: 0, right: 0,
                 background: 'var(--c-card)',
                 borderRadius: 'var(--r-xl) var(--r-xl) 0 0',
-                padding: '28px 20px calc(var(--safe-bottom) + 24px)',
+                padding: '28px 20px calc(var(--nav-h) + var(--safe-bottom) + 16px)',
                 zIndex: 301, textAlign: 'center',
               }}
             >
