@@ -80,16 +80,17 @@ export default function ReceiptScanner({ onClose, onSaved, transactionId, transa
     if (!blob || !user) return
     setUploading(true)
     setError('')
+    const withTimeout = (p, ms = 25000) =>
+      Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))])
     try {
       const receiptDate = result.date || new Date().toISOString().split('T')[0]
       const ts = Date.now()
-      // Name file by merchant + date (ts keeps it unique)
       const fileName = `${receiptName(result.merchant, receiptDate)}_${ts}.jpg`
       const storagePath = `receipts/${user.uid}/${fileName}`
       const storageRef = ref(storage, storagePath)
-      await uploadBytes(storageRef, blob)
-      const imageUrl = await getDownloadURL(storageRef)
-      await addReceipt({
+      await withTimeout(uploadBytes(storageRef, blob))
+      const imageUrl = await withTimeout(getDownloadURL(storageRef))
+      await withTimeout(addReceipt({
         imageUrl,
         storagePath,
         date: receiptDate,
@@ -97,14 +98,19 @@ export default function ReceiptScanner({ onClose, onSaved, transactionId, transa
         description: result.merchant || transactionDesc || '',
         total: result.total ? parseFloat(result.total) : null,
         rawText: rawText || '',
-      })
+      }))
       onSaved?.()
       onClose()
     } catch (err) {
       console.error('receipt upload error:', err)
-      setError('שגיאה בשמירת החשבונית — נסה שוב')
+      setError(
+        err.message === 'timeout'
+          ? '⏱ הכנסייה לוקחת יותר מדי זמן — בדוק חיבור ונסה שוב'
+          : `שגיאה בשמירת החשבונית: ${err.code || err.message}`
+      )
+    } finally {
+      setUploading(false)
     }
-    setUploading(false)
   }
 
   const reset = () => { setStep('pick'); setPreview(null); setBlob(null); setError(''); setRawText(''); setShowRaw(false) }
