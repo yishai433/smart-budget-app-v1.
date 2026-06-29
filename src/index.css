@@ -355,7 +355,7 @@ body {
   gap: 16px;
 }
 .sheet-footer {
-  padding: 12px 20px calc(var(--safe-bottom) + 16px);
+  padding: 12px 20px calc(var(--nav-h) + var(--safe-bottom) + 8px);
   background: var(--c-card);
   border-top: 1px solid var(--c-sep);
   flex-shrink: 0;
