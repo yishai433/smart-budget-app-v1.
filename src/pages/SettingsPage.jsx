@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '../contexts/AppContext'
 import { SettingsAvatar } from '../components/UserAvatar'
+import UserAvatar from '../components/UserAvatar'
 import AvatarCreator from '../components/AvatarCreator'
 import { db } from '../firebase'
 import { collection, query, where, getDocs, updateDoc, doc, arrayUnion } from 'firebase/firestore'
@@ -150,7 +151,10 @@ export default function SettingsPage() {
   return (
     <div className="page">
       <div className="page-header" style={{ paddingBottom: 28 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800 }}>{t('settings.title')}</h1>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h1 style={{ fontSize: 28, fontWeight: 800 }}>{t('settings.title')}</h1>
+          <UserAvatar />
+        </div>
       </div>
 
       <div style={{ padding: '16px 16px 0' }}>

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { useApp } from '../contexts/AppContext'
 import DonutChart from '../components/charts/DonutChart'
 import BarChart from '../components/charts/BarChart'
+import UserAvatar from '../components/UserAvatar'
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני',
                    'יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
@@ -90,9 +91,12 @@ export default function ReportsPage() {
     <div className="page">
       {/* Header */}
       <div className="page-header" style={{ paddingBottom: 28 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800 }}>
-          {lang === 'he' ? 'דוחות' : 'Reports'}
-        </h1>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h1 style={{ fontSize: 28, fontWeight: 800 }}>
+            {lang === 'he' ? 'דוחות' : 'Reports'}
+          </h1>
+          <UserAvatar />
+        </div>
       </div>
 
       <div style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 20 }}>

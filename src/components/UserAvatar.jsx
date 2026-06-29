@@ -62,17 +62,18 @@ export function AvatarCircle({ user, size = 44, fontSize = 18, style = {}, onCli
   )
 }
 
-// Header avatar (small, no edit)
+// Header avatar with name — used in all page headers
 export default function UserAvatar() {
   const { user, household, avatarUrl } = useApp()
   const isPartnerConnected = household?.members?.length > 1
+  const firstName = user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || ''
 
   return (
     <motion.div
       initial={{ scale: 0.8, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 320, damping: 24, delay: 0.15 }}
-      style={{ position: 'relative', cursor: 'pointer' }}
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer' }}
     >
       {isPartnerConnected ? (
         <div style={{ position: 'relative', width: 64, height: 44 }}>
@@ -98,6 +99,14 @@ export default function UserAvatar() {
           }} />
         </div>
       )}
+      {firstName ? (
+        <span style={{
+          fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.85)',
+          maxWidth: 64, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {firstName}
+        </span>
+      ) : null}
     </motion.div>
   )
 }

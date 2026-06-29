@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import ShoppingList from '../components/shopping/ShoppingList'
 import { useApp } from '../contexts/AppContext'
+import UserAvatar from '../components/UserAvatar'
 
 function CheckoutModal({ total, onConfirm, onCancel }) {
   const { settings } = useApp()
@@ -113,7 +114,7 @@ export default function ShoppingPage() {
       <div className="page-header" style={{ paddingBottom: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h1 style={{ fontSize: 28, fontWeight: 800 }}>{t('shopping.title')}</h1>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
             {shoppingItems.length === 0 && hasTemplate && (
               <button
                 onClick={handleLoadTemplate}
@@ -138,6 +139,7 @@ export default function ShoppingPage() {
                 🗑 {t('shopping.clearList')}
               </button>
             )}
+            <UserAvatar />
           </div>
         </div>
         <p style={{ opacity: 0.7, fontSize: 13, marginTop: 6 }}>
