@@ -240,16 +240,6 @@ export default function ReceiptScanner({ onClose, onSaved, transactionId, transa
                     )}
                   </div>
                 )}
-
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={reset}>
-                    📷 שוב
-                  </button>
-                  <button className="btn btn-primary" style={{ flex: 2 }}
-                    onClick={handleSave} disabled={uploading}>
-                    {uploading ? '⏳ שומר...' : '💾 שמור חשבונית'}
-                  </button>
-                </div>
               </div>
             )}
 
@@ -260,6 +250,21 @@ export default function ReceiptScanner({ onClose, onSaved, transactionId, transa
               </div>
             )}
           </div>
+
+          {/* Pinned footer — save button always visible, body scrolls above it */}
+          {step === 'confirm' && (
+            <div className="sheet-footer">
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={reset}>
+                  📷 שוב
+                </button>
+                <button className="btn btn-primary" style={{ flex: 2 }}
+                  onClick={handleSave} disabled={uploading}>
+                  {uploading ? '⏳ שומר...' : '💾 שמור חשבונית'}
+                </button>
+              </div>
+            </div>
+          )}
         </motion.div>
       </div>
     </>
