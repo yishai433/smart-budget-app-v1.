@@ -21,6 +21,7 @@ const CATEGORIES = {
   expense: [
     { id: 'housing',       emoji: '🏠', color: '#D98888' },
     { id: 'food',          emoji: '🍔', color: '#FF9F0A' },
+    { id: 'shopping',      emoji: '🛒', color: '#30D158' },
     { id: 'transport',     emoji: '🚗', color: '#0A84FF' },
     { id: 'clothing',      emoji: '👕', color: '#BF5AF2' },
     { id: 'health',        emoji: '❤️', color: '#D96B6B' },
@@ -237,7 +238,7 @@ export function AppProvider({ children }) {
     if (addExpense && total > 0) {
       await addTransaction({
         type: 'expense',
-        category: 'food',
+        category: 'shopping',
         amount: total,
         description: i18n.t('shopping.title'),
         date: new Date().toISOString().split('T')[0],
