@@ -42,7 +42,7 @@ export default function SettingsPage() {
   const [joinCode, setJoinCode] = useState('')
   const [joining, setJoining] = useState(false)
   const [toast, setToast] = useState('')
-  const [notifPerm, setNotifPerm] = useState(Notification?.permission || 'default')
+  const [notifPerm, setNotifPerm] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'default')
 
   const showToast = (msg) => {
     setToast(msg)
