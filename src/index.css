@@ -306,7 +306,7 @@ body {
 }
 .sheet {
   position: fixed;
-  bottom: 0;
+  bottom: var(--vv-bottom, 0px);
   left: 0;
   right: 0;
   width: 100%;
@@ -316,8 +316,11 @@ body {
   border-radius: var(--r-xl) var(--r-xl) 0 0;
   padding: 0 0 calc(var(--safe-bottom) + 16px);
   z-index: 201;
-  max-height: 92dvh;
+  max-height: 92svh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
 }
 .sheet-handle {
   width: 36px; height: 4px;

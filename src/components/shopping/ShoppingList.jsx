@@ -81,13 +81,16 @@ function AddItemSheet({ onClose }) {
                   transition={{ duration: 0.2 }}
                   style={{ overflow: 'hidden' }}
                 >
-                  <input
-                    className="input-field"
-                    style={{ marginTop: 8 }}
-                    placeholder="מה זה? (פרט כאן)"
-                    value={otherLabel}
-                    onChange={e => setOtherLabel(e.target.value)}
-                  />
+                  <div style={{ marginTop: 8, position: 'relative' }}>
+                    <input
+                      className="input-field"
+                      placeholder="פירוט (אופציונלי)"
+                      value={otherLabel}
+                      onChange={e => setOtherLabel(e.target.value)}
+                      style={{ paddingRight: 36 }}
+                    />
+                    <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 16, pointerEvents: 'none' }}>✏️</span>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>

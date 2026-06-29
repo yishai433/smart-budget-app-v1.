@@ -209,14 +209,16 @@ export default function AddTransaction({ onClose }) {
                   transition={{ duration: 0.2 }}
                   style={{ overflow: 'hidden' }}
                 >
-                  <input
-                    className="input-field"
-                    style={{ marginTop: 8 }}
-                    placeholder="מה זה? (פרט כאן)"
-                    value={otherNote}
-                    onChange={e => setOtherNote(e.target.value)}
-                    autoFocus
-                  />
+                  <div style={{ marginTop: 8, position: 'relative' }}>
+                    <input
+                      className="input-field"
+                      placeholder="פירוט (אופציונלי)"
+                      value={otherNote}
+                      onChange={e => setOtherNote(e.target.value)}
+                      style={{ paddingRight: 36 }}
+                    />
+                    <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 16, pointerEvents: 'none' }}>✏️</span>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
