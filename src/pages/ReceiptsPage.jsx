@@ -107,8 +107,15 @@ function ReceiptCard({ receipt, onDelete }) {
           <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>
             {receipt.description || '🧾 חשבונית'}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--c-text2)', marginBottom: 10 }}>
-            📅 {formatDay(receipt.date)}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div style={{ fontSize: 12, color: 'var(--c-text2)' }}>
+              📅 {formatDay(receipt.date)}
+            </div>
+            {receipt.total != null && (
+              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--c-danger)' }}>
+                ₪{receipt.total.toLocaleString()}
+              </div>
+            )}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
