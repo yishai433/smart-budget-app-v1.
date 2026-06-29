@@ -7,7 +7,7 @@ const CHART_H = H - PAD.top - PAD.bottom
 const CHART_W = W - PAD.left - PAD.right
 const BAR_RADIUS = 4
 
-export default function BarChart({ data, currency = '₪' }) {
+export default function BarChart({ data, currency = '₪', lang = 'he' }) {
   const [animated, setAnimated] = useState(false)
   useEffect(() => { const t = setTimeout(() => setAnimated(true), 100); return () => clearTimeout(t) }, [])
 
@@ -15,7 +15,7 @@ export default function BarChart({ data, currency = '₪' }) {
 
   const maxVal = Math.max(...data.flatMap(d => [d.income, d.expense]), 1)
   const colW = CHART_W / data.length
-  const barW = Math.max(10, colW * 0.3)
+  const barW = Math.max(12, colW * 0.34)
 
   const scaleY = (v) => CHART_H - (v / maxVal) * CHART_H
 
@@ -75,10 +75,14 @@ export default function BarChart({ data, currency = '₪' }) {
 
       {/* Legend */}
       <g>
-        <circle cx={W - 80} cy={8} r={4} fill="#34C759" />
-        <text x={W - 73} y={12} fontSize="10" fill="var(--c-text2)" fontFamily="inherit">הכנסות</text>
-        <circle cx={W - 36} cy={8} r={4} fill="#D96B6B" />
-        <text x={W - 29} y={12} fontSize="10" fill="var(--c-text2)" fontFamily="inherit">הוצאות</text>
+        <circle cx={W - 96} cy={8} r={4} fill="#34C759" />
+        <text x={W - 89} y={12} fontSize="10" fill="var(--c-text2)" fontFamily="inherit">
+          {lang === 'he' ? 'הכנסות' : 'Income'}
+        </text>
+        <circle cx={W - 44} cy={8} r={4} fill="#D96B6B" />
+        <text x={W - 37} y={12} fontSize="10" fill="var(--c-text2)" fontFamily="inherit">
+          {lang === 'he' ? 'הוצאות' : 'Expenses'}
+        </text>
       </g>
     </svg>
   )

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { useApp } from '../contexts/AppContext'
 import DonutChart from '../components/charts/DonutChart'
@@ -43,6 +44,7 @@ function StatCard({ label, value, color, currency }) {
 }
 
 export default function ReportsPage() {
+  const { t } = useTranslation()
   const { transactions, CATEGORIES, settings } = useApp()
   const cur = settings.currency
   const lang = settings.language || 'he'
@@ -67,7 +69,7 @@ export default function ReportsPage() {
     .sort(([,a],[,b]) => b - a)
     .map(([catId, value]) => {
       const def = CATEGORIES.expense.find(c => c.id === catId) || { emoji:'📦', color:'#636366' }
-      return { label: catId, emoji: def.emoji, value, color: def.color }
+      return { label: t(`categories.${catId}`), emoji: def.emoji, value, color: def.color }
     })
 
   // Bar chart data: last 6 months
@@ -176,7 +178,7 @@ export default function ReportsPage() {
             <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 16 }}>
               {lang==='he'?'טרנד 6 חודשים':'6-Month Trend'}
             </h3>
-            <BarChart data={barData} currency={cur} />
+            <BarChart data={barData} currency={cur} lang={lang} />
           </div>
         </div>
 
