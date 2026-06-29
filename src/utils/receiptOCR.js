@@ -15,68 +15,119 @@ const KNOWN_MERCHANTS = [
   'באקרafe', 'מקס סטוק', 'מקס', ' דיל', 'עזריאלי',
 ]
 
-// Upscale small images, convert to grayscale, stretch contrast, then binarize
-// with Otsu's method. Returns a PNG blob (lossless — no JPEG ringing on edges).
+// Full pipeline: auto-crop receipt from background → upscale → adaptive threshold.
+// Receipt paper (bright white) stands out from most backgrounds.  We project
+// row/column brightness to find its bounding box, crop to it, then binarize.
 export function preprocessForOCR(file) {
   return new Promise((resolve, reject) => {
     const img = new Image()
     const url = URL.createObjectURL(file)
     img.onload = () => {
       URL.revokeObjectURL(url)
-      // Upscale to ~1800px on the long edge so small print is legible
-      const target = 1800
-      const long = Math.max(img.width, img.height)
-      const scale = long < target ? target / long : Math.min(1, 2200 / long)
-      const w = Math.round(img.width * scale)
-      const h = Math.round(img.height * scale)
+
+      // ── 1. Downscale for fast analysis (no need for full-res here)
+      const A = 600
+      const as = Math.min(1, A / Math.max(img.width, img.height))
+      const aw = Math.round(img.width * as)
+      const ah = Math.round(img.height * as)
+      const ac = document.createElement('canvas')
+      ac.width = aw; ac.height = ah
+      ac.getContext('2d').drawImage(img, 0, 0, aw, ah)
+      const ad = ac.getContext('2d').getImageData(0, 0, aw, ah).data
+
+      // Grayscale for projection
+      const gray = new Uint8Array(aw * ah)
+      for (let i = 0, p = 0; i < ad.length; i += 4, p++)
+        gray[p] = (ad[i] * 0.299 + ad[i + 1] * 0.587 + ad[i + 2] * 0.114) | 0
+
+      // ── 2. Row / column brightness projections to locate the receipt
+      // Thermal paper is very white (>165). Wood/tables are usually darker.
+      const BRIGHT = 165
+      const colScore = new Float32Array(aw)
+      const rowScore = new Float32Array(ah)
+      for (let y = 0; y < ah; y++)
+        for (let x = 0; x < aw; x++) {
+          const b = gray[y * aw + x] > BRIGHT ? 1 : 0
+          colScore[x] += b; rowScore[y] += b
+        }
+      for (let x = 0; x < aw; x++) colScore[x] /= ah
+      for (let y = 0; y < ah; y++) rowScore[y] /= aw
+
+      // Smooth projections (5-tap moving average) to avoid jagged crop edges
+      const smooth = (a) => {
+        const out = new Float32Array(a.length)
+        for (let i = 0; i < a.length; i++) {
+          let s = 0, c = 0
+          for (let d = -2; d <= 2; d++) {
+            const j = i + d
+            if (j >= 0 && j < a.length) { s += a[j]; c++ }
+          }
+          out[i] = s / c
+        }
+        return out
+      }
+      const cs = smooth(colScore), rs = smooth(rowScore)
+
+      // Find first/last column and row where bright-pixel ratio exceeds MIN
+      const MIN = 0.35
+      let cx1 = 0, cx2 = aw - 1, cy1 = 0, cy2 = ah - 1
+      for (let x = 0; x < aw; x++) if (cs[x] > MIN) { cx1 = x; break }
+      for (let x = aw - 1; x >= 0; x--) if (cs[x] > MIN) { cx2 = x; break }
+      for (let y = 0; y < ah; y++) if (rs[y] > MIN) { cy1 = y; break }
+      for (let y = ah - 1; y >= 0; y--) if (rs[y] > MIN) { cy2 = y; break }
+
+      // Map crop box back to original image coords + 2% padding
+      const pad = 0.02
+      const sx = Math.max(0, Math.round((cx1 / aw - pad) * img.width))
+      const sy = Math.max(0, Math.round((cy1 / ah - pad) * img.height))
+      const ex = Math.min(img.width,  Math.round((cx2 / aw + pad) * img.width))
+      const ey = Math.min(img.height, Math.round((cy2 / ah + pad) * img.height))
+      const sw = ex - sx, sh = ey - sy
+
+      // Only use the crop if it's meaningfully smaller than the full image
+      const useCrop = sw < img.width * 0.88 || sh < img.height * 0.88
+
+      // ── 3. Render the cropped region at ~1800px for OCR
+      const TARGET = 1800
+      const srcX = useCrop ? sx : 0,   srcY = useCrop ? sy : 0
+      const srcW = useCrop ? sw : img.width, srcH = useCrop ? sh : img.height
+      const ocrScale = TARGET / Math.max(srcW, srcH)
+      const fw = Math.round(srcW * ocrScale), fh = Math.round(srcH * ocrScale)
 
       const canvas = document.createElement('canvas')
-      canvas.width = w
-      canvas.height = h
+      canvas.width = fw; canvas.height = fh
       const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0, w, h)
+      ctx.fillStyle = '#fff'
+      ctx.fillRect(0, 0, fw, fh)
+      ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, fw, fh)
 
-      const imgData = ctx.getImageData(0, 0, w, h)
+      // ── 4. Adaptive local-mean threshold (integral image)
+      const imgData = ctx.getImageData(0, 0, fw, fh)
       const d = imgData.data
+      const g = new Float64Array(fw * fh)
+      for (let i = 0, p = 0; i < d.length; i += 4, p++)
+        g[p] = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114
 
-      // 1) Grayscale (luminance) into a flat array
-      const gray = new Float64Array(w * h)
-      for (let i = 0, p = 0; i < d.length; i += 4, p++) {
-        gray[p] = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114
-      }
-
-      // 2) Adaptive (local-mean) thresholding via an integral image.
-      //    Each pixel is compared to the mean brightness of its neighborhood,
-      //    so shadows and uneven lighting no longer wipe out whole regions —
-      //    far more robust than a single global Otsu threshold.
-      const iw = w + 1
-      const integral = new Float64Array(iw * (h + 1))
-      for (let y = 1; y <= h; y++) {
-        let rowSum = 0
-        for (let x = 1; x <= w; x++) {
-          rowSum += gray[(y - 1) * w + (x - 1)]
-          integral[y * iw + x] = integral[(y - 1) * iw + x] + rowSum
+      const iw = fw + 1
+      const intg = new Float64Array(iw * (fh + 1))
+      for (let y = 1; y <= fh; y++) {
+        let rs2 = 0
+        for (let x = 1; x <= fw; x++) {
+          rs2 += g[(y - 1) * fw + (x - 1)]
+          intg[y * iw + x] = intg[(y - 1) * iw + x] + rs2
         }
       }
-
-      // Window ~ 1/24 of the short edge; C = brightness margin (anti-noise)
-      const radius = Math.max(10, Math.floor(Math.min(w, h) / 24))
-      const C = 12
-      for (let y = 0; y < h; y++) {
-        const y1 = Math.max(0, y - radius)
-        const y2 = Math.min(h - 1, y + radius)
-        for (let x = 0; x < w; x++) {
-          const x1 = Math.max(0, x - radius)
-          const x2 = Math.min(w - 1, x + radius)
-          const count = (x2 - x1 + 1) * (y2 - y1 + 1)
-          const sum =
-            integral[(y2 + 1) * iw + (x2 + 1)] -
-            integral[y1 * iw + (x2 + 1)] -
-            integral[(y2 + 1) * iw + x1] +
-            integral[y1 * iw + x1]
-          const mean = sum / count
-          const idx = (y * w + x) * 4
-          const v = gray[y * w + x] < mean - C ? 0 : 255
+      const R = Math.max(10, Math.floor(Math.min(fw, fh) / 24))
+      const C = 10
+      for (let y = 0; y < fh; y++) {
+        const y1 = Math.max(0, y - R), y2 = Math.min(fh - 1, y + R)
+        for (let x = 0; x < fw; x++) {
+          const x1 = Math.max(0, x - R), x2 = Math.min(fw - 1, x + R)
+          const cnt = (x2 - x1 + 1) * (y2 - y1 + 1)
+          const s = intg[(y2+1)*iw+(x2+1)] - intg[y1*iw+(x2+1)]
+                  - intg[(y2+1)*iw+x1]     + intg[y1*iw+x1]
+          const v = g[y * fw + x] < s / cnt - C ? 0 : 255
+          const idx = (y * fw + x) * 4
           d[idx] = d[idx + 1] = d[idx + 2] = v
         }
       }
