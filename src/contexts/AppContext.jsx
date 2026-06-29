@@ -74,16 +74,25 @@ export function AppProvider({ children }) {
   }, [])
 
   const initHousehold = async (uid) => {
-    // Load avatar config
+    // Load profile (avatar + settings)
     try {
       const profileSnap = await getDoc(doc(db, 'userProfiles', uid))
-      if (profileSnap.exists() && profileSnap.data().avatarConfig) {
-        const cfg = profileSnap.data().avatarConfig
-        setAvatarConfig(cfg)
-        setAvatarUrl(buildAvatarUrl(cfg))
+      if (profileSnap.exists()) {
+        const data = profileSnap.data()
+        if (data.avatarConfig) {
+          setAvatarConfig(data.avatarConfig)
+          setAvatarUrl(buildAvatarUrl(data.avatarConfig))
+        }
+        if (data.settings) {
+          setSettings(s => {
+            const merged = { ...s, ...data.settings }
+            localStorage.setItem('sb_settings', JSON.stringify(merged))
+            return merged
+          })
+        }
       }
     } catch (e) {
-      console.error('avatar load error', e)
+      console.error('profile load error', e)
     }
 
     const hhRef = doc(db, 'households', uid)
@@ -295,9 +304,14 @@ export function AppProvider({ children }) {
     setSettings(s => {
       const next = { ...s, ...patch }
       localStorage.setItem('sb_settings', JSON.stringify(next))
+      // Save full settings to Firestore — survives Safari ITP cache clears
+      if (user) {
+        setDoc(doc(db, 'userProfiles', user.uid), { settings: next }, { merge: true })
+          .catch(e => console.error('settings save error', e))
+      }
       return next
     })
-  }, [])
+  }, [user])
 
   // Derived stats for current month
   const now = new Date()
