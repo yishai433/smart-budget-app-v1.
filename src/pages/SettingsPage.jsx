@@ -6,7 +6,7 @@ import { SettingsAvatar } from '../components/UserAvatar'
 import UserAvatar from '../components/UserAvatar'
 import AvatarCreator from '../components/AvatarCreator'
 import { db } from '../firebase'
-import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, getDoc } from 'firebase/firestore'
+import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, getDoc, setDoc } from 'firebase/firestore'
 
 function SettingRow({ icon, label, subtitle, right, onClick, danger }) {
   return (
@@ -116,9 +116,15 @@ export default function SettingsPage() {
         setJoinResult('error')
       } else {
         const hhDoc = snap.docs[0]
-        await updateDoc(doc(db, 'households', hhDoc.id), { members: arrayUnion(user.uid) })
+        const ownerUid = hhDoc.id
+        // Add this user to the household members
+        await updateDoc(doc(db, 'households', ownerUid), { members: arrayUnion(user.uid) })
+        // Store the owner's uid in this user's profile so all queries redirect
+        await setDoc(doc(db, 'userProfiles', user.uid), { linkedHouseholdId: ownerUid }, { merge: true })
         setJoinResult('ok')
         setJoinCode('')
+        // Reload the page so AppContext picks up the new linkedHouseholdId
+        setTimeout(() => window.location.reload(), 1500)
       }
     } catch {
       setJoinResult('error')

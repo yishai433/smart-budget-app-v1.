@@ -36,6 +36,7 @@ const CATEGORIES = {
 export function AppProvider({ children }) {
   const [user, setUser] = useState(null)
   const [household, setHousehold] = useState(null)
+  const [activeHouseholdId, setActiveHouseholdId] = useState(null) // uid of the household owner
   const [transactions, setTransactions] = useState([])
   const [shoppingItems, setShoppingItems] = useState([])
   const [receipts, setReceipts] = useState([])
@@ -74,7 +75,8 @@ export function AppProvider({ children }) {
   }, [])
 
   const initHousehold = async (uid) => {
-    // Load profile (avatar + settings)
+    // Load profile (avatar + settings + linkedHouseholdId)
+    let linkedId = null
     try {
       const profileSnap = await getDoc(doc(db, 'userProfiles', uid))
       if (profileSnap.exists()) {
@@ -90,6 +92,8 @@ export function AppProvider({ children }) {
             return merged
           })
         }
+        // If user joined someone else's household, use their ID for all data
+        if (data.linkedHouseholdId) linkedId = data.linkedHouseholdId
       }
       // Always keep displayName + email in profile so other members can see them
       const u = auth.currentUser
@@ -103,9 +107,15 @@ export function AppProvider({ children }) {
       console.error('profile load error', e)
     }
 
-    const hhRef = doc(db, 'households', uid)
+    // The "active" household is either the one they joined or their own
+    const hhOwnerId = linkedId || uid
+    setActiveHouseholdId(hhOwnerId)
+
+    // Load the household document (may be someone else's)
+    const hhRef = doc(db, 'households', hhOwnerId)
     const snap = await getDoc(hhRef)
-    if (!snap.exists()) {
+    if (!snap.exists() && hhOwnerId === uid) {
+      // Create own household if it doesn't exist yet
       const code = Math.random().toString(36).substring(2, 8).toUpperCase()
       await setDoc(hhRef, {
         owner: uid,
@@ -114,16 +124,25 @@ export function AppProvider({ children }) {
         createdAt: serverTimestamp(),
       })
       setHousehold({ id: uid, owner: uid, members: [uid], inviteCode: code })
-    } else {
+    } else if (snap.exists()) {
       const hhData = snap.data()
-      setHousehold({ id: uid, ...hhData })
-      // Load persisted settings from household doc
+      setHousehold({ id: hhOwnerId, ...hhData })
       if (hhData.settings) {
         setSettings(s => {
           const merged = { ...s, ...hhData.settings }
           localStorage.setItem('sb_settings', JSON.stringify(merged))
           return merged
         })
+      }
+    }
+
+    // Also ensure user's own household exists (for their invite code)
+    if (hhOwnerId !== uid) {
+      const ownRef = doc(db, 'households', uid)
+      const ownSnap = await getDoc(ownRef)
+      if (!ownSnap.exists()) {
+        const code = Math.random().toString(36).substring(2, 8).toUpperCase()
+        await setDoc(ownRef, { owner: uid, members: [uid], inviteCode: code, createdAt: serverTimestamp() })
       }
     }
 
@@ -162,11 +181,10 @@ export function AppProvider({ children }) {
 
   // Real-time transactions listener
   useEffect(() => {
-    if (!user) return
-    // Simple query without orderBy to avoid index requirement
+    if (!user || !activeHouseholdId) return
     const q = query(
       collection(db, 'transactions'),
-      where('householdId', '==', user.uid)
+      where('householdId', '==', activeHouseholdId)
     )
     const unsub = onSnapshot(q, (snap) => {
       const txs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
@@ -183,10 +201,10 @@ export function AppProvider({ children }) {
 
   // Real-time shopping items listener
   useEffect(() => {
-    if (!user) return
+    if (!user || !activeHouseholdId) return
     const q = query(
       collection(db, 'shoppingItems'),
-      where('householdId', '==', user.uid)
+      where('householdId', '==', activeHouseholdId)
     )
     const unsub = onSnapshot(q, (snap) => {
       const items = snap.docs.map(d => ({ id: d.id, ...d.data() }))
@@ -203,11 +221,11 @@ export function AppProvider({ children }) {
   }, [user])
 
   const addTransaction = useCallback(async (data) => {
-    if (!user) return
+    if (!user || !activeHouseholdId) return
     try {
       const docRef = await addDoc(collection(db, 'transactions'), {
         ...data,
-        householdId: user.uid,
+        householdId: activeHouseholdId,
         createdAt: serverTimestamp(),
       })
       return docRef.id
@@ -215,7 +233,7 @@ export function AppProvider({ children }) {
       console.error('addTransaction error:', err.code, err.message)
       throw err
     }
-  }, [user])
+  }, [user, activeHouseholdId])
 
   const deleteTransaction = useCallback(async (id) => {
     await deleteDoc(doc(db, 'transactions', id))
@@ -223,8 +241,8 @@ export function AppProvider({ children }) {
 
   // Real-time receipts listener
   useEffect(() => {
-    if (!user) return
-    const q = query(collection(db, 'receipts'), where('householdId', '==', user.uid))
+    if (!user || !activeHouseholdId) return
+    const q = query(collection(db, 'receipts'), where('householdId', '==', activeHouseholdId))
     const unsub = onSnapshot(q, (snap) => {
       const recs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       recs.sort((a, b) => (b.date || '').localeCompare(a.date || ''))
@@ -236,14 +254,14 @@ export function AppProvider({ children }) {
   }, [user])
 
   const addReceipt = useCallback(async (data) => {
-    if (!user) return
+    if (!user || !activeHouseholdId) return
     const docRef = await addDoc(collection(db, 'receipts'), {
       ...data,
-      householdId: user.uid,
+      householdId: activeHouseholdId,
       createdAt: serverTimestamp(),
     })
     return docRef.id
-  }, [user])
+  }, [user, activeHouseholdId])
 
   const deleteReceipt = useCallback(async (id, storagePath) => {
     await deleteDoc(doc(db, 'receipts', id))
@@ -253,14 +271,14 @@ export function AppProvider({ children }) {
   }, [])
 
   const addShoppingItem = useCallback(async (data) => {
-    if (!user) return
+    if (!user || !activeHouseholdId) return
     await addDoc(collection(db, 'shoppingItems'), {
       ...data,
-      householdId: user.uid,
+      householdId: activeHouseholdId,
       checked: false,
       createdAt: serverTimestamp(),
     })
-  }, [user])
+  }, [user, activeHouseholdId])
 
   const updateShoppingItem = useCallback(async (id, data) => {
     await updateDoc(doc(db, 'shoppingItems', id), data)
@@ -344,7 +362,7 @@ export function AppProvider({ children }) {
   const balance = totalIncome - totalExpenses
 
   const value = {
-    user, household, loading, settings,
+    user, household, activeHouseholdId, loading, settings,
     avatarConfig, avatarUrl, saveAvatar,
     transactions, monthTransactions,
     totalIncome, totalExpenses, balance,
