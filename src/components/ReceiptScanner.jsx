@@ -4,7 +4,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { storage } from '../firebase'
 import { useApp } from '../contexts/AppContext'
 import { useTranslation } from 'react-i18next'
-import { preprocessForOCR, parseReceiptText, compressImage } from '../utils/receiptOCR'
+import { preprocessForOCR, parseReceiptText, compressImage, receiptName } from '../utils/receiptOCR'
 
 export default function ReceiptScanner({ onClose, onSaved, transactionId, transactionDesc, date }) {
   const { t } = useTranslation()
@@ -83,7 +83,9 @@ export default function ReceiptScanner({ onClose, onSaved, transactionId, transa
     try {
       const receiptDate = result.date || new Date().toISOString().split('T')[0]
       const ts = Date.now()
-      const storagePath = `receipts/${user.uid}/${receiptDate}_${ts}.jpg`
+      // Name file by merchant + date (ts keeps it unique)
+      const fileName = `${receiptName(result.merchant, receiptDate)}_${ts}.jpg`
+      const storagePath = `receipts/${user.uid}/${fileName}`
       const storageRef = ref(storage, storagePath)
       await uploadBytes(storageRef, blob)
       const imageUrl = await getDownloadURL(storageRef)

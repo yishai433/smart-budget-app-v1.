@@ -39,50 +39,46 @@ export function preprocessForOCR(file) {
       const imgData = ctx.getImageData(0, 0, w, h)
       const d = imgData.data
 
-      // 1) Grayscale (luminance) + build histogram
-      const hist = new Array(256).fill(0)
-      for (let i = 0; i < d.length; i += 4) {
-        const g = (d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114) | 0
-        d[i] = d[i + 1] = d[i + 2] = g
-        hist[g]++
+      // 1) Grayscale (luminance) into a flat array
+      const gray = new Float64Array(w * h)
+      for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+        gray[p] = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114
       }
 
-      // 2) Contrast stretch using 2nd/98th percentile to ignore outliers
-      const total = w * h
-      let lo = 0, hi = 255, acc = 0
-      const loCut = total * 0.02, hiCut = total * 0.98
-      for (let t = 0; t < 256; t++) { acc += hist[t]; if (acc >= loCut) { lo = t; break } }
-      acc = 0
-      for (let t = 0; t < 256; t++) { acc += hist[t]; if (acc >= hiCut) { hi = t; break } }
-      const range = Math.max(1, hi - lo)
-      for (let i = 0; i < d.length; i += 4) {
-        let v = ((d[i] - lo) / range) * 255
-        v = v < 0 ? 0 : v > 255 ? 255 : v
-        d[i] = d[i + 1] = d[i + 2] = v
+      // 2) Adaptive (local-mean) thresholding via an integral image.
+      //    Each pixel is compared to the mean brightness of its neighborhood,
+      //    so shadows and uneven lighting no longer wipe out whole regions —
+      //    far more robust than a single global Otsu threshold.
+      const iw = w + 1
+      const integral = new Float64Array(iw * (h + 1))
+      for (let y = 1; y <= h; y++) {
+        let rowSum = 0
+        for (let x = 1; x <= w; x++) {
+          rowSum += gray[(y - 1) * w + (x - 1)]
+          integral[y * iw + x] = integral[(y - 1) * iw + x] + rowSum
+        }
       }
 
-      // 3) Otsu threshold on the stretched image
-      const hist2 = new Array(256).fill(0)
-      for (let i = 0; i < d.length; i += 4) hist2[d[i] | 0]++
-      let sum = 0
-      for (let t = 0; t < 256; t++) sum += t * hist2[t]
-      let sumB = 0, wB = 0, maxVar = 0, threshold = 127
-      for (let t = 0; t < 256; t++) {
-        wB += hist2[t]
-        if (wB === 0) continue
-        const wF = total - wB
-        if (wF === 0) break
-        sumB += t * hist2[t]
-        const mB = sumB / wB
-        const mF = (sum - sumB) / wF
-        const between = wB * wF * (mB - mF) * (mB - mF)
-        if (between > maxVar) { maxVar = between; threshold = t }
-      }
-      // Bias slightly brighter so thin strokes survive
-      threshold = Math.min(255, threshold + 8)
-      for (let i = 0; i < d.length; i += 4) {
-        const v = d[i] > threshold ? 255 : 0
-        d[i] = d[i + 1] = d[i + 2] = v
+      // Window ~ 1/24 of the short edge; C = brightness margin (anti-noise)
+      const radius = Math.max(10, Math.floor(Math.min(w, h) / 24))
+      const C = 12
+      for (let y = 0; y < h; y++) {
+        const y1 = Math.max(0, y - radius)
+        const y2 = Math.min(h - 1, y + radius)
+        for (let x = 0; x < w; x++) {
+          const x1 = Math.max(0, x - radius)
+          const x2 = Math.min(w - 1, x + radius)
+          const count = (x2 - x1 + 1) * (y2 - y1 + 1)
+          const sum =
+            integral[(y2 + 1) * iw + (x2 + 1)] -
+            integral[y1 * iw + (x2 + 1)] -
+            integral[(y2 + 1) * iw + x1] +
+            integral[y1 * iw + x1]
+          const mean = sum / count
+          const idx = (y * w + x) * 4
+          const v = gray[y * w + x] < mean - C ? 0 : 255
+          d[idx] = d[idx + 1] = d[idx + 2] = v
+        }
       }
 
       ctx.putImageData(imgData, 0, 0)
@@ -167,6 +163,18 @@ export function parseReceiptText(rawText) {
     date: date || new Date().toISOString().split('T')[0],
     rawText: text.trim(),
   }
+}
+
+// Build a human-readable name from merchant + date, e.g. "שופרסל-2026-06-09".
+// Strips characters illegal in filenames / storage paths; falls back to "חשבונית".
+export function receiptName(merchant, date) {
+  const clean = (merchant || '')
+    .replace(/[\/\\:*?"<>|#\[\]]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .slice(0, 40)
+  const base = clean || 'חשבונית'
+  return date ? `${base}-${date}` : base
 }
 
 // Compress for storage (keeps the original photo readable, smaller upload)

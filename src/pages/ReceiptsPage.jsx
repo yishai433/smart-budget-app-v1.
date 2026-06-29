@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '../contexts/AppContext'
 import ReceiptScanner from '../components/ReceiptScanner'
+import { receiptName } from '../utils/receiptOCR'
 
 const HEBREW_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const EN_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
@@ -30,14 +31,15 @@ function formatDay(dateStr) {
   return `${parts[2]}.${parts[1]}.${parts[0].slice(2)}`
 }
 
-async function downloadReceipt(imageUrl, date) {
+async function downloadReceipt(imageUrl, fileBase) {
+  const name = `${fileBase}.jpg`
   if (navigator.share) {
     try {
       const res = await fetch(imageUrl)
       const blob = await res.blob()
-      const file = new File([blob], `receipt-${date}.jpg`, { type: 'image/jpeg' })
+      const file = new File([blob], name, { type: 'image/jpeg' })
       if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: `חשבונית ${date}` })
+        await navigator.share({ files: [file], title: fileBase })
         return
       }
     } catch {}
@@ -48,7 +50,7 @@ async function downloadReceipt(imageUrl, date) {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `חשבונית-${date}.jpg`
+    a.download = name
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -66,7 +68,7 @@ function ReceiptCard({ receipt, onDelete }) {
 
   const handleDownload = async () => {
     setDownloading(true)
-    await downloadReceipt(receipt.imageUrl, receipt.date)
+    await downloadReceipt(receipt.imageUrl, receiptName(receipt.description, receipt.date))
     setDownloading(false)
   }
 
