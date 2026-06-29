@@ -1,20 +1,26 @@
+import { createAvatar } from '@dicebear/core'
+import { avataaars } from '@dicebear/collection'
+
 export function buildAvatarUrl(config) {
   if (!config) return null
-  const p = new URLSearchParams()
-  p.set('seed', config.seed || 'avatar')
-  if (config.top)             p.set('top', config.top)
-  if (config.skinColor)       p.set('skinColor', config.skinColor)
-  if (config.hairColor)       p.set('hairColor', config.hairColor)
-  p.set('clothingColor',      config.clothingColor || '3c4f5c')
-  p.set('backgroundColor',    config.backgroundColor || 'b6e3f4')
-  if (config.facialHair) {
-    p.set('facialHair', config.facialHair)
-    p.set('facialHairProbability', '100')
-    if (config.facialHairColor) p.set('facialHairColor', config.facialHairColor)
-  } else {
-    p.set('facialHairProbability', '0')
+  try {
+    const opts = { seed: config.seed || 'default' }
+    if (config.top)             opts.top = [config.top]
+    if (config.skinColor)       opts.skinColor = [config.skinColor]
+    if (config.hairColor)       opts.hairColor = [config.hairColor]
+    if (config.backgroundColor) opts.backgroundColor = [config.backgroundColor]
+    if (config.facialHair) {
+      opts.facialHair = [config.facialHair]
+      opts.facialHairProbability = 100
+    } else {
+      opts.facialHairProbability = 0
+    }
+    const svg = createAvatar(avataaars, opts).toString()
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+  } catch (e) {
+    console.error('buildAvatarUrl error', e)
+    return null
   }
-  return `https://api.dicebear.com/8.x/avataaars/svg?${p}`
 }
 
 export function randomAvatarSeed() {

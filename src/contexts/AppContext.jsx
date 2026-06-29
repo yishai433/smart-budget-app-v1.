@@ -274,14 +274,8 @@ export function AppProvider({ children }) {
   const saveAvatar = useCallback(async (config) => {
     if (!user) return
     await setDoc(doc(db, 'userProfiles', user.uid), { avatarConfig: config }, { merge: true })
-    const url = buildAvatarUrl(config)
     setAvatarConfig(config)
-    setAvatarUrl(url)
-    try {
-      await updateProfile(auth.currentUser, { photoURL: url })
-    } catch (e) {
-      console.error('updateProfile error', e)
-    }
+    setAvatarUrl(buildAvatarUrl(config))
   }, [user])
 
   const changeLanguage = useCallback((lang) => {
