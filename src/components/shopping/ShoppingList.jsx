@@ -95,6 +95,9 @@ function AddItemSheet({ onClose }) {
               )}
             </AnimatePresence>
           </div>
+        </div>
+
+        <div className="sheet-footer">
           <button className="btn btn-primary btn-full" onClick={handleAdd} disabled={!name.trim()}>
             {t('common.add')}
           </button>

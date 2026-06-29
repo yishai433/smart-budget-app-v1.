@@ -289,12 +289,14 @@ export default function AddTransaction({ onClose }) {
               {error}
             </div>
           )}
+        </div>
 
+        <div className="sheet-footer">
           <button
             className="btn btn-primary btn-full"
             onClick={handleSave}
             disabled={!amount || !category || saving}
-            style={{ opacity: (!amount || !category) ? 0.5 : 1, marginTop: 4 }}
+            style={{ opacity: (!amount || !category) ? 0.5 : 1 }}
           >
             {saving ? '⏳ שומר...' : t('common.save')}
           </button>
