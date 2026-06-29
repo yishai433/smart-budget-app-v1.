@@ -306,7 +306,7 @@ body {
 }
 .sheet {
   position: fixed;
-  bottom: var(--vv-bottom, 0px);
+  bottom: 0;
   left: 0;
   right: 0;
   width: 100%;
