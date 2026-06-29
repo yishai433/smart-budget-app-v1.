@@ -16,6 +16,7 @@ export default function AddTransaction({ onClose }) {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [isRecurring, setIsRecurring] = useState(false)
   const [frequency, setFrequency] = useState('monthly')
+  const [otherNote, setOtherNote] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [savedTxId, setSavedTxId] = useState(null)
@@ -32,7 +33,7 @@ export default function AddTransaction({ onClose }) {
       const txId = await addTransaction({
         type,
         amount: parseFloat(amount),
-        description,
+        description: description || (category === 'other' ? otherNote : ''),
         category,
         date,
         isRecurring,
@@ -192,13 +193,33 @@ export default function AddTransaction({ onClose }) {
                 <button
                   key={cat.id}
                   className={`cat-btn ${category === cat.id ? 'selected' : ''}`}
-                  onClick={() => setCategory(cat.id)}
+                  onClick={() => { setCategory(cat.id); if (cat.id !== 'other') setOtherNote('') }}
                 >
                   <span className="cat-emoji">{cat.emoji}</span>
                   <span className="cat-label">{t(`categories.${cat.id}`)}</span>
                 </button>
               ))}
             </div>
+            <AnimatePresence>
+              {category === 'other' && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  style={{ overflow: 'hidden' }}
+                >
+                  <input
+                    className="input-field"
+                    style={{ marginTop: 8 }}
+                    placeholder="מה זה? (פרט כאן)"
+                    value={otherNote}
+                    onChange={e => setOtherNote(e.target.value)}
+                    autoFocus
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Date */}

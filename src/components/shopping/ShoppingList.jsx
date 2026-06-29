@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
+
 import { useApp } from '../../contexts/AppContext'
 
 const SHOP_CATS = ['produce','dairy','meat','bakery','frozen','drinks','cleaning','personal','other']
@@ -16,6 +17,7 @@ function AddItemSheet({ onClose }) {
   const [qty, setQty] = useState('1')
   const [price, setPrice] = useState('')
   const [cat, setCat] = useState('other')
+  const [otherLabel, setOtherLabel] = useState('')
 
   const handleAdd = async () => {
     if (!name.trim()) return
@@ -24,6 +26,7 @@ function AddItemSheet({ onClose }) {
       quantity: parseFloat(qty) || 1,
       estimatedPrice: parseFloat(price) || 0,
       category: cat,
+      otherLabel: cat === 'other' ? otherLabel.trim() : '',
     })
     onClose()
   }
@@ -61,14 +64,33 @@ function AddItemSheet({ onClose }) {
           {/* Category */}
           <div className="input-group">
             <label className="input-label">{t('transaction.category')}</label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
+            <div className="cat-grid">
               {SHOP_CATS.map(c => (
-                <button key={c} className={`cat-btn ${cat === c ? 'selected' : ''}`} onClick={() => setCat(c)}>
+                <button key={c} className={`cat-btn ${cat === c ? 'selected' : ''}`} onClick={() => { setCat(c); if (c !== 'other') setOtherLabel('') }}>
                   <span className="cat-emoji">{CAT_ICONS[c]}</span>
                   <span className="cat-label">{t(`shopping.categories.${c}`)}</span>
                 </button>
               ))}
             </div>
+            <AnimatePresence>
+              {cat === 'other' && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  style={{ overflow: 'hidden' }}
+                >
+                  <input
+                    className="input-field"
+                    style={{ marginTop: 8 }}
+                    placeholder="מה זה? (פרט כאן)"
+                    value={otherLabel}
+                    onChange={e => setOtherLabel(e.target.value)}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           <button className="btn btn-primary btn-full" onClick={handleAdd} disabled={!name.trim()}>
             {t('common.add')}
@@ -135,7 +157,7 @@ export default function ShoppingList({ onCheckout }) {
       {Object.entries(grouped).map(([cat, items]) => (
         <div key={cat} style={{ marginBottom: 16 }}>
           <div style={{ padding: '0 20px 6px', fontSize: 13, fontWeight: 600, color: 'var(--c-text2)' }}>
-            {CAT_ICONS[cat]} {t(`shopping.categories.${cat}`)}
+            {CAT_ICONS[cat]} {cat === 'other' && items[0]?.otherLabel ? items[0].otherLabel : t(`shopping.categories.${cat}`)}
           </div>
           <div className="card-list" style={{ margin: '0 16px' }}>
             <AnimatePresence initial={false}>
