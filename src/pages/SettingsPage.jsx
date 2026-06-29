@@ -6,7 +6,7 @@ import { SettingsAvatar } from '../components/UserAvatar'
 import UserAvatar from '../components/UserAvatar'
 import AvatarCreator from '../components/AvatarCreator'
 import { db } from '../firebase'
-import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, getDoc, setDoc } from 'firebase/firestore'
+import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, getDoc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore'
 
 function SettingRow({ icon, label, subtitle, right, onClick, danger }) {
   return (
@@ -40,14 +40,16 @@ function Toggle({ checked, onChange }) {
 
 export default function SettingsPage() {
   const { t } = useTranslation()
-  const { settings, changeLanguage, updateSettings, household, user, logout } = useApp()
+  const { settings, changeLanguage, updateSettings, household, user, activeHouseholdId, logout } = useApp()
   const { avatarConfig } = useApp()
   const [editingAvatar, setEditingAvatar] = useState(false)
   const [joinCode, setJoinCode] = useState('')
   const [joining, setJoining] = useState(false)
-  const [joinResult, setJoinResult] = useState(null) // 'ok' | 'error' | null
+  const [joinResult, setJoinResult] = useState(null)
   const [toast, setToast] = useState('')
   const [members, setMembers] = useState([])
+  const [currentInvite, setCurrentInvite] = useState(null) // { code, expiresAt }
+  const [creatingInvite, setCreatingInvite] = useState(false)
   const [notifPerm, setNotifPerm] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'default')
 
   // Load member profiles whenever household changes
@@ -69,33 +71,42 @@ export default function SettingsPage() {
     setTimeout(() => setToast(''), 2500)
   }
 
-  const getInviteLink = () => {
-    const base = window.location.href.split('#')[0]
-    return `${base}#/?invite=${household?.inviteCode}`
+  // Generate a one-time invite code (8 chars, expires in 24h)
+  const createInvite = async () => {
+    if (!user) return
+    setCreatingInvite(true)
+    try {
+      const part = () => Math.random().toString(36).substring(2, 6).toUpperCase()
+      const code = part() + part()
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
+      await setDoc(doc(db, 'invites', code), {
+        householdId: activeHouseholdId || user.uid,
+        createdBy: user.uid,
+        createdAt: serverTimestamp(),
+        expiresAt: Timestamp.fromDate(expiresAt),
+        used: false,
+        usedBy: null,
+      })
+      setCurrentInvite({ code, expiresAt })
+    } catch { showToast('שגיאה ביצירת קוד') }
+    setCreatingInvite(false)
   }
 
-  const copyCode = () => {
-    if (household?.inviteCode) {
-      navigator.clipboard?.writeText(household.inviteCode).then(() => {
-        showToast(t('settings.codeCopied'))
-      })
-    }
+  const copyInviteCode = () => {
+    if (!currentInvite) return
+    navigator.clipboard?.writeText(currentInvite.code)
+      .then(() => showToast('📋 קוד הועתק!'))
   }
 
   const shareInvite = async () => {
-    const link = getInviteLink()
+    if (!currentInvite) return
     const name = user?.displayName || 'חבר'
+    const text = `${name} מזמין אותך לתקציב משותף 💰\nהקוד שלך: ${currentInvite.code}\n(תקף 24 שעות)`
     if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'תקציב חכם — הזמנה',
-          text: `${name} מזמין אותך להצטרף לתקציב המשותף 💰`,
-          url: link,
-        })
-      } catch {}
+      try { await navigator.share({ title: 'תקציב חכם', text }) } catch {}
     } else {
-      await navigator.clipboard?.writeText(link)
-      showToast('📋 קישור הזמנה הועתק!')
+      await navigator.clipboard?.writeText(text)
+      showToast('📋 הועתק!')
     }
   }
 
@@ -105,30 +116,21 @@ export default function SettingsPage() {
     setJoinResult(null)
     try {
       const code = joinCode.trim().toUpperCase()
-      if (code === household?.inviteCode) {
-        setJoinResult('self')
-        setJoining(false)
-        return
-      }
-      const q = query(collection(db, 'households'), where('inviteCode', '==', code))
-      const snap = await getDocs(q)
-      if (snap.empty) {
-        setJoinResult('error')
-      } else {
-        const hhDoc = snap.docs[0]
-        const ownerUid = hhDoc.id
-        // Add this user to the household members
-        await updateDoc(doc(db, 'households', ownerUid), { members: arrayUnion(user.uid) })
-        // Store the owner's uid in this user's profile so all queries redirect
-        await setDoc(doc(db, 'userProfiles', user.uid), { linkedHouseholdId: ownerUid }, { merge: true })
-        setJoinResult('ok')
-        setJoinCode('')
-        // Reload the page so AppContext picks up the new linkedHouseholdId
-        setTimeout(() => window.location.reload(), 1500)
-      }
-    } catch {
-      setJoinResult('error')
-    }
+      const inviteSnap = await getDoc(doc(db, 'invites', code))
+      if (!inviteSnap.exists()) { setJoinResult('error'); setJoining(false); return }
+      const invite = inviteSnap.data()
+      if (invite.used) { setJoinResult('used'); setJoining(false); return }
+      if (invite.expiresAt.toDate() < new Date()) { setJoinResult('expired'); setJoining(false); return }
+      if (invite.householdId === (activeHouseholdId || user.uid)) { setJoinResult('self'); setJoining(false); return }
+
+      const ownerUid = invite.householdId
+      await updateDoc(doc(db, 'households', ownerUid), { members: arrayUnion(user.uid) })
+      await setDoc(doc(db, 'userProfiles', user.uid), { linkedHouseholdId: ownerUid }, { merge: true })
+      await updateDoc(doc(db, 'invites', code), { used: true, usedBy: user.uid })
+      setJoinResult('ok')
+      setJoinCode('')
+      setTimeout(() => window.location.reload(), 1500)
+    } catch { setJoinResult('error') }
     setJoining(false)
   }
 
@@ -330,32 +332,47 @@ export default function SettingsPage() {
           <div className="card-inner" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
               <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>📤 הזמן בן/בת זוג</div>
-              <div style={{ fontSize: 13, color: 'var(--c-text2)' }}>שלח את הקוד הזה ובן הזוג יזין אותו באפליקציה</div>
-            </div>
-
-            {/* Big code display */}
-            <div style={{
-              background: 'var(--c-bg)', borderRadius: 'var(--r-lg)',
-              padding: '18px 20px', textAlign: 'center',
-            }}>
-              <div style={{ fontSize: 11, color: 'var(--c-text3)', marginBottom: 6, letterSpacing: 0.5 }}>קוד ההזמנה שלך</div>
-              <div style={{
-                fontSize: 32, fontWeight: 800, letterSpacing: 8,
-                color: 'var(--c-primary)', fontFamily: 'monospace',
-              }}>
-                {household?.inviteCode || '------'}
+              <div style={{ fontSize: 13, color: 'var(--c-text2)' }}>
+                צור קוד חד-פעמי לשליחה — תקף 24 שעות, לא ניתן לשימוש חוזר
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <button className="btn btn-secondary btn-full" onClick={copyCode} style={{ padding: '12px 8px', fontSize: 14 }}>
-                📋 העתק קוד
+            {!currentInvite ? (
+              <button
+                className="btn btn-primary btn-full"
+                onClick={createInvite}
+                disabled={creatingInvite}
+                style={{ padding: 15, fontSize: 15, boxShadow: '0 4px 14px rgba(22,163,73,0.3)' }}
+              >
+                {creatingInvite ? '⏳ יוצר קוד...' : '🔑 צור קוד הזמנה'}
               </button>
-              <button className="btn btn-primary btn-full" onClick={shareInvite}
-                style={{ padding: '12px 8px', fontSize: 14, boxShadow: '0 4px 14px rgba(22,163,73,0.3)' }}>
-                💬 שלח הזמנה
-              </button>
-            </div>
+            ) : (
+              <>
+                <div style={{ background: 'var(--c-bg)', borderRadius: 'var(--r-lg)', padding: '18px 20px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 11, color: 'var(--c-text3)', marginBottom: 6, letterSpacing: 0.5 }}>
+                    קוד חד-פעמי · תוקף עד {currentInvite.expiresAt.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                  <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: 6, color: 'var(--c-primary)', fontFamily: 'monospace' }}>
+                    {currentInvite.code}
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <button className="btn btn-secondary btn-full" onClick={copyInviteCode} style={{ padding: '12px 8px', fontSize: 14 }}>
+                    📋 העתק קוד
+                  </button>
+                  <button className="btn btn-primary btn-full" onClick={shareInvite}
+                    style={{ padding: '12px 8px', fontSize: 14, boxShadow: '0 4px 14px rgba(22,163,73,0.3)' }}>
+                    💬 שלח הזמנה
+                  </button>
+                </div>
+                <button
+                  onClick={() => setCurrentInvite(null)}
+                  style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--c-text3)', cursor: 'pointer', textAlign: 'center' }}
+                >
+                  צור קוד חדש
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -396,16 +413,26 @@ export default function SettingsPage() {
               )}
               {joinResult === 'error' && (
                 <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                  style={{ background: 'rgba(217,107,107,0.1)', borderRadius: 'var(--r-md)', padding: '10px 14px',
-                    fontSize: 13, color: 'var(--c-danger)', fontWeight: 600 }}>
+                  style={{ background: 'rgba(217,107,107,0.1)', borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 13, color: 'var(--c-danger)', fontWeight: 600 }}>
                   ❌ קוד לא נמצא — בדוק שוב
+                </motion.div>
+              )}
+              {joinResult === 'used' && (
+                <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                  style={{ background: 'rgba(217,107,107,0.1)', borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 13, color: 'var(--c-danger)', fontWeight: 600 }}>
+                  ❌ קוד זה כבר נוצל — בקש קוד חדש
+                </motion.div>
+              )}
+              {joinResult === 'expired' && (
+                <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                  style={{ background: 'rgba(255,149,0,0.1)', borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 13, color: 'var(--c-warning)', fontWeight: 600 }}>
+                  ⏰ הקוד פג תוקף — בקש קוד חדש
                 </motion.div>
               )}
               {joinResult === 'self' && (
                 <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                  style={{ background: 'rgba(255,149,0,0.1)', borderRadius: 'var(--r-md)', padding: '10px 14px',
-                    fontSize: 13, color: 'var(--c-warning)', fontWeight: 600 }}>
-                  זה הקוד שלך — הזן את הקוד של בן/בת הזוג
+                  style={{ background: 'rgba(255,149,0,0.1)', borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 13, color: 'var(--c-warning)', fontWeight: 600 }}>
+                  זה הקוד שלך — הזן את הקוד שקיבלת מבן/בת הזוג
                 </motion.div>
               )}
             </AnimatePresence>
