@@ -348,16 +348,18 @@ export function AppProvider({ children }) {
   }, [shoppingItems])
 
   const checkoutShopping = useCallback(async (total, { addExpense = true, saveTemplate = false } = {}) => {
-    if (saveTemplate) {
+    if (saveTemplate && activeHouseholdId) {
       const template = shoppingItems.map(({ name, category, quantity, estimatedPrice, otherLabel }) =>
         ({ name, category, quantity: quantity || 1, estimatedPrice: estimatedPrice || 0, otherLabel: otherLabel || '' })
       )
+      // Save to Firestore so it persists across devices
+      await updateDoc(doc(db, 'households', activeHouseholdId), { shoppingTemplate: template })
       localStorage.setItem('sb_shopping_template', JSON.stringify(template))
     }
     if (addExpense && total > 0) {
       await addTransaction({
         type: 'expense',
-        category: 'shopping',
+        category: 'other',
         amount: total,
         description: i18n.t('shopping.title'),
         date: new Date().toISOString().split('T')[0],
@@ -365,15 +367,27 @@ export function AppProvider({ children }) {
       })
     }
     await clearShoppingList()
-  }, [addTransaction, clearShoppingList, shoppingItems])
+  }, [addTransaction, clearShoppingList, shoppingItems, activeHouseholdId])
 
   const loadShoppingTemplate = useCallback(async () => {
-    const raw = localStorage.getItem('sb_shopping_template')
-    if (!raw) return false
-    const template = JSON.parse(raw)
+    let template = null
+    // Try Firestore first (shared across devices)
+    if (activeHouseholdId) {
+      const hhSnap = await getDoc(doc(db, 'households', activeHouseholdId))
+      if (hhSnap.exists() && hhSnap.data().shoppingTemplate?.length > 0) {
+        template = hhSnap.data().shoppingTemplate
+      }
+    }
+    // Fallback to localStorage
+    if (!template) {
+      const raw = localStorage.getItem('sb_shopping_template')
+      if (!raw) return false
+      try { template = JSON.parse(raw) } catch { return false }
+    }
+    if (!template?.length) return false
     await Promise.all(template.map(item => addShoppingItem(item)))
     return true
-  }, [addShoppingItem])
+  }, [addShoppingItem, activeHouseholdId])
 
   const saveAvatar = useCallback(async (config) => {
     if (!user) return

@@ -81,9 +81,9 @@ function CheckoutModal({ total, onConfirm, onCancel }) {
 
 export default function ShoppingPage() {
   const { t } = useTranslation()
-  const { checkoutShopping, clearShoppingList, loadShoppingTemplate, shoppingItems } = useApp()
+  const { checkoutShopping, clearShoppingList, loadShoppingTemplate, shoppingItems, household } = useApp()
   const [checkoutTotal, setCheckoutTotal] = useState(null)
-  const hasTemplate = !!localStorage.getItem('sb_shopping_template')
+  const hasTemplate = !!(household?.shoppingTemplate?.length > 0 || localStorage.getItem('sb_shopping_template'))
 
   const showToast = (msg) => {
     window.dispatchEvent(new CustomEvent('sb-toast', { detail: msg }))
