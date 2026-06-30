@@ -107,18 +107,29 @@ export function AppProvider({ children }) {
       console.error('profile load error', e)
     }
 
-    // If no savedlinkedId, check if this user appears in someone else's household
+    // Validate existing linkedId: the target household must exist and contain our uid,
+    // and we must NOT be the owner (that would mean we're pointing to our own data).
+    if (linkedId) {
+      try {
+        const snap = await getDoc(doc(db, 'households', linkedId))
+        const data = snap.exists() ? snap.data() : null
+        const valid = data && data.owner !== uid && Array.isArray(data.members) && data.members.includes(uid)
+        if (!valid) {
+          linkedId = null
+          setDoc(doc(db, 'userProfiles', uid), { linkedHouseholdId: null }, { merge: true }).catch(() => {})
+        }
+      } catch { linkedId = null }
+    }
+
+    // If still no linkedId, scan for a household owned by someone else that has us as member
     if (!linkedId) {
       try {
-        const memberQ = query(
-          collection(db, 'households'),
-          where('members', 'array-contains', uid)
-        )
+        const memberQ = query(collection(db, 'households'), where('members', 'array-contains', uid))
         const memberSnap = await getDocs(memberQ)
-        const foreign = memberSnap.docs.find(d => d.id !== uid)
+        // Only pick a household we do NOT own (owner !== uid) and whose doc id isn't ours
+        const foreign = memberSnap.docs.find(d => d.id !== uid && d.data().owner !== uid)
         if (foreign) {
           linkedId = foreign.id
-          // Persist so next load is instant
           setDoc(doc(db, 'userProfiles', uid), { linkedHouseholdId: linkedId }, { merge: true }).catch(() => {})
         }
       } catch {}
