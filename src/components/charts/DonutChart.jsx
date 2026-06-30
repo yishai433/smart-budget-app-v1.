@@ -56,7 +56,7 @@ export default function DonutChart({ segments, currency = '₪', centerLabel = '
           <div style={{ fontSize: 11, color: 'var(--c-text2)', fontWeight: 500, marginBottom: 2 }}>
             {centerLabel}
           </div>
-          <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.5 }}>
+          <div dir="ltr" style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.5 }}>
             {formatAmount(total, currency)}
           </div>
         </div>
@@ -71,7 +71,7 @@ export default function DonutChart({ segments, currency = '₪', centerLabel = '
               {seg.emoji} {seg.label}
             </span>
             <span style={{ fontSize: 13, color: 'var(--c-text2)' }}>{seg.pct}%</span>
-            <span style={{ fontSize: 13, fontWeight: 700 }}>{formatAmount(seg.value, currency)}</span>
+            <span dir="ltr" style={{ fontSize: 13, fontWeight: 700 }}>{formatAmount(seg.value, currency)}</span>
           </div>
         ))}
       </div>

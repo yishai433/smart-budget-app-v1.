@@ -104,7 +104,7 @@ function SwipeableRow({ tx, onDelete, t, catDef, cur }) {
             )}
           </div>
         </div>
-        <div style={{
+        <div dir="ltr" style={{
           fontWeight: 700,
           fontSize: 16,
           color: tx.type === 'income' ? 'var(--c-success)' : 'var(--c-danger)',

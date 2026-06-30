@@ -38,7 +38,7 @@ function StatCard({ label, value, color, currency }) {
       boxShadow: 'var(--shadow-sm)',
     }}>
       <div style={{ fontSize: 12, color: 'var(--c-text2)', marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 20, fontWeight: 800, color, letterSpacing: -0.5 }}>
+      <div dir="ltr" style={{ fontSize: 20, fontWeight: 800, color, letterSpacing: -0.5 }}>
         {formatAmount(value, currency)}
       </div>
     </div>
@@ -218,7 +218,7 @@ export default function ReportsPage() {
                         </div>
                         <div style={{ fontSize:12, color:'var(--c-text2)' }}>{tx.date}</div>
                       </div>
-                      <div style={{ fontWeight:700, color:'var(--c-danger)' }}>
+                      <div dir="ltr" style={{ fontWeight:700, color:'var(--c-danger)' }}>
                         {formatMoney(tx.amount, 'expense', cur)}
                       </div>
                     </motion.div>
