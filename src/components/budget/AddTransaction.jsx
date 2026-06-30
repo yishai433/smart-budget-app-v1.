@@ -147,7 +147,7 @@ export default function AddTransaction({ onClose }) {
           >✕</button>
         </div>
 
-        <div className="sheet-body" style={{ gap: 14 }}>
+        <div className="sheet-body" style={{ gap: 12 }}>
           {/* Type toggle */}
           <div className="segment">
             <button className={`segment-btn ${type === 'expense' ? 'active' : ''}`}
@@ -160,44 +160,26 @@ export default function AddTransaction({ onClose }) {
             </button>
           </div>
 
-          {/* Amount */}
-          <div style={{
-            background: 'var(--c-bg)',
-            borderRadius: 'var(--r-lg)',
-            padding: '12px 20px 16px',
-            textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--c-text2)', letterSpacing: 0.5, marginBottom: 6 }}>
-              {t('transaction.amount')}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-              <span style={{ fontSize: 26, fontWeight: 300, color: 'var(--c-text3)' }}>₪</span>
+          {/* Amount + Description — compact side-by-side */}
+          <div style={{ display: 'grid', gridTemplateColumns: '5fr 7fr', gap: 10 }}>
+            <div className="input-group" style={{ marginBottom: 0 }}>
+              <label className="input-label">סכום (₪)</label>
               <input
-                className="amount-input-hero"
-                type="number"
-                inputMode="decimal"
-                placeholder="0"
-                value={amount}
-                onChange={e => setAmount(e.target.value)}
-                style={{
-                  border: 'none', background: 'transparent', outline: 'none',
-                  fontSize: 44, fontWeight: 800, textAlign: 'center', width: '100%',
-                  color: type === 'expense' ? 'var(--c-danger)' : 'var(--c-primary)',
-                  fontFamily: 'inherit', letterSpacing: -1,
-                }}
+                className="input-field"
+                type="number" inputMode="decimal" placeholder="0"
+                value={amount} onChange={e => setAmount(e.target.value)}
+                style={{ textAlign: 'center', fontWeight: 800, fontSize: 20,
+                  color: amount ? (type === 'expense' ? 'var(--c-danger)' : 'var(--c-primary)') : undefined }}
               />
             </div>
-          </div>
-
-          {/* Description */}
-          <div className="input-group" style={{ marginBottom: 0 }}>
-            <label className="input-label">{t('transaction.description')}</label>
-            <input
-              className="input-field"
-              placeholder={t('transaction.descriptionPlaceholder')}
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-            />
+            <div className="input-group" style={{ marginBottom: 0 }}>
+              <label className="input-label">{t('transaction.description')}</label>
+              <input
+                className="input-field"
+                placeholder={t('transaction.descriptionPlaceholder')}
+                value={description} onChange={e => setDescription(e.target.value)}
+              />
+            </div>
           </div>
 
           {/* Category */}
