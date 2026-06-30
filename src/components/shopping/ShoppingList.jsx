@@ -10,109 +10,171 @@ const CAT_COLORS = {
   frozen: '#32ADE6', drinks: '#0A84FF', cleaning: '#30D158', personal: '#BF5AF2', other: '#636366',
 }
 
+function SheetWrap({ onClose, children }) {
+  return (
+    <>
+      <motion.div className="sheet-overlay"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={onClose}
+      />
+      <div className="sheet-viewport">
+        <motion.div className="sheet"
+          initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+          transition={{ type: 'spring', stiffness: 380, damping: 36 }}
+        >
+          {children}
+        </motion.div>
+      </div>
+    </>
+  )
+}
+
 function AddItemSheet({ onClose }) {
   const { t } = useTranslation()
   const { addShoppingItem } = useApp()
   const [name, setName] = useState('')
-  const [qty, setQty] = useState('1')
+  const [qty, setQty] = useState('')
   const [price, setPrice] = useState('')
   const [cat, setCat] = useState('other')
   const [otherLabel, setOtherLabel] = useState('')
 
+  const canAdd = name.trim() && parseFloat(qty) > 0 && parseFloat(price) > 0
+
   const handleAdd = async () => {
-    if (!name.trim() || !(parseFloat(price) > 0)) return
+    if (!canAdd) return
     await addShoppingItem({
       name: name.trim(),
-      quantity: parseFloat(qty) || 1,
-      estimatedPrice: parseFloat(price) || 0,
+      quantity: parseFloat(qty),
+      estimatedPrice: parseFloat(price),
       category: cat,
       otherLabel: cat === 'other' ? otherLabel.trim() : '',
     })
     onClose()
   }
 
-  const canAdd = name.trim() && parseFloat(price) > 0
+  return (
+    <SheetWrap onClose={onClose}>
+      <div className="sheet-handle" />
+      <div className="sheet-header">
+        <h2 className="sheet-title">🛒 {t('shopping.addItem')}</h2>
+        <button onClick={onClose} style={{ background: 'var(--c-bg)', border: 'none', borderRadius: 20, width: 32, height: 32, cursor: 'pointer', fontSize: 18, color: 'var(--c-text2)' }}>✕</button>
+      </div>
+
+      <div className="sheet-body" style={{ gap: 14 }}>
+        <div className="input-group" style={{ marginBottom: 0 }}>
+          <label className="input-label">{t('shopping.itemName')}</label>
+          <input className="input-field" placeholder={t('shopping.itemName')}
+            value={name} onChange={e => setName(e.target.value)} autoFocus />
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div className="input-group" style={{ marginBottom: 0 }}>
+            <label className="input-label">מחיר (₪) *</label>
+            <input className="input-field" type="number" inputMode="decimal" placeholder="0.00"
+              value={price} onChange={e => setPrice(e.target.value)}
+              style={{ textAlign: 'center', fontWeight: 700, fontSize: 17 }} />
+          </div>
+          <div className="input-group" style={{ marginBottom: 0 }}>
+            <label className="input-label">כמות *</label>
+            <input className="input-field" type="number" inputMode="decimal" placeholder="0"
+              value={qty} onChange={e => setQty(e.target.value)}
+              style={{ textAlign: 'center', fontWeight: 700, fontSize: 17 }} />
+          </div>
+        </div>
+
+        <div className="input-group" style={{ marginBottom: 0 }}>
+          <label className="input-label">{t('transaction.category')}</label>
+          <div className="cat-grid">
+            {SHOP_CATS.map(c => (
+              <button key={c} className={`cat-btn ${cat === c ? 'selected' : ''}`}
+                onClick={() => { setCat(c); if (c !== 'other') setOtherLabel('') }}
+                style={cat === c ? { borderColor: CAT_COLORS[c], background: CAT_COLORS[c] + '18' } : {}}>
+                <div className="cat-icon" style={{ color: cat === c ? CAT_COLORS[c] : 'var(--c-text2)' }}>
+                  <CategoryIcon id={c} size={26} />
+                </div>
+                <span className="cat-label">{t(`shopping.categories.${c}`)}</span>
+              </button>
+            ))}
+          </div>
+          <AnimatePresence>
+            {cat === 'other' && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} style={{ overflow: 'hidden' }}>
+                <div style={{ marginTop: 8, position: 'relative' }}>
+                  <input className="input-field" placeholder="פירוט (אופציונלי)" value={otherLabel}
+                    onChange={e => setOtherLabel(e.target.value)} style={{ paddingRight: 36 }} />
+                  <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 16, pointerEvents: 'none' }}>✏️</span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      <div className="sheet-footer">
+        <button className="btn btn-primary btn-full" onClick={handleAdd} disabled={!canAdd}
+          style={{ opacity: canAdd ? 1 : 0.45, transition: 'opacity 0.2s', fontSize: 16, fontWeight: 700 }}>
+          + {t('common.add')}
+        </button>
+      </div>
+    </SheetWrap>
+  )
+}
+
+function EditItemSheet({ item, cur, onSave, onClose }) {
+  const [qty, setQty] = useState(String(item.quantity || ''))
+  const [price, setPrice] = useState(String(item.estimatedPrice || ''))
+
+  const canSave = parseFloat(qty) > 0 && parseFloat(price) > 0
+
+  const handleSave = async () => {
+    if (!canSave) return
+    await onSave(item.id, { quantity: parseFloat(qty), estimatedPrice: parseFloat(price) })
+    onClose()
+  }
 
   return (
-    <>
-      <motion.div className="sheet-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
-      <div className="sheet-viewport">
-      <motion.div
-        className="sheet"
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        transition={{ type: 'spring', stiffness: 380, damping: 36 }}
-      >
-        <div className="sheet-handle" />
-        <div className="sheet-header">
-          <h2 className="sheet-title">🛒 {t('shopping.addItem')}</h2>
-          <button onClick={onClose} style={{ background: 'var(--c-bg)', border: 'none', borderRadius: 20, width: 32, height: 32, cursor: 'pointer', fontSize: 18, color: 'var(--c-text2)' }}>✕</button>
+    <SheetWrap onClose={onClose}>
+      <div className="sheet-handle" />
+      <div className="sheet-header">
+        <div>
+          <h2 className="sheet-title">✏️ {item.name}</h2>
+          <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2 }}>עריכת כמות ומחיר</div>
         </div>
-
-        <div className="sheet-body" style={{ gap: 14 }}>
-          {/* Name */}
-          <div className="input-group" style={{ marginBottom: 0 }}>
-            <label className="input-label">{t('shopping.itemName')}</label>
-            <input className="input-field" placeholder={t('shopping.itemName')}
-              value={name} onChange={e => setName(e.target.value)} autoFocus />
-          </div>
-
-          {/* Price + Qty */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">מחיר (₪)</label>
-              <input className="input-field" type="number" inputMode="decimal" placeholder="0"
-                value={price} onChange={e => setPrice(e.target.value)}
-                style={{ textAlign: 'center', fontWeight: 700, fontSize: 17 }} />
-            </div>
-            <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">{t('shopping.quantity')}</label>
-              <input className="input-field" type="number" inputMode="decimal"
-                value={qty} onChange={e => setQty(e.target.value)}
-                style={{ textAlign: 'center', fontWeight: 700, fontSize: 17 }} />
-            </div>
-          </div>
-
-          {/* Category */}
-          <div className="input-group" style={{ marginBottom: 0 }}>
-            <label className="input-label">{t('transaction.category')}</label>
-            <div className="cat-grid">
-              {SHOP_CATS.map(c => (
-                <button key={c} className={`cat-btn ${cat === c ? 'selected' : ''}`}
-                  onClick={() => { setCat(c); if (c !== 'other') setOtherLabel('') }}
-                  style={cat === c ? { borderColor: CAT_COLORS[c], background: CAT_COLORS[c] + '18' } : {}}>
-                  <div className="cat-icon" style={{ color: cat === c ? CAT_COLORS[c] : 'var(--c-text2)' }}>
-                    <CategoryIcon id={c} size={26} />
-                  </div>
-                  <span className="cat-label">{t(`shopping.categories.${c}`)}</span>
-                </button>
-              ))}
-            </div>
-            <AnimatePresence>
-              {cat === 'other' && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} style={{ overflow: 'hidden' }}>
-                  <div style={{ marginTop: 8, position: 'relative' }}>
-                    <input className="input-field" placeholder="פירוט (אופציונלי)" value={otherLabel}
-                      onChange={e => setOtherLabel(e.target.value)} style={{ paddingRight: 36 }} />
-                    <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 16, pointerEvents: 'none' }}>✏️</span>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-
-        <div className="sheet-footer">
-          <button className="btn btn-primary btn-full" onClick={handleAdd} disabled={!canAdd}
-            style={{ opacity: canAdd ? 1 : 0.45, transition: 'opacity 0.2s', fontSize: 16, fontWeight: 700 }}>
-            + {t('common.add')}
-          </button>
-        </div>
-      </motion.div>
+        <button onClick={onClose} style={{ background: 'var(--c-bg)', border: 'none', borderRadius: 20, width: 32, height: 32, cursor: 'pointer', fontSize: 18, color: 'var(--c-text2)' }}>✕</button>
       </div>
-    </>
+
+      <div className="sheet-body">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="input-group" style={{ marginBottom: 0 }}>
+            <label className="input-label">מחיר ({cur}) *</label>
+            <input className="input-field" type="number" inputMode="decimal" placeholder="0.00"
+              value={price} onChange={e => setPrice(e.target.value)} autoFocus
+              style={{ textAlign: 'center', fontWeight: 700, fontSize: 20 }} />
+          </div>
+          <div className="input-group" style={{ marginBottom: 0 }}>
+            <label className="input-label">כמות *</label>
+            <input className="input-field" type="number" inputMode="decimal" placeholder="0"
+              value={qty} onChange={e => setQty(e.target.value)}
+              style={{ textAlign: 'center', fontWeight: 700, fontSize: 20 }} />
+          </div>
+        </div>
+        {canSave && (
+          <div style={{ textAlign: 'center', color: 'var(--c-text2)', fontSize: 13 }}>
+            סה״כ: <span dir="ltr" style={{ fontWeight: 700, color: 'var(--c-text)' }}>
+              {cur}{(parseFloat(price) * parseFloat(qty)).toFixed(2)}
+            </span>
+          </div>
+        )}
+      </div>
+
+      <div className="sheet-footer">
+        <button className="btn btn-primary btn-full" onClick={handleSave} disabled={!canSave}
+          style={{ opacity: canSave ? 1 : 0.45, fontSize: 16, fontWeight: 700 }}>
+          שמור
+        </button>
+      </div>
+    </SheetWrap>
   )
 }
 
@@ -120,6 +182,7 @@ export default function ShoppingList({ onCheckout }) {
   const { t } = useTranslation()
   const { shoppingItems, updateShoppingItem, deleteShoppingItem, settings } = useApp()
   const [showAdd, setShowAdd] = useState(false)
+  const [editing, setEditing] = useState(null)
   const cur = settings.currency
 
   const grouped = SHOP_CATS.reduce((acc, c) => {
@@ -188,7 +251,6 @@ export default function ShoppingList({ onCheckout }) {
                   exit={{ opacity: 0, height: 0 }}
                 >
                   <div className="list-item" style={{ position: 'relative', overflow: 'hidden' }}>
-                    {/* category color strip on right edge */}
                     <div style={{
                       position: 'absolute', right: 0, top: 0, bottom: 0,
                       width: 4, background: CAT_COLORS[item.category] || '#636366',
@@ -199,7 +261,10 @@ export default function ShoppingList({ onCheckout }) {
                     >
                       {item.checked && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
                     </button>
-                    <div style={{ flex: 1 }}>
+
+                    {/* Tappable area → opens edit sheet */}
+                    <div style={{ flex: 1, cursor: 'pointer', minWidth: 0 }}
+                      onClick={() => setEditing(item)}>
                       <span style={{
                         fontSize: 15, fontWeight: 500,
                         textDecoration: item.checked ? 'line-through' : 'none',
@@ -208,10 +273,14 @@ export default function ShoppingList({ onCheckout }) {
                         {item.name}
                       </span>
                       <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2 }}>
-                        {item.quantity > 1 && <span>×{item.quantity} </span>}
-                        {item.estimatedPrice > 0 && <span>{cur}{(item.estimatedPrice * item.quantity).toFixed(2)}</span>}
+                        {item.quantity > 1 ? `×${item.quantity}  ` : ''}
+                        {item.estimatedPrice > 0
+                          ? `${cur}${(item.estimatedPrice * (item.quantity || 1)).toFixed(2)}`
+                          : <span style={{ color: 'var(--c-danger)', fontWeight: 600 }}>הכנס מחיר ✎</span>
+                        }
                       </div>
                     </div>
+
                     <button
                       onClick={() => deleteShoppingItem(item.id)}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--c-text3)', padding: 4 }}
@@ -244,6 +313,16 @@ export default function ShoppingList({ onCheckout }) {
 
       <AnimatePresence>
         {showAdd && <AddItemSheet onClose={() => setShowAdd(false)} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {editing && (
+          <EditItemSheet
+            item={editing}
+            cur={cur}
+            onSave={updateShoppingItem}
+            onClose={() => setEditing(null)}
+          />
+        )}
       </AnimatePresence>
     </>
   )

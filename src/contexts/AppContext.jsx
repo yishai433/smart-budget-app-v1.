@@ -348,8 +348,9 @@ export function AppProvider({ children }) {
     await Promise.all(shoppingItems.map(i => deleteDoc(doc(db, 'shoppingItems', i.id))))
   }, [shoppingItems])
 
-  const checkoutShopping = useCallback(async (total, { addExpense = true, saveTemplate = false, supermarket = '' } = {}) => {
-    if (saveTemplate && activeHouseholdId) {
+  const checkoutShopping = useCallback(async (total, { addExpense = true, supermarket = '' } = {}) => {
+    // Always persist prices/quantities for next trip
+    if (activeHouseholdId) {
       const template = shoppingItems.map(({ name, category, quantity, estimatedPrice, otherLabel }) =>
         ({ name, category, quantity: quantity || 1, estimatedPrice: estimatedPrice || 0, otherLabel: otherLabel || '' })
       )

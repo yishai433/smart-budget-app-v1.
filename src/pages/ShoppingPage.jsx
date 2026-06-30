@@ -29,7 +29,6 @@ function CheckoutModal({ total, onConfirm, onCancel }) {
   const { settings } = useApp()
   const cur = settings.currency
   const [addExpense, setAddExpense] = useState(true)
-  const [saveTemplate, setSaveTemplate] = useState(false)
   const [supermarket, setSupermarket] = useState('')
 
   return (
@@ -51,21 +50,13 @@ function CheckoutModal({ total, onConfirm, onCancel }) {
               </div>
             </div>
 
-            {/* Toggles first — visible before keyboard opens */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <CheckoutToggle
-                checked={addExpense}
-                onChange={setAddExpense}
-                label="הוסף להוצאות"
-                sub={addExpense ? `תירשם הוצאה של ${cur}${total.toFixed(2)}${supermarket ? ` — ${supermarket}` : ''}` : 'לא תירשם הוצאה'}
-              />
-              <CheckoutToggle
-                checked={saveTemplate}
-                onChange={setSaveTemplate}
-                label="שמור רשימה לפעם הבאה"
-                sub="תוכל לטעון אותה שוב בקליק"
-              />
-            </div>
+            {/* Toggle */}
+            <CheckoutToggle
+              checked={addExpense}
+              onChange={setAddExpense}
+              label="הוסף להוצאות"
+              sub={addExpense ? `תירשם הוצאה של ${cur}${total.toFixed(2)}${supermarket ? ` — ${supermarket}` : ''}` : 'לא תירשם הוצאה'}
+            />
 
             {/* Supermarket input last — keyboard opens here, rest already visible above */}
             <div className="input-group" style={{ marginBottom: 0 }}>
@@ -81,7 +72,7 @@ function CheckoutModal({ total, onConfirm, onCancel }) {
 
           <div className="sheet-footer">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <button className="btn btn-primary btn-full" onClick={() => onConfirm({ addExpense, saveTemplate, supermarket })}>
+              <button className="btn btn-primary btn-full" onClick={() => onConfirm({ addExpense, supermarket })}>
                 ✓ סיים קניה
               </button>
               <button className="btn btn-secondary btn-full" onClick={onCancel}>
@@ -107,11 +98,11 @@ export default function ShoppingPage() {
 
   const handleCheckout = (total) => setCheckoutTotal(total)
 
-  const handleConfirmCheckout = async ({ addExpense, saveTemplate, supermarket }) => {
+  const handleConfirmCheckout = async ({ addExpense, supermarket }) => {
     try {
-      await checkoutShopping(checkoutTotal, { addExpense, saveTemplate, supermarket })
+      await checkoutShopping(checkoutTotal, { addExpense, supermarket })
       setCheckoutTotal(null)
-      showToast(saveTemplate ? '✅ הקניה הסתיימה ורשימה נשמרה' : '✅ הקניה הסתיימה')
+      showToast('✅ הקניה הסתיימה — המחירים עודכנו לקניה הבאה')
     } catch (err) {
       console.error('checkout error', err)
       showToast('שגיאה בשמירת הקניה, נסה שוב')
