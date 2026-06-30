@@ -467,7 +467,9 @@ body {
   position: fixed;
   bottom: calc(var(--nav-h) + var(--safe-bottom) + 20px);
   left: 50%;
+  right: auto;
   transform: translateX(-50%);
+  direction: ltr;
   background: #1C1C1E;
   color: white;
   padding: 12px 24px;
