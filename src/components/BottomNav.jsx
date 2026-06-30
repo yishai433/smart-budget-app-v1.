@@ -29,11 +29,9 @@ export default function BottomNav() {
     : [...BASE_TABS, SETTINGS_TAB]
 
   return (
-    <nav style={{
+    <nav className="bottom-nav" style={{
       position: 'fixed',
       bottom: 0,
-      left: '50%',
-      transform: 'translateX(-50%)',
       width: '100%',
       maxWidth: '430px',
       height: `calc(var(--nav-h) + var(--safe-bottom))`,

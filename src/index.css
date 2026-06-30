@@ -360,12 +360,15 @@ body {
   border-top: 1px solid var(--c-sep);
   flex-shrink: 0;
 }
-/* When keyboard is open: hide nav bar + drop sheet-footer padding */
-nav {
+/* BottomNav centering + keyboard-hide animation */
+.bottom-nav {
+  left: 50%;
+  transform: translateX(-50%);
   transition: transform 0.2s ease;
 }
-.kb-open nav {
-  transform: translateY(calc(100% + var(--safe-bottom)));
+.kb-open .bottom-nav {
+  /* slide nav off-screen when keyboard is open */
+  transform: translateX(-50%) translateY(calc(100% + var(--safe-bottom)));
 }
 .kb-open .sheet-footer {
   padding: 10px 20px 10px;
