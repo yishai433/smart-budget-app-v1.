@@ -65,9 +65,12 @@ export function AvatarCircle({ user, size = 44, fontSize = 18, style = {}, onCli
 // Header avatar with name — used in all page headers
 export default function UserAvatar() {
   const { user, household, avatarUrl, partnerProfile } = useApp()
-  const isPartnerConnected = household?.members?.length > 1 && partnerProfile
+  // Shared if household has >1 member — independent of whether partnerProfile loaded yet
+  const isShared = (household?.members?.length ?? 0) > 1
   const myName = user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || ''
   const partnerName = partnerProfile?.displayName?.split(' ')[0] || ''
+  // Partner UID from household (fallback when partnerProfile not loaded yet)
+  const partnerUid = household?.members?.find(m => m !== user?.uid) || null
 
   return (
     <motion.div
@@ -76,14 +79,14 @@ export default function UserAvatar() {
       transition={{ type: 'spring', stiffness: 320, damping: 24, delay: 0.15 }}
       style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
     >
-      {isPartnerConnected ? (
+      {isShared ? (
         <>
           <div style={{ position: 'relative', width: 68, height: 46 }}>
-            {/* Partner avatar (back) */}
+            {/* Partner avatar (back) — shows real avatar when loaded, UID-color fallback until then */}
             <div style={{ position: 'absolute', insetInlineStart: 0, top: 0 }}>
               <AvatarCircle
-                user={{ uid: partnerProfile.uid, displayName: partnerProfile.displayName }}
-                avatarUrlOverride={partnerProfile.avatarUrl}
+                user={{ uid: partnerUid, displayName: partnerProfile?.displayName || '' }}
+                avatarUrlOverride={partnerProfile?.avatarUrl || null}
                 size={38} fontSize={15}
                 style={{ opacity: 0.88 }}
               />
@@ -92,42 +95,41 @@ export default function UserAvatar() {
             <div style={{ position: 'absolute', insetInlineStart: 22, top: 4 }}>
               <AvatarCircle user={user} size={40} fontSize={17} avatarUrlOverride={avatarUrl} />
             </div>
-            {/* Connected dot */}
+            {/* Green connected dot — always shown when shared */}
             <div style={{
               position: 'absolute', bottom: 0, insetInlineEnd: 0,
-              width: 12, height: 12, borderRadius: '50%',
-              background: '#34C759', border: '2px solid white',
+              width: 13, height: 13, borderRadius: '50%',
+              background: '#34C759', border: '2.5px solid white',
+              boxShadow: '0 0 0 2px rgba(52,199,89,0.35)',
             }} />
           </div>
-          {/* Both names */}
           <span style={{
             fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.85)',
-            maxWidth: 72, textAlign: 'center', lineHeight: 1.3,
+            maxWidth: 72, textAlign: 'center',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {myName}{partnerName ? ` & ${partnerName}` : ''}
           </span>
         </>
       ) : (
-        <div style={{ position: 'relative' }}>
-          <AvatarCircle user={user} size={44} fontSize={18} avatarUrlOverride={avatarUrl} />
-          <div style={{
-            position: 'absolute', bottom: 0, insetInlineEnd: 0,
-            width: 13, height: 13, borderRadius: '50%',
-            background: 'rgba(255,255,255,0.35)', border: '2px solid rgba(255,255,255,0.6)',
-          }} />
+        <>
+          <div style={{ position: 'relative' }}>
+            <AvatarCircle user={user} size={44} fontSize={18} avatarUrlOverride={avatarUrl} />
+            <div style={{
+              position: 'absolute', bottom: 0, insetInlineEnd: 0,
+              width: 13, height: 13, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.35)', border: '2px solid rgba(255,255,255,0.6)',
+            }} />
+          </div>
           {myName && (
-            <div style={{ /* name shown below in solo mode */ }} />
+            <span style={{
+              fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.85)',
+              maxWidth: 64, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {myName}
+            </span>
           )}
-        </div>
-      )}
-      {!isPartnerConnected && myName && (
-        <span style={{
-          fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.85)',
-          maxWidth: 64, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {myName}
-        </span>
+        </>
       )}
     </motion.div>
   )
