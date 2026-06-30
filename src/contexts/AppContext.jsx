@@ -107,6 +107,23 @@ export function AppProvider({ children }) {
       console.error('profile load error', e)
     }
 
+    // If no savedlinkedId, check if this user appears in someone else's household
+    if (!linkedId) {
+      try {
+        const memberQ = query(
+          collection(db, 'households'),
+          where('members', 'array-contains', uid)
+        )
+        const memberSnap = await getDocs(memberQ)
+        const foreign = memberSnap.docs.find(d => d.id !== uid)
+        if (foreign) {
+          linkedId = foreign.id
+          // Persist so next load is instant
+          setDoc(doc(db, 'userProfiles', uid), { linkedHouseholdId: linkedId }, { merge: true }).catch(() => {})
+        }
+      } catch {}
+    }
+
     // The "active" household is either the one they joined or their own
     const hhOwnerId = linkedId || uid
     setActiveHouseholdId(hhOwnerId)
