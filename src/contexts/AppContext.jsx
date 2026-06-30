@@ -22,12 +22,14 @@ const CATEGORIES = {
   expense: [
     { id: 'housing',       emoji: '🏠', color: '#D98888' },
     { id: 'food',          emoji: '🍔', color: '#FF9F0A' },
-    { id: 'shopping',      emoji: '🛒', color: '#30D158' },
     { id: 'transport',     emoji: '🚗', color: '#0A84FF' },
     { id: 'clothing',      emoji: '👕', color: '#BF5AF2' },
     { id: 'health',        emoji: '❤️', color: '#D96B6B' },
-    { id: 'entertainment', emoji: '🎬', color: '#D96B80' },
     { id: 'education',     emoji: '📚', color: '#5AC8FA' },
+    { id: 'entertainment', emoji: '🎬', color: '#D96B80' },
+    { id: 'subscriptions', emoji: '📡', color: '#6E6ADB' },
+    { id: 'outings',       emoji: '🎉', color: '#FF6B6B' },
+    { id: 'grooming',      emoji: '💆', color: '#FF9ECD' },
     { id: 'tech',          emoji: '📱', color: '#32ADE6' },
     { id: 'other',         emoji: '📦', color: '#636366' },
   ]
