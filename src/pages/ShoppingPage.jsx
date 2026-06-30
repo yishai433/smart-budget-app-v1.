@@ -6,17 +6,12 @@ import { useApp } from '../contexts/AppContext'
 import UserAvatar from '../components/UserAvatar'
 import { ShoppingCart } from 'lucide-react'
 
-const SUPERMARKETS = ['שופרסל', 'רמי לוי', 'יינות ביתן', 'ויקטורי', 'מגה', 'חצי חינם', 'אחר']
-
 function CheckoutModal({ total, onConfirm, onCancel }) {
   const { settings } = useApp()
   const cur = settings.currency
   const [addExpense, setAddExpense] = useState(true)
   const [saveTemplate, setSaveTemplate] = useState(false)
   const [supermarket, setSupermarket] = useState('')
-  const [customSuper, setCustomSuper] = useState('')
-
-  const displaySuper = supermarket === 'אחר' ? customSuper : supermarket
 
   const Toggle = ({ checked, onChange, label, sub }) => (
     <div style={{
@@ -53,39 +48,15 @@ function CheckoutModal({ total, onConfirm, onCancel }) {
               </div>
             </div>
 
-            {/* Supermarket picker */}
+            {/* Supermarket input */}
             <div className="input-group" style={{ marginBottom: 0 }}>
               <label className="input-label">🏪 באיזה סופר קנית?</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {SUPERMARKETS.map(s => (
-                  <button
-                    key={s}
-                    onClick={() => setSupermarket(s)}
-                    style={{
-                      padding: '7px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600,
-                      border: `2px solid ${supermarket === s ? 'var(--c-primary)' : 'var(--c-sep)'}`,
-                      background: supermarket === s ? 'var(--c-primary-light)' : 'var(--c-bg)',
-                      color: supermarket === s ? 'var(--c-primary)' : 'var(--c-text)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-              <AnimatePresence>
-                {supermarket === 'אחר' && (
-                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden', marginTop: 8 }}>
-                    <input
-                      className="input-field"
-                      placeholder="שם הסופר..."
-                      value={customSuper}
-                      onChange={e => setCustomSuper(e.target.value)}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              <input
+                className="input-field"
+                placeholder="שם הסופר..."
+                value={supermarket}
+                onChange={e => setSupermarket(e.target.value)}
+              />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -93,7 +64,7 @@ function CheckoutModal({ total, onConfirm, onCancel }) {
                 checked={addExpense}
                 onChange={setAddExpense}
                 label="הוסף להוצאות"
-                sub={addExpense ? `תירשם הוצאה של ${cur}${total.toFixed(2)}${displaySuper ? ` — ${displaySuper}` : ''}` : 'לא תירשם הוצאה'}
+                sub={addExpense ? `תירשם הוצאה של ${cur}${total.toFixed(2)}${supermarket ? ` — ${supermarket}` : ''}` : 'לא תירשם הוצאה'}
               />
               <Toggle
                 checked={saveTemplate}
@@ -106,7 +77,7 @@ function CheckoutModal({ total, onConfirm, onCancel }) {
 
           <div className="sheet-footer">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <button className="btn btn-primary btn-full" onClick={() => onConfirm({ addExpense, saveTemplate, supermarket: displaySuper })}>
+              <button className="btn btn-primary btn-full" onClick={() => onConfirm({ addExpense, saveTemplate, supermarket })}>
                 ✓ סיים קניה
               </button>
               <button className="btn btn-secondary btn-full" onClick={onCancel}>
