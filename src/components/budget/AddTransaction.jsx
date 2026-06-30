@@ -10,7 +10,7 @@ export default function AddTransaction({ onClose }) {
   const { t } = useTranslation()
   const { addTransaction, CATEGORIES, settings } = useApp()
   const [type, setType] = useState('expense')
-  const [rawCents, setRawCents] = useState('')  // digits only, last 2 = decimals
+  const [amountStr, setAmountStr] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
@@ -25,17 +25,21 @@ export default function AddTransaction({ onClose }) {
 
   const cats = CATEGORIES[type]
 
-  // "Cash register" style: digits accumulate from right, last 2 are decimals
   const handleAmountChange = (e) => {
-    const digits = e.target.value.replace(/\D/g, '').replace(/^0+/, '')
-    if (digits.length > 7) return  // cap at 99,999.99
-    setRawCents(digits)
+    const val = e.target.value.replace(/[^0-9.]/g, '')
+    const parts = val.split('.')
+    if (parts.length > 2) return               // no double dots
+    if (parts[1] && parts[1].length > 2) return // max 2 decimal places
+    setAmountStr(val)
   }
-  const displayAmount = rawCents ? (parseInt(rawCents, 10) / 100).toFixed(2) : ''
-  const actualAmount  = rawCents ? parseInt(rawCents, 10) / 100 : 0
+  const handleAmountBlur = () => {
+    const n = parseFloat(amountStr)
+    if (!isNaN(n) && n > 0) setAmountStr(n.toFixed(2))
+  }
+  const actualAmount = parseFloat(amountStr) || 0
 
   const handleSave = async () => {
-    if (!rawCents || !category) return
+    if (!actualAmount || !category) return
     setSaving(true)
     setError('')
     try {
@@ -176,12 +180,13 @@ export default function AddTransaction({ onClose }) {
               <input
                 className="input-field"
                 type="text"
-                inputMode="numeric"
+                inputMode="decimal"
                 placeholder="0.00"
-                value={displayAmount}
+                value={amountStr}
                 onChange={handleAmountChange}
+                onBlur={handleAmountBlur}
                 style={{ textAlign: 'center', fontWeight: 800, fontSize: 20,
-                  color: rawCents ? 'var(--c-text)' : undefined }}
+                  color: actualAmount ? 'var(--c-text)' : undefined }}
               />
             </div>
             <div className="input-group" style={{ marginBottom: 0 }}>
@@ -272,8 +277,8 @@ export default function AddTransaction({ onClose }) {
           <button
             className="btn btn-primary btn-full"
             onClick={handleSave}
-            disabled={!rawCents || !category || saving}
-            style={{ opacity: (!rawCents || !category) ? 0.45 : 1, transition: 'opacity 0.2s', fontSize: 16, fontWeight: 700 }}
+            disabled={!actualAmount || !category || saving}
+            style={{ opacity: (!actualAmount || !category) ? 0.45 : 1, transition: 'opacity 0.2s', fontSize: 16, fontWeight: 700 }}
           >
             {saving ? '⏳ שומר...' : t('common.save')}
           </button>
