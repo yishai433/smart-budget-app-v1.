@@ -169,7 +169,7 @@ export default function AddTransaction({ onClose }) {
                 type="number" inputMode="decimal" placeholder="0"
                 value={amount} onChange={e => setAmount(e.target.value)}
                 style={{ textAlign: 'center', fontWeight: 800, fontSize: 20,
-                  color: amount ? (type === 'expense' ? 'var(--c-danger)' : 'var(--c-primary)') : undefined }}
+                  color: amount ? 'var(--c-text)' : undefined }}
               />
             </div>
             <div className="input-group" style={{ marginBottom: 0 }}>
