@@ -327,10 +327,11 @@ export function AppProvider({ children }) {
 
   const addShoppingItem = useCallback(async (data) => {
     if (!user || !activeHouseholdId) return
+    const { checked, ...rest } = data
     await addDoc(collection(db, 'shoppingItems'), {
-      ...data,
+      ...rest,
       householdId: activeHouseholdId,
-      checked: false,
+      checked: checked !== undefined ? checked : true, // manual adds = already in cart
       createdAt: serverTimestamp(),
     })
   }, [user, activeHouseholdId])
@@ -388,7 +389,7 @@ export function AppProvider({ children }) {
       try { template = JSON.parse(raw) } catch { return false }
     }
     if (!template?.length) return false
-    await Promise.all(template.map(item => addShoppingItem(item)))
+    await Promise.all(template.map(item => addShoppingItem({ ...item, checked: false })))
     return true
   }, [addShoppingItem, activeHouseholdId])
 

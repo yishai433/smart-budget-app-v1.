@@ -187,7 +187,12 @@ export default function ShoppingList({ onCheckout }) {
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
                 >
-                  <div className="list-item">
+                  <div className="list-item" style={{ position: 'relative', overflow: 'hidden' }}>
+                    {/* category color strip on right edge */}
+                    <div style={{
+                      position: 'absolute', right: 0, top: 0, bottom: 0,
+                      width: 4, background: CAT_COLORS[item.category] || '#636366',
+                    }} />
                     <button
                       className={`check-btn ${item.checked ? 'checked' : ''}`}
                       onClick={() => updateShoppingItem(item.id, { checked: !item.checked })}
