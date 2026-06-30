@@ -363,6 +363,7 @@ export function AppProvider({ children }) {
         description: supermarket ? supermarket : i18n.t('shopping.title'),
         date: new Date().toISOString().split('T')[0],
         isRecurring: false,
+        isShoppingTrip: true,
       })
     }
     await clearShoppingList()
