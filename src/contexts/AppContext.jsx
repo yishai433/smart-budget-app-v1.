@@ -56,6 +56,7 @@ export function AppProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [avatarConfig, setAvatarConfig] = useState(null)
   const [avatarUrl, setAvatarUrl] = useState(null)
+  const [partnerProfile, setPartnerProfile] = useState(null) // { uid, displayName, avatarUrl }
 
   // Auth init — wait for Firebase to restore session automatically
   useEffect(() => {
@@ -163,6 +164,24 @@ export function AppProvider({ children }) {
           localStorage.setItem('sb_settings', JSON.stringify(merged))
           return merged
         })
+      }
+      // Load partner's profile (avatar + name) for display
+      const partnerUid = (hhData.members || []).find(m => m !== uid)
+      if (partnerUid) {
+        getDoc(doc(db, 'userProfiles', partnerUid)).then(pSnap => {
+          if (pSnap.exists()) {
+            const pd = pSnap.data()
+            setPartnerProfile({
+              uid: partnerUid,
+              displayName: pd.displayName || pd.email?.split('@')[0] || '',
+              avatarUrl: pd.avatarConfig ? buildAvatarUrl(pd.avatarConfig) : null,
+            })
+          } else {
+            setPartnerProfile({ uid: partnerUid, displayName: '', avatarUrl: null })
+          }
+        }).catch(() => {})
+      } else {
+        setPartnerProfile(null)
       }
     }
 
@@ -393,7 +412,7 @@ export function AppProvider({ children }) {
 
   const value = {
     user, household, activeHouseholdId, loading, settings,
-    avatarConfig, avatarUrl, saveAvatar,
+    avatarConfig, avatarUrl, saveAvatar, partnerProfile,
     transactions, monthTransactions,
     totalIncome, totalExpenses, balance,
     shoppingItems, CATEGORIES,
