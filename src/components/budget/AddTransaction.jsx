@@ -10,7 +10,7 @@ export default function AddTransaction({ onClose }) {
   const { t } = useTranslation()
   const { addTransaction, CATEGORIES, settings } = useApp()
   const [type, setType] = useState('expense')
-  const [amount, setAmount] = useState('')
+  const [rawCents, setRawCents] = useState('')  // digits only, last 2 = decimals
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
@@ -25,14 +25,23 @@ export default function AddTransaction({ onClose }) {
 
   const cats = CATEGORIES[type]
 
+  // "Cash register" style: digits accumulate from right, last 2 are decimals
+  const handleAmountChange = (e) => {
+    const digits = e.target.value.replace(/\D/g, '').replace(/^0+/, '')
+    if (digits.length > 7) return  // cap at 99,999.99
+    setRawCents(digits)
+  }
+  const displayAmount = rawCents ? (parseInt(rawCents, 10) / 100).toFixed(2) : ''
+  const actualAmount  = rawCents ? parseInt(rawCents, 10) / 100 : 0
+
   const handleSave = async () => {
-    if (!amount || !category) return
+    if (!rawCents || !category) return
     setSaving(true)
     setError('')
     try {
       const txId = await addTransaction({
         type,
-        amount: parseFloat(amount),
+        amount: actualAmount,
         description: description || (category === 'other' ? otherNote : ''),
         category,
         date,
@@ -166,10 +175,13 @@ export default function AddTransaction({ onClose }) {
               <label className="input-label">סכום (₪)</label>
               <input
                 className="input-field"
-                type="number" inputMode="decimal" placeholder="0"
-                value={amount} onChange={e => setAmount(e.target.value)}
+                type="text"
+                inputMode="numeric"
+                placeholder="0.00"
+                value={displayAmount}
+                onChange={handleAmountChange}
                 style={{ textAlign: 'center', fontWeight: 800, fontSize: 20,
-                  color: amount ? 'var(--c-text)' : undefined }}
+                  color: rawCents ? 'var(--c-text)' : undefined }}
               />
             </div>
             <div className="input-group" style={{ marginBottom: 0 }}>
@@ -260,8 +272,8 @@ export default function AddTransaction({ onClose }) {
           <button
             className="btn btn-primary btn-full"
             onClick={handleSave}
-            disabled={!amount || !category || saving}
-            style={{ opacity: (!amount || !category) ? 0.45 : 1, transition: 'opacity 0.2s', fontSize: 16, fontWeight: 700 }}
+            disabled={!rawCents || !category || saving}
+            style={{ opacity: (!rawCents || !category) ? 0.45 : 1, transition: 'opacity 0.2s', fontSize: 16, fontWeight: 700 }}
           >
             {saving ? '⏳ שומר...' : t('common.save')}
           </button>
