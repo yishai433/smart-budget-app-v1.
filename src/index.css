@@ -325,7 +325,7 @@ body {
   width: 100%;
   max-width: 430px;
   top: var(--kb-top, 0px);
-  height: var(--kb-height, 100dvh);
+  bottom: 0;
   z-index: 201;
   pointer-events: none;
   display: flex;
