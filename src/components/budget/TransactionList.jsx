@@ -64,6 +64,8 @@ export default function TransactionList({ filter = 'all' }) {
                 const catDef = CATEGORIES[tx.type]?.find(c => c.id === tx.category)
                   || { emoji: tx.type === 'income' ? '💰' : '💸', color: '#636366' }
 
+                const isSwiped = swipedId === tx.id
+
                 return (
                   <motion.div
                     key={tx.id}
@@ -72,44 +74,48 @@ export default function TransactionList({ filter = 'all' }) {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20, height: 0 }}
                     transition={{ delay: i * 0.04, type: 'spring', stiffness: 340, damping: 30 }}
-                    style={{ position: 'relative', overflow: 'hidden' }}
+                    style={{ position: 'relative', overflow: 'hidden', borderRadius: 'var(--r-lg)' }}
                   >
-                    {/* Delete action bg */}
-                    <AnimatePresence>
-                      {swipedId === tx.id && (
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          style={{
-                            position: 'absolute', inset: 0,
-                            background: 'var(--c-danger)',
-                            display: 'flex', alignItems: 'center',
-                            justifyContent: 'flex-end', padding: '0 20px',
-                          }}
-                          onClick={() => deleteTransaction(tx.id)}
-                        >
-                          <span style={{ color: 'white', fontWeight: 600, fontSize: 14 }}>
-                            🗑 {t('common.delete')}
-                          </span>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                    {/* Delete bg — revealed when item slides left */}
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      background: 'var(--c-danger)',
+                      display: 'flex', alignItems: 'center',
+                      justifyContent: 'flex-end', padding: '0 20px',
+                      direction: 'ltr',
+                    }}>
+                      <motion.button
+                        onClick={() => { deleteTransaction(tx.id); setSwipedId(null) }}
+                        initial={{ scale: 0.7, opacity: 0 }}
+                        animate={{ scale: isSwiped ? 1 : 0.7, opacity: isSwiped ? 1 : 0 }}
+                        transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+                        style={{
+                          background: 'rgba(0,0,0,0.18)', border: 'none', borderRadius: 12,
+                          padding: '8px 14px', color: 'white', fontWeight: 700, fontSize: 14,
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                        }}
+                      >
+                        🗑 {t('common.delete')}
+                      </motion.button>
+                    </div>
 
                     <motion.div
                       className="list-item"
                       drag="x"
-                      dragConstraints={{ left: -80, right: 0 }}
-                      dragElastic={{ left: 0.2, right: 0 }}
-                      onDragEnd={(e, info) => {
-                        if (info.offset.x < -50) setSwipedId(tx.id)
+                      dragConstraints={{ left: -90, right: 0 }}
+                      dragElastic={{ left: 0.15, right: 0 }}
+                      animate={{ x: isSwiped ? -90 : 0 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+                      onDragEnd={(_, info) => {
+                        if (info.offset.x < -45) setSwipedId(tx.id)
                         else setSwipedId(null)
                       }}
-                      onClick={() => swipedId === tx.id
-                        ? setSwipedId(null)
-                        : undefined
-                      }
-                      style={{ cursor: 'default', userSelect: 'none' }}
+                      onClick={() => { if (isSwiped) setSwipedId(null) }}
+                      style={{
+                        cursor: 'default', userSelect: 'none',
+                        background: 'var(--c-card)',
+                        position: 'relative', zIndex: 1,
+                      }}
                     >
                       <div
                         className="list-icon"
