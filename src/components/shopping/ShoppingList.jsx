@@ -171,8 +171,9 @@ export default function ShoppingList({ onCheckout }) {
       {/* Items grouped by category */}
       {Object.entries(grouped).map(([cat, items]) => (
         <div key={cat} style={{ marginBottom: 16 }}>
-          <div style={{ padding: '0 20px 6px', fontSize: 13, fontWeight: 600, color: 'var(--c-text2)' }}>
-            {CAT_ICONS[cat]} {cat === 'other' && items[0]?.otherLabel ? items[0].otherLabel : t(`shopping.categories.${cat}`)}
+          <div style={{ padding: '0 20px 6px', fontSize: 13, fontWeight: 600, color: 'var(--c-text2)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ color: CAT_COLORS[cat] || 'var(--c-text2)' }}><CategoryIcon id={cat} size={15} /></span>
+            {cat === 'other' && items[0]?.otherLabel ? items[0].otherLabel : t(`shopping.categories.${cat}`)}
           </div>
           <div className="card-list" style={{ margin: '0 16px' }}>
             <AnimatePresence initial={false}>
