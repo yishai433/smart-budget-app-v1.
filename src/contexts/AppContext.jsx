@@ -243,8 +243,12 @@ export function AppProvider({ children }) {
     )
     const unsub = onSnapshot(q, (snap) => {
       const txs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-      // Sort client-side — no index needed
-      txs.sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+      txs.sort((a, b) => {
+        const dateCmp = (b.date || '').localeCompare(a.date || '')
+        if (dateCmp !== 0) return dateCmp
+        // Same day: earliest purchase first (ascending by creation time)
+        return (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0)
+      })
       setTransactions(txs)
       setDbError('')
     }, (err) => {
