@@ -76,39 +76,47 @@ export default function TransactionList({ filter = 'all' }) {
                     transition={{ delay: i * 0.04, type: 'spring', stiffness: 340, damping: 30 }}
                     style={{ position: 'relative', overflow: 'hidden', borderRadius: 'var(--r-lg)' }}
                   >
-                    {/* Delete bg — revealed when item slides left */}
+                    {/* Delete bg — only the revealed strip on the right */}
                     <div style={{
-                      position: 'absolute', inset: 0,
+                      position: 'absolute', top: 0, bottom: 0, right: 0,
+                      width: 90,
                       background: 'var(--c-danger)',
-                      display: 'flex', alignItems: 'center',
-                      justifyContent: 'flex-end', padding: '0 20px',
-                      direction: 'ltr',
+                      borderRadius: '0 var(--r-lg) var(--r-lg) 0',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
                       <motion.button
                         onClick={() => { deleteTransaction(tx.id); setSwipedId(null) }}
-                        initial={{ scale: 0.7, opacity: 0 }}
-                        animate={{ scale: isSwiped ? 1 : 0.7, opacity: isSwiped ? 1 : 0 }}
+                        animate={{ scale: isSwiped ? 1 : 0.6, opacity: isSwiped ? 1 : 0 }}
                         transition={{ type: 'spring', stiffness: 380, damping: 28 }}
                         style={{
-                          background: 'rgba(0,0,0,0.18)', border: 'none', borderRadius: 12,
-                          padding: '8px 14px', color: 'white', fontWeight: 700, fontSize: 14,
-                          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                          background: 'none', border: 'none',
+                          color: 'white', fontWeight: 700, fontSize: 13,
+                          cursor: 'pointer', display: 'flex', flexDirection: 'column',
+                          alignItems: 'center', gap: 3,
                         }}
                       >
-                        🗑 {t('common.delete')}
+                        <span style={{ fontSize: 20 }}>🗑</span>
+                        <span>{t('common.delete')}</span>
                       </motion.button>
                     </div>
 
                     <motion.div
                       className="list-item"
                       drag="x"
-                      dragConstraints={{ left: -90, right: 0 }}
-                      dragElastic={{ left: 0.15, right: 0 }}
+                      dragConstraints={{ left: -320, right: 0 }}
+                      dragElastic={{ left: 0.1, right: 0 }}
                       animate={{ x: isSwiped ? -90 : 0 }}
                       transition={{ type: 'spring', stiffness: 400, damping: 35 }}
                       onDragEnd={(_, info) => {
-                        if (info.offset.x < -45) setSwipedId(tx.id)
-                        else setSwipedId(null)
+                        if (info.offset.x < -200 || info.velocity.x < -700) {
+                          // Full swipe → delete immediately
+                          deleteTransaction(tx.id)
+                          setSwipedId(null)
+                        } else if (info.offset.x < -45) {
+                          setSwipedId(tx.id)
+                        } else {
+                          setSwipedId(null)
+                        }
                       }}
                       onClick={() => { if (isSwiped) setSwipedId(null) }}
                       style={{
