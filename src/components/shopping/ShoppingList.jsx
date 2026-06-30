@@ -129,7 +129,9 @@ export default function ShoppingList({ onCheckout }) {
   }, {})
 
   const checkedCount = shoppingItems.filter(i => i.checked).length
-  const total = shoppingItems.reduce((s, i) => s + (i.estimatedPrice || 0) * (i.quantity || 1), 0)
+  const total = shoppingItems
+    .filter(i => i.checked)
+    .reduce((s, i) => s + (i.estimatedPrice || 0) * (i.quantity || 1), 0)
 
   if (shoppingItems.length === 0) {
     return (
