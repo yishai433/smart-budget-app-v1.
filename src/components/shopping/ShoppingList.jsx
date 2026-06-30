@@ -31,6 +31,8 @@ function AddItemSheet({ onClose }) {
     onClose()
   }
 
+  const canAdd = name.trim() && parseFloat(price) > 0
+
   return (
     <>
       <motion.div className="sheet-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
@@ -44,30 +46,62 @@ function AddItemSheet({ onClose }) {
       >
         <div className="sheet-handle" />
         <div className="sheet-header">
-          <h2 className="sheet-title">{t('shopping.addItem')}</h2>
+          <h2 className="sheet-title">🛒 {t('shopping.addItem')}</h2>
           <button onClick={onClose} style={{ background: 'var(--c-bg)', border: 'none', borderRadius: 20, width: 32, height: 32, cursor: 'pointer', fontSize: 18, color: 'var(--c-text2)' }}>✕</button>
         </div>
-        <div className="sheet-body">
-          <div className="input-group">
+
+        <div className="sheet-body" style={{ gap: 12 }}>
+          {/* Name */}
+          <div className="input-group" style={{ marginBottom: 0 }}>
             <label className="input-label">{t('shopping.itemName')}</label>
-            <input className="input-field" placeholder={t('shopping.itemName')} value={name} onChange={e => setName(e.target.value)} autoFocus />
+            <input
+              className="input-field"
+              placeholder={t('shopping.itemName')}
+              value={name}
+              onChange={e => setName(e.target.value)}
+              autoFocus
+            />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div className="input-group">
-              <label className="input-label">{t('shopping.quantity')}</label>
-              <input className="input-field" type="number" inputMode="decimal" value={qty} onChange={e => setQty(e.target.value)} />
+
+          {/* Price + Qty row */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div className="input-group" style={{ marginBottom: 0 }}>
+              <label className="input-label">💰 מחיר (₪)</label>
+              <input
+                className="input-field"
+                type="number" inputMode="decimal" placeholder="0"
+                value={price}
+                onChange={e => setPrice(e.target.value)}
+                style={{ fontWeight: 700, fontSize: 18, textAlign: 'center' }}
+              />
             </div>
-            <div className="input-group">
-              <label className="input-label">{t('shopping.estimatedPrice')} (₪)</label>
-              <input className="input-field" type="number" inputMode="decimal" placeholder="0" value={price} onChange={e => setPrice(e.target.value)} />
+            <div className="input-group" style={{ marginBottom: 0 }}>
+              <label className="input-label">🔢 {t('shopping.quantity')}</label>
+              <input
+                className="input-field"
+                type="number" inputMode="decimal"
+                value={qty}
+                onChange={e => setQty(e.target.value)}
+                style={{ fontWeight: 700, fontSize: 18, textAlign: 'center' }}
+              />
             </div>
           </div>
+
           {/* Category */}
-          <div className="input-group">
-            <label className="input-label">{t('transaction.category')}</label>
+          <div className="input-group" style={{ marginBottom: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <label className="input-label" style={{ margin: 0 }}>{t('transaction.category')}</label>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-primary)' }}>
+                {CAT_ICONS[cat]} {t(`shopping.categories.${cat}`)}
+              </span>
+            </div>
             <div className="cat-grid">
               {SHOP_CATS.map(c => (
-                <button key={c} className={`cat-btn ${cat === c ? 'selected' : ''}`} onClick={() => { setCat(c); if (c !== 'other') setOtherLabel('') }}>
+                <button
+                  key={c}
+                  className={`cat-btn ${cat === c ? 'selected' : ''}`}
+                  onClick={() => { setCat(c); if (c !== 'other') setOtherLabel('') }}
+                >
                   <span className="cat-emoji">{CAT_ICONS[c]}</span>
                   <span className="cat-label">{t(`shopping.categories.${c}`)}</span>
                 </button>
@@ -99,8 +133,17 @@ function AddItemSheet({ onClose }) {
         </div>
 
         <div className="sheet-footer">
-          <button className="btn btn-primary btn-full" onClick={handleAdd} disabled={!name.trim() || !(parseFloat(price) > 0)}>
-            {t('common.add')}
+          <button
+            className="btn btn-primary btn-full"
+            onClick={handleAdd}
+            disabled={!canAdd}
+            style={{
+              opacity: canAdd ? 1 : 0.45,
+              transition: 'opacity 0.2s ease',
+              fontSize: 16, fontWeight: 700,
+            }}
+          >
+            + {t('common.add')}
           </button>
         </div>
       </motion.div>

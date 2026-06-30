@@ -147,7 +147,8 @@ export default function AddTransaction({ onClose }) {
           >✕</button>
         </div>
 
-        <div className="sheet-body">
+        <div className="sheet-body" style={{ gap: 12 }}>
+          {/* Type toggle */}
           <div className="segment">
             <button
               className={`segment-btn ${type === 'expense' ? 'active' : ''}`}
@@ -163,34 +164,59 @@ export default function AddTransaction({ onClose }) {
             </button>
           </div>
 
-          {/* Amount */}
-          <div className="input-group">
+          {/* Amount — large and prominent */}
+          <div className="input-group" style={{ marginBottom: 0 }}>
             <label className="input-label">{t('transaction.amount')}</label>
-            <input
-              className="input-field"
-              type="number"
-              inputMode="decimal"
-              placeholder={t('transaction.amountPlaceholder')}
-              value={amount}
-              onChange={e => setAmount(e.target.value)}
-              style={{ fontSize: 28, fontWeight: 700, textAlign: 'center', letterSpacing: -0.5 }}
-            />
+            <div style={{ position: 'relative' }}>
+              <span style={{
+                position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
+                fontSize: 20, fontWeight: 700, color: 'var(--c-text2)', pointerEvents: 'none',
+              }}>₪</span>
+              <input
+                className="input-field"
+                type="number"
+                inputMode="decimal"
+                placeholder="0"
+                value={amount}
+                onChange={e => setAmount(e.target.value)}
+                style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', letterSpacing: -0.5, paddingRight: 36 }}
+              />
+            </div>
           </div>
 
-          {/* Description */}
-          <div className="input-group">
-            <label className="input-label">{t('transaction.description')}</label>
-            <input
-              className="input-field"
-              placeholder={t('transaction.descriptionPlaceholder')}
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-            />
+          {/* Description + Date in one row */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 10, alignItems: 'end' }}>
+            <div className="input-group" style={{ marginBottom: 0 }}>
+              <label className="input-label">{t('transaction.description')}</label>
+              <input
+                className="input-field"
+                placeholder={t('transaction.descriptionPlaceholder')}
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+              />
+            </div>
+            <div className="input-group" style={{ marginBottom: 0 }}>
+              <label className="input-label">📅</label>
+              <input
+                className="input-field"
+                type="date"
+                value={date}
+                onChange={e => setDate(e.target.value)}
+                style={{ fontSize: 13, minWidth: 120 }}
+              />
+            </div>
           </div>
 
           {/* Category */}
-          <div className="input-group">
-            <label className="input-label">{t('transaction.category')}</label>
+          <div className="input-group" style={{ marginBottom: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <label className="input-label" style={{ margin: 0 }}>{t('transaction.category')}</label>
+              {category && (
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-primary)' }}>
+                  {cats.find(c => c.id === category)?.emoji} {t(`categories.${category}`)}
+                </span>
+              )}
+            </div>
             <div className="cat-grid">
               {cats.map(cat => (
                 <button
@@ -227,31 +253,16 @@ export default function AddTransaction({ onClose }) {
             </AnimatePresence>
           </div>
 
-          {/* Date */}
-          <div className="input-group">
-            <label className="input-label">{t('transaction.date')}</label>
-            <input
-              className="input-field"
-              type="date"
-              value={date}
-              onChange={e => setDate(e.target.value)}
-            />
-          </div>
-
           {/* Recurring toggle */}
           <div className="toggle-wrap">
             <div>
               <div style={{ fontWeight: 600, fontSize: 15 }}>{t('transaction.isRecurring')}</div>
-              <div style={{ fontSize: 13, color: 'var(--c-text2)', marginTop: 2 }}>
+              <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 1 }}>
                 {t('budget.recurringExpenses')}
               </div>
             </div>
             <label className="toggle">
-              <input
-                type="checkbox"
-                checked={isRecurring}
-                onChange={e => setIsRecurring(e.target.checked)}
-              />
+              <input type="checkbox" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)} />
               <div className="toggle-track" />
               <div className="toggle-thumb" />
             </label>
@@ -265,7 +276,7 @@ export default function AddTransaction({ onClose }) {
                 exit={{ height: 0, opacity: 0 }}
                 style={{ overflow: 'hidden' }}
               >
-                <div className="input-group">
+                <div className="input-group" style={{ marginBottom: 0 }}>
                   <label className="input-label">{t('transaction.frequency')}</label>
                   <div className="segment">
                     {FREQUENCIES.map(f => (
@@ -299,9 +310,13 @@ export default function AddTransaction({ onClose }) {
             className="btn btn-primary btn-full"
             onClick={handleSave}
             disabled={!amount || !category || saving}
-            style={{ opacity: (!amount || !category) ? 0.5 : 1 }}
+            style={{
+              opacity: (!amount || !category) ? 0.45 : 1,
+              transition: 'opacity 0.2s ease',
+              fontSize: 16, fontWeight: 700,
+            }}
           >
-            {saving ? '⏳ שומר...' : t('common.save')}
+            {saving ? '⏳ שומר...' : `💾 ${t('common.save')}`}
           </button>
         </div>
       </motion.div>

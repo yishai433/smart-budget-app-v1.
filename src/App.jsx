@@ -162,6 +162,7 @@ function AppInner() {
     const update = () => {
       document.documentElement.style.setProperty('--kb-height', `${vv.height}px`)
       document.documentElement.style.setProperty('--kb-top', `${vv.offsetTop}px`)
+      document.documentElement.classList.toggle('kb-open', vv.offsetTop > 20)
     }
     vv.addEventListener('resize', update)
     vv.addEventListener('scroll', update)
