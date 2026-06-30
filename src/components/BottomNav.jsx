@@ -2,14 +2,15 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { useApp } from '../contexts/AppContext'
+import { Wallet, BarChart2, ShoppingCart, Receipt, Settings } from 'lucide-react'
 
 const BASE_TABS = [
-  { path: '/',         icon: '💰', key: 'budget' },
-  { path: '/reports',  icon: '📊', key: 'reports' },
-  { path: '/shopping', icon: '🛒', key: 'shopping' },
+  { path: '/',         Icon: Wallet,       key: 'budget' },
+  { path: '/reports',  Icon: BarChart2,    key: 'reports' },
+  { path: '/shopping', Icon: ShoppingCart, key: 'shopping' },
 ]
-const RECEIPTS_TAB = { path: '/receipts', icon: '🧾', key: 'receipts' }
-const SETTINGS_TAB = { path: '/settings', icon: '⚙️', key: 'settings' }
+const RECEIPTS_TAB = { path: '/receipts', Icon: Receipt,  key: 'receipts' }
+const SETTINGS_TAB = { path: '/settings', Icon: Settings, key: 'settings' }
 
 const LABELS = {
   he: { budget:'תקציב', reports:'דוחות', shopping:'קניות', receipts:'חשבוניות', settings:'הגדרות' },
@@ -47,6 +48,7 @@ export default function BottomNav() {
     }}>
       {tabs.map(tab => {
         const active = pathname === tab.path
+        const { Icon } = tab
         return (
           <button
             key={tab.path}
@@ -72,13 +74,16 @@ export default function BottomNav() {
                 transition={{ type: 'spring', stiffness: 400, damping: 34 }}
               />
             )}
-            <motion.span
+            <motion.div
               animate={{ scale: active ? 1.18 : 1, y: active ? -1 : 0 }}
               transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-              style={{ fontSize: '22px', display: 'block' }}
             >
-              {tab.icon}
-            </motion.span>
+              <Icon
+                size={22}
+                strokeWidth={active ? 2.2 : 1.6}
+                color={active ? 'var(--c-primary)' : 'var(--c-text3)'}
+              />
+            </motion.div>
             <span style={{
               fontSize: '10px',
               fontWeight: active ? '700' : '500',

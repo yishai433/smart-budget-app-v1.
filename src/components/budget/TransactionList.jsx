@@ -5,6 +5,7 @@ import { useApp } from '../../contexts/AppContext'
 import { format, isToday, isYesterday, parseISO } from 'date-fns'
 import { he } from 'date-fns/locale'
 import { formatMoney } from '../../utils/format'
+import CategoryIcon from '../CategoryIcon'
 
 function formatDate(dateStr, t, lang) {
   try {
@@ -90,8 +91,8 @@ function SwipeableRow({ tx, onDelete, t, catDef, cur }) {
         onDragEnd={handleDragEnd}
         onClick={handleClick}
       >
-        <div className="list-icon" style={{ background: catDef.color + '20' }}>
-          {catDef.emoji}
+        <div className="list-icon" style={{ background: catDef.color + '20', color: catDef.color }}>
+          <CategoryIcon id={tx.category} size={20} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600, fontSize: 15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

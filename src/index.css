@@ -395,11 +395,9 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 .cat-btn:active { transform: scale(0.92); }
-.cat-btn .cat-emoji { font-size: 22px; }
+.cat-btn .cat-icon { display: flex; align-items: center; justify-content: center; height: 28px; }
 .cat-btn .cat-label { font-size: 10px; font-weight: 600; color: var(--c-text2); text-align: center; line-height: 1.2; }
-.cat-btn.selected { border-color: var(--c-primary); background: var(--c-primary-light); }
 .cat-btn.selected .cat-label { color: var(--c-primary); }
-.cat-btn.selected .cat-emoji { filter: drop-shadow(0 0 4px rgba(22,163,73,0.35)); }
 
 /* Progress bar */
 .progress-bar { height: 6px; background: var(--c-sep); border-radius: 3px; overflow: hidden; }

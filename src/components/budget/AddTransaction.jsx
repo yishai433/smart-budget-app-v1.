@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '../../contexts/AppContext'
 import ReceiptScanner from '../ReceiptScanner'
+import CategoryIcon from '../CategoryIcon'
 
 const FREQUENCIES = ['daily', 'weekly', 'monthly', 'yearly']
 
@@ -208,8 +209,13 @@ export default function AddTransaction({ onClose }) {
                   key={cat.id}
                   className={`cat-btn ${category === cat.id ? 'selected' : ''}`}
                   onClick={() => { setCategory(cat.id); if (cat.id !== 'other') setOtherNote('') }}
+                  style={category === cat.id
+                    ? { borderColor: cat.color, background: cat.color + '18' }
+                    : {}}
                 >
-                  <span className="cat-emoji">{cat.emoji}</span>
+                  <div className="cat-icon" style={{ color: category === cat.id ? cat.color : 'var(--c-text2)' }}>
+                    <CategoryIcon id={cat.id} size={26} />
+                  </div>
                   <span className="cat-label">{t(`categories.${cat.id}`)}</span>
                 </button>
               ))}

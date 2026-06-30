@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { useApp } from '../../contexts/AppContext'
 import { motion } from 'framer-motion'
 import { formatAmount } from '../../utils/format'
+import CategoryIcon from '../CategoryIcon'
 
 export default function CategoryBreakdown() {
   const { t } = useTranslation()
@@ -39,7 +40,9 @@ export default function CategoryBreakdown() {
                 transition={{ delay: i * 0.06 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                  <span style={{ fontSize: 20 }}>{catDef.emoji}</span>
+                  <div style={{ color: catDef.color, display: 'flex' }}>
+                    <CategoryIcon id={catId} size={22} />
+                  </div>
                   <span style={{ flex: 1, fontSize: 14, fontWeight: 500 }}>
                     {t(`categories.${catId}`)}
                   </span>

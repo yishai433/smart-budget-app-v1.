@@ -6,6 +6,7 @@ import DonutChart from '../components/charts/DonutChart'
 import BarChart from '../components/charts/BarChart'
 import UserAvatar from '../components/UserAvatar'
 import { formatMoney, formatAmount } from '../utils/format'
+import CategoryIcon from '../components/CategoryIcon'
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני',
                    'יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
@@ -209,8 +210,8 @@ export default function ReportsPage() {
                       transition={{ delay: i * 0.05 }}
                       style={{ cursor: 'default' }}
                     >
-                      <div className="list-icon" style={{ background: def.color+'20' }}>
-                        {def.emoji}
+                      <div className="list-icon" style={{ background: def.color+'20', color: def.color }}>
+                        <CategoryIcon id={tx.category} size={20} />
                       </div>
                       <div style={{ flex:1 }}>
                         <div style={{ fontWeight:600, fontSize:14 }}>

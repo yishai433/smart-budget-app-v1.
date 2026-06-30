@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
-
 import { useApp } from '../../contexts/AppContext'
+import CategoryIcon from '../CategoryIcon'
 
 const SHOP_CATS = ['produce','dairy','meat','bakery','frozen','drinks','cleaning','personal','other']
-const CAT_ICONS = {
-  produce: '🥦', dairy: '🥛', meat: '🥩', bakery: '🍞',
-  frozen: '🧊', drinks: '🥤', cleaning: '🧹', personal: '🧴', other: '📦',
+const CAT_COLORS = {
+  produce: '#34C759', dairy: '#5AC8FA', meat: '#FF6B6B', bakery: '#FF9F0A',
+  frozen: '#32ADE6', drinks: '#0A84FF', cleaning: '#30D158', personal: '#BF5AF2', other: '#636366',
 }
 
 function AddItemSheet({ onClose }) {
@@ -80,8 +80,11 @@ function AddItemSheet({ onClose }) {
             <div className="cat-grid">
               {SHOP_CATS.map(c => (
                 <button key={c} className={`cat-btn ${cat === c ? 'selected' : ''}`}
-                  onClick={() => { setCat(c); if (c !== 'other') setOtherLabel('') }}>
-                  <span className="cat-emoji">{CAT_ICONS[c]}</span>
+                  onClick={() => { setCat(c); if (c !== 'other') setOtherLabel('') }}
+                  style={cat === c ? { borderColor: CAT_COLORS[c], background: CAT_COLORS[c] + '18' } : {}}>
+                  <div className="cat-icon" style={{ color: cat === c ? CAT_COLORS[c] : 'var(--c-text2)' }}>
+                    <CategoryIcon id={c} size={26} />
+                  </div>
                   <span className="cat-label">{t(`shopping.categories.${c}`)}</span>
                 </button>
               ))}
