@@ -113,18 +113,6 @@ export default function ShoppingPage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h1 style={{ fontSize: 28, fontWeight: 800 }}>{t('shopping.title')}</h1>
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-            {shoppingItems.length === 0 && hasTemplate && (
-              <button
-                onClick={handleLoadTemplate}
-                style={{
-                  background: 'rgba(255,255,255,0.15)', border: 'none',
-                  borderRadius: 20, padding: '8px 14px',
-                  color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                }}
-              >
-                📋 טען רשימה
-              </button>
-            )}
             {shoppingItems.length > 0 && (
               <button
                 onClick={handleClear}
@@ -146,6 +134,27 @@ export default function ShoppingPage() {
       </div>
 
       <div style={{ marginTop: 16 }}>
+        {shoppingItems.length === 0 && hasTemplate && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{ padding: '0 16px', marginBottom: 16 }}
+          >
+            <button
+              onClick={handleLoadTemplate}
+              style={{
+                width: '100%', border: '2px dashed var(--c-primary)',
+                borderRadius: 'var(--r-lg)', padding: '20px 16px',
+                background: 'var(--c-primary-light)', cursor: 'pointer',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+              }}
+            >
+              <span style={{ fontSize: 36 }}>📋</span>
+              <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--c-primary)' }}>טען רשימה שמורה</span>
+              <span style={{ fontSize: 13, color: 'var(--c-text2)' }}>לחץ כדי לטעון את הרשימה האחרונה שלך</span>
+            </button>
+          </motion.div>
+        )}
         <ShoppingList onCheckout={handleCheckout} />
       </div>
 
