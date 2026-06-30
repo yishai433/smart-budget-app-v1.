@@ -81,33 +81,19 @@ export default function UserAvatar() {
     >
       {isShared ? (
         <>
-          <div style={{ position: 'relative', width: 68, height: 50 }}>
-            {/* Partner avatar (back) with their green dot */}
+          <div style={{ position: 'relative', width: 68, height: 46 }}>
+            {/* Partner avatar (back) */}
             <div style={{ position: 'absolute', insetInlineStart: 0, top: 0 }}>
-              <div style={{ position: 'relative' }}>
-                <AvatarCircle
-                  user={{ uid: partnerUid, displayName: partnerProfile?.displayName || '' }}
-                  avatarUrlOverride={partnerProfile?.avatarUrl || null}
-                  size={38} fontSize={15}
-                  style={{ opacity: 0.9 }}
-                />
-                <div style={{
-                  position: 'absolute', bottom: 1, right: 1,
-                  width: 10, height: 10, borderRadius: '50%',
-                  background: '#34C759', border: '2px solid white',
-                }} />
-              </div>
+              <AvatarCircle
+                user={{ uid: partnerUid, displayName: partnerProfile?.displayName || '' }}
+                avatarUrlOverride={partnerProfile?.avatarUrl || null}
+                size={38} fontSize={15}
+                style={{ opacity: 0.9 }}
+              />
             </div>
-            {/* My avatar (front) with my green dot */}
+            {/* My avatar (front) */}
             <div style={{ position: 'absolute', insetInlineStart: 22, top: 6 }}>
-              <div style={{ position: 'relative' }}>
-                <AvatarCircle user={user} size={40} fontSize={17} avatarUrlOverride={avatarUrl} />
-                <div style={{
-                  position: 'absolute', bottom: 1, right: 1,
-                  width: 11, height: 11, borderRadius: '50%',
-                  background: '#34C759', border: '2px solid white',
-                }} />
-              </div>
+              <AvatarCircle user={user} size={40} fontSize={17} avatarUrlOverride={avatarUrl} />
             </div>
           </div>
           <span style={{
@@ -122,11 +108,6 @@ export default function UserAvatar() {
         <>
           <div style={{ position: 'relative' }}>
             <AvatarCircle user={user} size={44} fontSize={18} avatarUrlOverride={avatarUrl} />
-            <div style={{
-              position: 'absolute', bottom: 0, insetInlineEnd: 0,
-              width: 13, height: 13, borderRadius: '50%',
-              background: 'rgba(255,255,255,0.35)', border: '2px solid rgba(255,255,255,0.6)',
-            }} />
           </div>
           {myName && (
             <span style={{
