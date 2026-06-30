@@ -360,7 +360,13 @@ body {
   border-top: 1px solid var(--c-sep);
   flex-shrink: 0;
 }
-/* When keyboard is open the nav bar isn't visible — drop its padding */
+/* When keyboard is open: hide nav bar + drop sheet-footer padding */
+nav {
+  transition: transform 0.2s ease;
+}
+.kb-open nav {
+  transform: translateY(calc(100% + var(--safe-bottom)));
+}
 .kb-open .sheet-footer {
   padding: 10px 20px 10px;
 }
