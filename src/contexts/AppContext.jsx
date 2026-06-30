@@ -227,7 +227,7 @@ export function AppProvider({ children }) {
       setDbError(err.code)
     })
     return unsub
-  }, [user])
+  }, [user, activeHouseholdId])
 
   // Real-time shopping items listener
   useEffect(() => {
@@ -248,7 +248,7 @@ export function AppProvider({ children }) {
       console.error('Firestore shopping error:', err.code, err.message)
     })
     return unsub
-  }, [user])
+  }, [user, activeHouseholdId])
 
   const addTransaction = useCallback(async (data) => {
     if (!user || !activeHouseholdId) return
@@ -281,7 +281,7 @@ export function AppProvider({ children }) {
       console.error('Firestore receipts error:', err.code, err.message)
     })
     return unsub
-  }, [user])
+  }, [user, activeHouseholdId])
 
   const addReceipt = useCallback(async (data) => {
     if (!user || !activeHouseholdId) return
