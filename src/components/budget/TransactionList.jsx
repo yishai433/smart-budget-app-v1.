@@ -4,6 +4,7 @@ import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion'
 import { useApp } from '../../contexts/AppContext'
 import { format, isToday, isYesterday, parseISO } from 'date-fns'
 import { he } from 'date-fns/locale'
+import { formatMoney } from '../../utils/format'
 
 function formatDate(dateStr, t, lang) {
   try {
@@ -110,7 +111,7 @@ function SwipeableRow({ tx, onDelete, t, catDef, cur }) {
           letterSpacing: -0.3,
           flexShrink: 0,
         }}>
-          {tx.type === 'income' ? '+' : '-'}{cur}{(tx.amount || 0).toLocaleString()}
+          {formatMoney(tx.amount, tx.type, cur)}
         </div>
       </motion.div>
     </div>

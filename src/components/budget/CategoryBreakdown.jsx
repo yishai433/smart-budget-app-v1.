@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useApp } from '../../contexts/AppContext'
 import { motion } from 'framer-motion'
+import { formatAmount } from '../../utils/format'
 
 export default function CategoryBreakdown() {
   const { t } = useTranslation()
@@ -43,7 +44,7 @@ export default function CategoryBreakdown() {
                     {t(`categories.${catId}`)}
                   </span>
                   <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-danger)' }}>
-                    {cur}{amount.toLocaleString()}
+                    {formatAmount(amount, cur)}
                   </span>
                   <span style={{ fontSize: 12, color: 'var(--c-text2)', minWidth: 36, textAlign: 'end' }}>
                     {Math.round(pct)}%

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { formatAmount } from '../../utils/format'
 
 const SIZE = 200
 const CX = SIZE / 2
@@ -56,7 +57,7 @@ export default function DonutChart({ segments, currency = '₪', centerLabel = '
             {centerLabel}
           </div>
           <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.5 }}>
-            {currency}{total.toLocaleString()}
+            {formatAmount(total, currency)}
           </div>
         </div>
       </div>
@@ -70,7 +71,7 @@ export default function DonutChart({ segments, currency = '₪', centerLabel = '
               {seg.emoji} {seg.label}
             </span>
             <span style={{ fontSize: 13, color: 'var(--c-text2)' }}>{seg.pct}%</span>
-            <span style={{ fontSize: 13, fontWeight: 700 }}>{currency}{seg.value.toLocaleString()}</span>
+            <span style={{ fontSize: 13, fontWeight: 700 }}>{formatAmount(seg.value, currency)}</span>
           </div>
         ))}
       </div>

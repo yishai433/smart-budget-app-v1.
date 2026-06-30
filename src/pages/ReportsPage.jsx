@@ -5,6 +5,7 @@ import { useApp } from '../contexts/AppContext'
 import DonutChart from '../components/charts/DonutChart'
 import BarChart from '../components/charts/BarChart'
 import UserAvatar from '../components/UserAvatar'
+import { formatMoney, formatAmount } from '../utils/format'
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני',
                    'יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
@@ -38,7 +39,7 @@ function StatCard({ label, value, color, currency }) {
     }}>
       <div style={{ fontSize: 12, color: 'var(--c-text2)', marginBottom: 4 }}>{label}</div>
       <div style={{ fontSize: 20, fontWeight: 800, color, letterSpacing: -0.5 }}>
-        {currency}{value.toLocaleString()}
+        {formatAmount(value, currency)}
       </div>
     </div>
   )
@@ -218,7 +219,7 @@ export default function ReportsPage() {
                         <div style={{ fontSize:12, color:'var(--c-text2)' }}>{tx.date}</div>
                       </div>
                       <div style={{ fontWeight:700, color:'var(--c-danger)' }}>
-                        -{cur}{tx.amount.toLocaleString()}
+                        {formatMoney(tx.amount, 'expense', cur)}
                       </div>
                     </motion.div>
                   )

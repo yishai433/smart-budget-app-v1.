@@ -73,7 +73,7 @@ export default function SummaryCard() {
               {t('budget.expenses')}
             </p>
             <div style={{ fontSize: 22, fontWeight: 800, color: '#D97B7B', letterSpacing: -0.5 }}>
-              -{cur}<AnimatedNumber value={totalExpenses} />
+              {cur}−<AnimatedNumber value={totalExpenses} />
             </div>
           </div>
 
@@ -86,7 +86,7 @@ export default function SummaryCard() {
               {t('budget.income')}
             </p>
             <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--c-success)', letterSpacing: -0.5 }}>
-              +{cur}<AnimatedNumber value={totalIncome} />
+              {cur}+<AnimatedNumber value={totalIncome} />
             </div>
           </div>
 
