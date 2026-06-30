@@ -162,7 +162,9 @@ function AppInner() {
     const update = () => {
       document.documentElement.style.setProperty('--kb-height', `${vv.height}px`)
       document.documentElement.style.setProperty('--kb-top', `${vv.offsetTop}px`)
-      document.documentElement.classList.toggle('kb-open', vv.offsetTop > 20)
+      // On iOS, offsetTop stays 0 when keyboard opens — use height comparison instead
+      const kbOpen = vv.offsetTop > 20 || vv.height < window.innerHeight - 120
+      document.documentElement.classList.toggle('kb-open', kbOpen)
     }
     vv.addEventListener('resize', update)
     vv.addEventListener('scroll', update)

@@ -6,19 +6,13 @@ import { useApp } from '../contexts/AppContext'
 import UserAvatar from '../components/UserAvatar'
 import { ShoppingCart } from 'lucide-react'
 
-function CheckoutModal({ total, onConfirm, onCancel }) {
-  const { settings } = useApp()
-  const cur = settings.currency
-  const [addExpense, setAddExpense] = useState(true)
-  const [saveTemplate, setSaveTemplate] = useState(false)
-  const [supermarket, setSupermarket] = useState('')
-
-  const Toggle = ({ checked, onChange, label, sub }) => (
+function CheckoutToggle({ checked, onChange, label, sub }) {
+  return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      background: 'var(--c-bg)', borderRadius: 'var(--r-md)', padding: '12px 14px',
+      background: 'var(--c-bg)', borderRadius: 'var(--r-md)', padding: '10px 14px',
     }}>
-      <div>
+      <div style={{ flex: 1, marginLeft: 12 }}>
         <div style={{ fontWeight: 600, fontSize: 14 }}>{label}</div>
         {sub && <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2 }}>{sub}</div>}
       </div>
@@ -29,6 +23,14 @@ function CheckoutModal({ total, onConfirm, onCancel }) {
       </label>
     </div>
   )
+}
+
+function CheckoutModal({ total, onConfirm, onCancel }) {
+  const { settings } = useApp()
+  const cur = settings.currency
+  const [addExpense, setAddExpense] = useState(true)
+  const [saveTemplate, setSaveTemplate] = useState(false)
+  const [supermarket, setSupermarket] = useState('')
 
   return (
     <>
@@ -41,14 +43,31 @@ function CheckoutModal({ total, onConfirm, onCancel }) {
         >
           <div className="sheet-handle" />
           <div className="sheet-body">
-            <div style={{ textAlign: 'center', padding: '4px 0 8px' }}>
-              <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>סיים קניה</h2>
-              <div dir="ltr" style={{ fontSize: 34, fontWeight: 800, color: 'var(--c-danger)' }}>
+            {/* Title + amount */}
+            <div style={{ textAlign: 'center', paddingBottom: 4 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 800, marginBottom: 2 }}>סיים קניה</h2>
+              <div dir="ltr" style={{ fontSize: 32, fontWeight: 800, color: 'var(--c-danger)' }}>
                 {cur}−{total.toFixed(2)}
               </div>
             </div>
 
-            {/* Supermarket input */}
+            {/* Toggles first — visible before keyboard opens */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <CheckoutToggle
+                checked={addExpense}
+                onChange={setAddExpense}
+                label="הוסף להוצאות"
+                sub={addExpense ? `תירשם הוצאה של ${cur}${total.toFixed(2)}${supermarket ? ` — ${supermarket}` : ''}` : 'לא תירשם הוצאה'}
+              />
+              <CheckoutToggle
+                checked={saveTemplate}
+                onChange={setSaveTemplate}
+                label="שמור רשימה לפעם הבאה"
+                sub="תוכל לטעון אותה שוב בקליק"
+              />
+            </div>
+
+            {/* Supermarket input last — keyboard opens here, rest already visible above */}
             <div className="input-group" style={{ marginBottom: 0 }}>
               <label className="input-label">🏪 באיזה סופר קנית?</label>
               <input
@@ -56,21 +75,6 @@ function CheckoutModal({ total, onConfirm, onCancel }) {
                 placeholder="שם הסופר..."
                 value={supermarket}
                 onChange={e => setSupermarket(e.target.value)}
-              />
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <Toggle
-                checked={addExpense}
-                onChange={setAddExpense}
-                label="הוסף להוצאות"
-                sub={addExpense ? `תירשם הוצאה של ${cur}${total.toFixed(2)}${supermarket ? ` — ${supermarket}` : ''}` : 'לא תירשם הוצאה'}
-              />
-              <Toggle
-                checked={saveTemplate}
-                onChange={setSaveTemplate}
-                label="שמור רשימה לפעם הבאה"
-                sub="תוכל לטעון אותה שוב בקליק"
               />
             </div>
           </div>
@@ -104,9 +108,14 @@ export default function ShoppingPage() {
   const handleCheckout = (total) => setCheckoutTotal(total)
 
   const handleConfirmCheckout = async ({ addExpense, saveTemplate, supermarket }) => {
-    await checkoutShopping(checkoutTotal, { addExpense, saveTemplate, supermarket })
-    setCheckoutTotal(null)
-    showToast(saveTemplate ? '✅ הקניה הסתיימה ורשימה נשמרה' : '✅ הקניה הסתיימה')
+    try {
+      await checkoutShopping(checkoutTotal, { addExpense, saveTemplate, supermarket })
+      setCheckoutTotal(null)
+      showToast(saveTemplate ? '✅ הקניה הסתיימה ורשימה נשמרה' : '✅ הקניה הסתיימה')
+    } catch (err) {
+      console.error('checkout error', err)
+      showToast('שגיאה בשמירת הקניה, נסה שוב')
+    }
   }
 
   const handleClear = async () => {
