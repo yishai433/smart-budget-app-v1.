@@ -4,7 +4,6 @@ import { motion } from 'framer-motion'
 import SummaryCard from '../components/budget/SummaryCard'
 import TransactionList from '../components/budget/TransactionList'
 import CategoryBreakdown from '../components/budget/CategoryBreakdown'
-import SupermarketTrips from '../components/budget/SupermarketTrips'
 import UserAvatar from '../components/UserAvatar'
 import { useApp } from '../contexts/AppContext'
 
@@ -47,9 +46,6 @@ export default function BudgetPage() {
 
       {/* Category breakdown */}
       <CategoryBreakdown />
-
-      {/* Recent supermarket trips */}
-      <SupermarketTrips />
 
       {/* Filter tabs */}
       <div style={{ padding: '20px 16px 8px' }}>

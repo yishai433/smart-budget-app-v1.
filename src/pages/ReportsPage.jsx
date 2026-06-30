@@ -7,6 +7,7 @@ import BarChart from '../components/charts/BarChart'
 import UserAvatar from '../components/UserAvatar'
 import { formatMoney, formatAmount } from '../utils/format'
 import CategoryIcon from '../components/CategoryIcon'
+import SupermarketTrips from '../components/budget/SupermarketTrips'
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני',
                    'יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
@@ -187,6 +188,9 @@ export default function ReportsPage() {
             <BarChart data={barData} currency={cur} lang={lang} />
           </div>
         </div>
+
+        {/* Supermarket trips — last 4 across all months */}
+        <SupermarketTrips cur={cur} />
 
         {/* Top expenses list */}
         {monthTxs.filter(t=>t.type==='expense').length > 0 && (

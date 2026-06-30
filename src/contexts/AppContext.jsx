@@ -364,6 +364,9 @@ export function AppProvider({ children }) {
         date: new Date().toISOString().split('T')[0],
         isRecurring: false,
         isShoppingTrip: true,
+        items: shoppingItems.map(({ name, category, quantity, estimatedPrice, otherLabel }) => ({
+          name, category, quantity: quantity || 1, estimatedPrice: estimatedPrice || 0, otherLabel: otherLabel || '',
+        })),
       })
     }
     await clearShoppingList()
