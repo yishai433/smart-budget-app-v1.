@@ -50,58 +50,37 @@ function AddItemSheet({ onClose }) {
           <button onClick={onClose} style={{ background: 'var(--c-bg)', border: 'none', borderRadius: 20, width: 32, height: 32, cursor: 'pointer', fontSize: 18, color: 'var(--c-text2)' }}>✕</button>
         </div>
 
-        <div className="sheet-body" style={{ gap: 12 }}>
+        <div className="sheet-body" style={{ gap: 14 }}>
           {/* Name */}
           <div className="input-group" style={{ marginBottom: 0 }}>
             <label className="input-label">{t('shopping.itemName')}</label>
-            <input
-              className="input-field"
-              placeholder={t('shopping.itemName')}
-              value={name}
-              onChange={e => setName(e.target.value)}
-              autoFocus
-            />
+            <input className="input-field" placeholder={t('shopping.itemName')}
+              value={name} onChange={e => setName(e.target.value)} autoFocus />
           </div>
 
-          {/* Price + Qty row */}
+          {/* Price + Qty */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">💰 מחיר (₪)</label>
-              <input
-                className="input-field"
-                type="number" inputMode="decimal" placeholder="0"
-                value={price}
-                onChange={e => setPrice(e.target.value)}
-                style={{ fontWeight: 700, fontSize: 18, textAlign: 'center' }}
-              />
+              <label className="input-label">מחיר (₪)</label>
+              <input className="input-field" type="number" inputMode="decimal" placeholder="0"
+                value={price} onChange={e => setPrice(e.target.value)}
+                style={{ textAlign: 'center', fontWeight: 700, fontSize: 17 }} />
             </div>
             <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">🔢 {t('shopping.quantity')}</label>
-              <input
-                className="input-field"
-                type="number" inputMode="decimal"
-                value={qty}
-                onChange={e => setQty(e.target.value)}
-                style={{ fontWeight: 700, fontSize: 18, textAlign: 'center' }}
-              />
+              <label className="input-label">{t('shopping.quantity')}</label>
+              <input className="input-field" type="number" inputMode="decimal"
+                value={qty} onChange={e => setQty(e.target.value)}
+                style={{ textAlign: 'center', fontWeight: 700, fontSize: 17 }} />
             </div>
           </div>
 
           {/* Category */}
           <div className="input-group" style={{ marginBottom: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <label className="input-label" style={{ margin: 0 }}>{t('transaction.category')}</label>
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-primary)' }}>
-                {CAT_ICONS[cat]} {t(`shopping.categories.${cat}`)}
-              </span>
-            </div>
+            <label className="input-label">{t('transaction.category')}</label>
             <div className="cat-grid">
               {SHOP_CATS.map(c => (
-                <button
-                  key={c}
-                  className={`cat-btn ${cat === c ? 'selected' : ''}`}
-                  onClick={() => { setCat(c); if (c !== 'other') setOtherLabel('') }}
-                >
+                <button key={c} className={`cat-btn ${cat === c ? 'selected' : ''}`}
+                  onClick={() => { setCat(c); if (c !== 'other') setOtherLabel('') }}>
                   <span className="cat-emoji">{CAT_ICONS[c]}</span>
                   <span className="cat-label">{t(`shopping.categories.${c}`)}</span>
                 </button>
@@ -109,21 +88,11 @@ function AddItemSheet({ onClose }) {
             </div>
             <AnimatePresence>
               {cat === 'other' && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  style={{ overflow: 'hidden' }}
-                >
+                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} style={{ overflow: 'hidden' }}>
                   <div style={{ marginTop: 8, position: 'relative' }}>
-                    <input
-                      className="input-field"
-                      placeholder="פירוט (אופציונלי)"
-                      value={otherLabel}
-                      onChange={e => setOtherLabel(e.target.value)}
-                      style={{ paddingRight: 36 }}
-                    />
+                    <input className="input-field" placeholder="פירוט (אופציונלי)" value={otherLabel}
+                      onChange={e => setOtherLabel(e.target.value)} style={{ paddingRight: 36 }} />
                     <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 16, pointerEvents: 'none' }}>✏️</span>
                   </div>
                 </motion.div>
@@ -133,16 +102,8 @@ function AddItemSheet({ onClose }) {
         </div>
 
         <div className="sheet-footer">
-          <button
-            className="btn btn-primary btn-full"
-            onClick={handleAdd}
-            disabled={!canAdd}
-            style={{
-              opacity: canAdd ? 1 : 0.45,
-              transition: 'opacity 0.2s ease',
-              fontSize: 16, fontWeight: 700,
-            }}
-          >
+          <button className="btn btn-primary btn-full" onClick={handleAdd} disabled={!canAdd}
+            style={{ opacity: canAdd ? 1 : 0.45, transition: 'opacity 0.2s', fontSize: 16, fontWeight: 700 }}>
             + {t('common.add')}
           </button>
         </div>
