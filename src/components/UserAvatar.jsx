@@ -81,27 +81,34 @@ export default function UserAvatar() {
     >
       {isShared ? (
         <>
-          <div style={{ position: 'relative', width: 68, height: 46 }}>
-            {/* Partner avatar (back) — shows real avatar when loaded, UID-color fallback until then */}
+          <div style={{ position: 'relative', width: 68, height: 50 }}>
+            {/* Partner avatar (back) with their green dot */}
             <div style={{ position: 'absolute', insetInlineStart: 0, top: 0 }}>
-              <AvatarCircle
-                user={{ uid: partnerUid, displayName: partnerProfile?.displayName || '' }}
-                avatarUrlOverride={partnerProfile?.avatarUrl || null}
-                size={38} fontSize={15}
-                style={{ opacity: 0.88 }}
-              />
+              <div style={{ position: 'relative' }}>
+                <AvatarCircle
+                  user={{ uid: partnerUid, displayName: partnerProfile?.displayName || '' }}
+                  avatarUrlOverride={partnerProfile?.avatarUrl || null}
+                  size={38} fontSize={15}
+                  style={{ opacity: 0.9 }}
+                />
+                <div style={{
+                  position: 'absolute', bottom: 1, right: 1,
+                  width: 10, height: 10, borderRadius: '50%',
+                  background: '#34C759', border: '2px solid white',
+                }} />
+              </div>
             </div>
-            {/* My avatar (front) */}
-            <div style={{ position: 'absolute', insetInlineStart: 22, top: 4 }}>
-              <AvatarCircle user={user} size={40} fontSize={17} avatarUrlOverride={avatarUrl} />
+            {/* My avatar (front) with my green dot */}
+            <div style={{ position: 'absolute', insetInlineStart: 22, top: 6 }}>
+              <div style={{ position: 'relative' }}>
+                <AvatarCircle user={user} size={40} fontSize={17} avatarUrlOverride={avatarUrl} />
+                <div style={{
+                  position: 'absolute', bottom: 1, right: 1,
+                  width: 11, height: 11, borderRadius: '50%',
+                  background: '#34C759', border: '2px solid white',
+                }} />
+              </div>
             </div>
-            {/* Green connected dot — always shown when shared */}
-            <div style={{
-              position: 'absolute', bottom: 0, insetInlineEnd: 0,
-              width: 13, height: 13, borderRadius: '50%',
-              background: '#34C759', border: '2.5px solid white',
-              boxShadow: '0 0 0 2px rgba(52,199,89,0.35)',
-            }} />
           </div>
           <span style={{
             fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.85)',

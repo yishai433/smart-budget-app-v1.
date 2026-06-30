@@ -69,8 +69,12 @@ export function AppProvider({ children }) {
         setUser(null)
         setHousehold(null)
         setActiveHouseholdId(null)
+        setPartnerProfile(null)
         setTransactions([])
         setShoppingItems([])
+        setReceipts([])
+        setAvatarConfig(null)
+        setAvatarUrl(null)
         setLoading(false)
       }
     })
