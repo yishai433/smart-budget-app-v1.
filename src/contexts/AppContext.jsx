@@ -62,10 +62,12 @@ export function AppProvider({ children }) {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u) {
         setUser(u)
-        await initHousehold(u.uid)
+        setActiveHouseholdId(u.uid) // set immediately so queries/mutations work right away
+        await initHousehold(u.uid)  // may update to linkedHouseholdId later
       } else {
         setUser(null)
         setHousehold(null)
+        setActiveHouseholdId(null)
         setTransactions([])
         setShoppingItems([])
         setLoading(false)
