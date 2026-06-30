@@ -246,11 +246,8 @@ export default function ReceiptsPage() {
   const { t, i18n } = useTranslation()
   const { receipts, deleteReceipt } = useApp()
   const [showScanner, setShowScanner] = useState(false)
-  const [toast, setToast] = useState('')
-
   const showToast = (msg) => {
-    setToast(msg)
-    setTimeout(() => setToast(''), 2200)
+    window.dispatchEvent(new CustomEvent('sb-toast', { detail: msg }))
   }
 
   const handleDelete = async (id, storagePath) => {
@@ -338,18 +335,6 @@ export default function ReceiptsPage() {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            className="snackbar"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-          >
-            {toast}
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   )
 }

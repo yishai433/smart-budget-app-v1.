@@ -145,6 +145,16 @@ function AppInner() {
   const { loading, user } = useApp()
   const [showAdd, setShowAdd] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [globalToast, setGlobalToast] = useState('')
+
+  useEffect(() => {
+    const handler = (e) => {
+      setGlobalToast(e.detail)
+      setTimeout(() => setGlobalToast(''), 2200)
+    }
+    window.addEventListener('sb-toast', handler)
+    return () => window.removeEventListener('sb-toast', handler)
+  }, [])
 
   useEffect(() => {
     const vv = window.visualViewport
@@ -193,6 +203,20 @@ function AppInner() {
       {/* AddTransaction sheet also at root level */}
       <AnimatePresence>
         {showAdd && <AddTransaction onClose={() => setShowAdd(false)} />}
+      </AnimatePresence>
+
+      {/* Global snackbar — outside AnimatedRoutes so position:fixed is viewport-relative */}
+      <AnimatePresence>
+        {globalToast && (
+          <motion.div
+            className="snackbar"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+          >
+            {globalToast}
+          </motion.div>
+        )}
       </AnimatePresence>
     </>
   )

@@ -83,12 +83,10 @@ export default function ShoppingPage() {
   const { t } = useTranslation()
   const { checkoutShopping, clearShoppingList, loadShoppingTemplate, shoppingItems } = useApp()
   const [checkoutTotal, setCheckoutTotal] = useState(null)
-  const [toast, setToast] = useState('')
   const hasTemplate = !!localStorage.getItem('sb_shopping_template')
 
   const showToast = (msg) => {
-    setToast(msg)
-    setTimeout(() => setToast(''), 2500)
+    window.dispatchEvent(new CustomEvent('sb-toast', { detail: msg }))
   }
 
   const handleCheckout = (total) => setCheckoutTotal(total)
@@ -161,18 +159,6 @@ export default function ShoppingPage() {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            className="snackbar"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-          >
-            {toast}
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   )
 }

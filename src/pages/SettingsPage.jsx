@@ -46,7 +46,6 @@ export default function SettingsPage() {
   const [joinCode, setJoinCode] = useState('')
   const [joining, setJoining] = useState(false)
   const [joinResult, setJoinResult] = useState(null)
-  const [toast, setToast] = useState('')
   const [members, setMembers] = useState([])
   const [currentInvite, setCurrentInvite] = useState(null) // { code, expiresAt }
   const [creatingInvite, setCreatingInvite] = useState(false)
@@ -67,8 +66,7 @@ export default function SettingsPage() {
   }, [household])
 
   const showToast = (msg) => {
-    setToast(msg)
-    setTimeout(() => setToast(''), 2500)
+    window.dispatchEvent(new CustomEvent('sb-toast', { detail: msg }))
   }
 
   // Generate a one-time invite code stored inside the household doc (no new collection needed)
@@ -498,19 +496,6 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Toast */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            className="snackbar"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-          >
-            {toast}
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   )
 }
