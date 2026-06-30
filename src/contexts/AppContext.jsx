@@ -347,21 +347,20 @@ export function AppProvider({ children }) {
     await Promise.all(shoppingItems.map(i => deleteDoc(doc(db, 'shoppingItems', i.id))))
   }, [shoppingItems])
 
-  const checkoutShopping = useCallback(async (total, { addExpense = true, saveTemplate = false } = {}) => {
+  const checkoutShopping = useCallback(async (total, { addExpense = true, saveTemplate = false, supermarket = '' } = {}) => {
     if (saveTemplate && activeHouseholdId) {
       const template = shoppingItems.map(({ name, category, quantity, estimatedPrice, otherLabel }) =>
         ({ name, category, quantity: quantity || 1, estimatedPrice: estimatedPrice || 0, otherLabel: otherLabel || '' })
       )
-      // Save to Firestore so it persists across devices
       await updateDoc(doc(db, 'households', activeHouseholdId), { shoppingTemplate: template })
       localStorage.setItem('sb_shopping_template', JSON.stringify(template))
     }
     if (addExpense && total > 0) {
       await addTransaction({
         type: 'expense',
-        category: 'other',
+        category: 'food',
         amount: total,
-        description: i18n.t('shopping.title'),
+        description: supermarket ? supermarket : i18n.t('shopping.title'),
         date: new Date().toISOString().split('T')[0],
         isRecurring: false,
       })

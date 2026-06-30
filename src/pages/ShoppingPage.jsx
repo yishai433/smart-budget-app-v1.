@@ -4,12 +4,19 @@ import { motion, AnimatePresence } from 'framer-motion'
 import ShoppingList from '../components/shopping/ShoppingList'
 import { useApp } from '../contexts/AppContext'
 import UserAvatar from '../components/UserAvatar'
+import { ShoppingCart } from 'lucide-react'
+
+const SUPERMARKETS = ['שופרסל', 'רמי לוי', 'יינות ביתן', 'ויקטורי', 'מגה', 'חצי חינם', 'אחר']
 
 function CheckoutModal({ total, onConfirm, onCancel }) {
   const { settings } = useApp()
   const cur = settings.currency
   const [addExpense, setAddExpense] = useState(true)
   const [saveTemplate, setSaveTemplate] = useState(false)
+  const [supermarket, setSupermarket] = useState('')
+  const [customSuper, setCustomSuper] = useState('')
+
+  const displaySuper = supermarket === 'אחר' ? customSuper : supermarket
 
   const Toggle = ({ checked, onChange, label, sub }) => (
     <div style={{
@@ -39,12 +46,46 @@ function CheckoutModal({ total, onConfirm, onCancel }) {
         >
           <div className="sheet-handle" />
           <div className="sheet-body">
-            <div style={{ textAlign: 'center', padding: '8px 0 4px' }}>
-              <div style={{ fontSize: 48, marginBottom: 10 }}>🛍️</div>
-              <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 6 }}>סיים קניה</h2>
-              <div style={{ fontSize: 36, fontWeight: 800, color: 'var(--c-danger)', margin: '8px 0' }}>
-                {cur}{total.toFixed(2)}
+            <div style={{ textAlign: 'center', padding: '4px 0 8px' }}>
+              <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>סיים קניה</h2>
+              <div dir="ltr" style={{ fontSize: 34, fontWeight: 800, color: 'var(--c-danger)' }}>
+                {cur}−{total.toFixed(2)}
               </div>
+            </div>
+
+            {/* Supermarket picker */}
+            <div className="input-group" style={{ marginBottom: 0 }}>
+              <label className="input-label">🏪 באיזה סופר קנית?</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {SUPERMARKETS.map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setSupermarket(s)}
+                    style={{
+                      padding: '7px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600,
+                      border: `2px solid ${supermarket === s ? 'var(--c-primary)' : 'var(--c-sep)'}`,
+                      background: supermarket === s ? 'var(--c-primary-light)' : 'var(--c-bg)',
+                      color: supermarket === s ? 'var(--c-primary)' : 'var(--c-text)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+              <AnimatePresence>
+                {supermarket === 'אחר' && (
+                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden', marginTop: 8 }}>
+                    <input
+                      className="input-field"
+                      placeholder="שם הסופר..."
+                      value={customSuper}
+                      onChange={e => setCustomSuper(e.target.value)}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -52,7 +93,7 @@ function CheckoutModal({ total, onConfirm, onCancel }) {
                 checked={addExpense}
                 onChange={setAddExpense}
                 label="הוסף להוצאות"
-                sub={addExpense ? `תירשם הוצאה של ${cur}${total.toFixed(2)}` : 'לא תירשם הוצאה'}
+                sub={addExpense ? `תירשם הוצאה של ${cur}${total.toFixed(2)}${displaySuper ? ` — ${displaySuper}` : ''}` : 'לא תירשם הוצאה'}
               />
               <Toggle
                 checked={saveTemplate}
@@ -65,7 +106,7 @@ function CheckoutModal({ total, onConfirm, onCancel }) {
 
           <div className="sheet-footer">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <button className="btn btn-primary btn-full" onClick={() => onConfirm({ addExpense, saveTemplate })}>
+              <button className="btn btn-primary btn-full" onClick={() => onConfirm({ addExpense, saveTemplate, supermarket: displaySuper })}>
                 ✓ סיים קניה
               </button>
               <button className="btn btn-secondary btn-full" onClick={onCancel}>
@@ -91,8 +132,8 @@ export default function ShoppingPage() {
 
   const handleCheckout = (total) => setCheckoutTotal(total)
 
-  const handleConfirmCheckout = async ({ addExpense, saveTemplate }) => {
-    await checkoutShopping(checkoutTotal, { addExpense, saveTemplate })
+  const handleConfirmCheckout = async ({ addExpense, saveTemplate, supermarket }) => {
+    await checkoutShopping(checkoutTotal, { addExpense, saveTemplate, supermarket })
     setCheckoutTotal(null)
     showToast(saveTemplate ? '✅ הקניה הסתיימה ורשימה נשמרה' : '✅ הקניה הסתיימה')
   }
@@ -109,7 +150,7 @@ export default function ShoppingPage() {
 
   return (
     <div className="page">
-      <div className="page-header" style={{ paddingBottom: 28 }}>
+      <div className="page-header" style={{ paddingBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h1 style={{ fontSize: 28, fontWeight: 800 }}>{t('shopping.title')}</h1>
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
@@ -128,33 +169,35 @@ export default function ShoppingPage() {
             <UserAvatar />
           </div>
         </div>
-        <p style={{ opacity: 0.7, fontSize: 13, marginTop: 6 }}>
+        <p style={{ opacity: 0.7, fontSize: 13, marginTop: 4 }}>
           {shoppingItems.length} {t('shopping.myList').toLowerCase()}
         </p>
+
+        {/* Load template button — inside header, below title */}
+        {shoppingItems.length === 0 && hasTemplate && (
+          <motion.button
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            onClick={handleLoadTemplate}
+            style={{
+              marginTop: 12,
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: 'rgba(255,255,255,0.18)',
+              border: '1.5px solid rgba(255,255,255,0.35)',
+              borderRadius: 14, padding: '10px 16px',
+              color: 'white', cursor: 'pointer', width: '100%',
+            }}
+          >
+            <ShoppingCart size={18} strokeWidth={2} />
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>טען רשימה שמורה</div>
+              <div style={{ fontSize: 12, opacity: 0.75, marginTop: 1 }}>הרשימה האחרונה שלך מוכנה לטעינה</div>
+            </div>
+          </motion.button>
+        )}
       </div>
 
       <div style={{ marginTop: 16 }}>
-        {shoppingItems.length === 0 && hasTemplate && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            style={{ padding: '0 16px', marginBottom: 16 }}
-          >
-            <button
-              onClick={handleLoadTemplate}
-              style={{
-                width: '100%', border: '2px dashed var(--c-primary)',
-                borderRadius: 'var(--r-lg)', padding: '20px 16px',
-                background: 'var(--c-primary-light)', cursor: 'pointer',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-              }}
-            >
-              <span style={{ fontSize: 36 }}>📋</span>
-              <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--c-primary)' }}>טען רשימה שמורה</span>
-              <span style={{ fontSize: 13, color: 'var(--c-text2)' }}>לחץ כדי לטעון את הרשימה האחרונה שלך</span>
-            </button>
-          </motion.div>
-        )}
         <ShoppingList onCheckout={handleCheckout} />
       </div>
 
@@ -167,7 +210,6 @@ export default function ShoppingPage() {
           />
         )}
       </AnimatePresence>
-
     </div>
   )
 }
