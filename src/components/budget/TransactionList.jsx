@@ -7,18 +7,19 @@ import { he } from 'date-fns/locale'
 import { formatMoney } from '../../utils/format'
 import CategoryIcon from '../CategoryIcon'
 
-function formatDate(dateStr, t, lang) {
+const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
+
+function formatMonthKey(key, lang) {
   try {
-    const d = parseISO(dateStr)
-    if (isToday(d)) return t('budget.today')
-    if (isYesterday(d)) return t('budget.yesterday')
-    return format(d, 'd MMM', { locale: lang === 'he' ? he : undefined })
-  } catch { return dateStr }
+    const [year, month] = key.split('-').map(Number)
+    const name = lang === 'he' ? HE_MONTHS[month - 1] : format(new Date(year, month - 1, 1), 'MMMM')
+    return `${name} ${year}`
+  } catch { return key }
 }
 
-function groupByDate(txs) {
+function groupByMonth(txs) {
   return txs.reduce((groups, tx) => {
-    const key = tx.date || 'unknown'
+    const key = (tx.date || 'unknown').substring(0, 7)
     if (!groups[key]) groups[key] = []
     groups[key].push(tx)
     return groups
@@ -100,6 +101,7 @@ function SwipeableRow({ tx, onDelete, t, catDef, cur }) {
           </div>
           <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2, display: 'flex', gap: 6 }}>
             <span>{t(`categories.${tx.category}`)}</span>
+            {tx.date && <span>· {tx.date.slice(8, 10)}/{tx.date.slice(5, 7)}</span>}
             {tx.isRecurring && (
               <span style={{ color: 'var(--c-blue)' }}>↻ {t(`transaction.${tx.frequency}`)}</span>
             )}
@@ -138,20 +140,21 @@ export default function TransactionList({ filter = 'all' }) {
     )
   }
 
-  const groups = groupByDate(filtered)
+  const groups = groupByMonth(filtered)
+  const lang = i18n.language
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-      {Object.entries(groups).map(([date, txs]) => (
-        <div key={date} style={{ marginBottom: 16 }}>
+      {Object.entries(groups).map(([monthKey, txs]) => (
+        <div key={monthKey} style={{ marginBottom: 16 }}>
           <div style={{
             padding: '8px 20px 6px',
             fontSize: 13,
-            fontWeight: 600,
+            fontWeight: 700,
             color: 'var(--c-text2)',
             letterSpacing: 0.3,
           }}>
-            {formatDate(date, t, i18n.language)}
+            {formatMonthKey(monthKey, lang)}
           </div>
           <div style={{ margin: '0 16px' }}>
             <AnimatePresence initial={false}>

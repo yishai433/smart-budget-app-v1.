@@ -56,6 +56,7 @@ export default function ReportsPage() {
   const months = useMemo(() => getLastMonths(6), [])
   const [selectedIdx, setSelectedIdx] = useState(months.length - 1)
   const selected = months[selectedIdx]
+  const [barSelectedIdx, setBarSelectedIdx] = useState(null)
 
   // Stats for selected month
   const monthTxs = transactions.filter(t => t.date?.startsWith(selected.key))
@@ -182,10 +183,54 @@ export default function ReportsPage() {
         {/* Bar chart - 6 month trend */}
         <div className="card">
           <div className="card-inner">
-            <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 16 }}>
+            <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>
               {lang==='he'?'טרנד 6 חודשים':'6-Month Trend'}
             </h3>
-            <BarChart data={barData} currency={cur} lang={lang} />
+            <p style={{ fontSize: 12, color: 'var(--c-text2)', marginBottom: 12 }}>
+              {lang==='he'?'לחץ על חודש לפירוט':'Tap a month for details'}
+            </p>
+            <BarChart
+              data={barData} currency={cur} lang={lang}
+              selectedIdx={barSelectedIdx}
+              onBarClick={i => setBarSelectedIdx(prev => prev === i ? null : i)}
+            />
+
+            {/* Month detail panel */}
+            {barSelectedIdx !== null && (() => {
+              const m = months[barSelectedIdx]
+              const mTxs = transactions.filter(tx => tx.date?.startsWith(m.key))
+              const mIncome = mTxs.filter(tx => tx.type === 'income').reduce((s, tx) => s + (tx.amount||0), 0)
+              const mExpense = mTxs.filter(tx => tx.type === 'expense').reduce((s, tx) => s + (tx.amount||0), 0)
+              const mBalance = mIncome - mExpense
+              const mTitle = lang === 'he'
+                ? `${HE_MONTHS[m.monthIdx]} ${m.year}`
+                : `${EN_MONTHS[m.monthIdx]} ${m.year}`
+              return (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                  style={{
+                    marginTop: 16, padding: '14px 16px',
+                    background: 'var(--c-bg)', borderRadius: 'var(--r-md)',
+                  }}
+                >
+                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 10, textAlign: 'center' }}>{mTitle}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {[
+                      { label: lang==='he'?'הכנסות':'Income', value: mIncome, color: 'var(--c-success)' },
+                      { label: lang==='he'?'הוצאות':'Expenses', value: mExpense, color: 'var(--c-danger)' },
+                      { label: lang==='he'?'יתרה':'Balance', value: mBalance, color: mBalance >= 0 ? 'var(--c-success)' : 'var(--c-danger)' },
+                    ].map(row => (
+                      <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 13, color: 'var(--c-text2)' }}>{row.label}</span>
+                        <span dir="ltr" style={{ fontWeight: 700, fontSize: 15, color: row.color }}>
+                          {cur}{Math.abs(row.value).toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )
+            })()}
           </div>
         </div>
 

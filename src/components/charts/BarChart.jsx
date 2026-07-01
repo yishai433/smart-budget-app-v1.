@@ -7,7 +7,7 @@ const CHART_H = H - PAD.top - PAD.bottom
 const CHART_W = W - PAD.left - PAD.right
 const BAR_RADIUS = 4
 
-export default function BarChart({ data, currency = '₪', lang = 'he' }) {
+export default function BarChart({ data, currency = '₪', lang = 'he', onBarClick, selectedIdx }) {
   const [animated, setAnimated] = useState(false)
   useEffect(() => { const t = setTimeout(() => setAnimated(true), 100); return () => clearTimeout(t) }, [])
 
@@ -21,7 +21,6 @@ export default function BarChart({ data, currency = '₪', lang = 'he' }) {
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ overflow: 'visible' }}>
-      {/* Y gridlines */}
       {[0, 0.5, 1].map(pct => (
         <line key={pct}
           x1={PAD.left} y1={PAD.top + CHART_H * (1 - pct)}
@@ -34,46 +33,38 @@ export default function BarChart({ data, currency = '₪', lang = 'he' }) {
         const cx = PAD.left + i * colW + colW / 2
         const incomeH = animated ? (d.income / maxVal) * CHART_H : 0
         const expenseH = animated ? (d.expense / maxVal) * CHART_H : 0
+        const isSelected = selectedIdx === i
 
         return (
-          <g key={i}>
-            {/* Income bar */}
-            <rect
-              x={cx - barW - 2}
-              y={PAD.top + scaleY(d.income)}
-              width={barW}
-              height={incomeH}
-              rx={BAR_RADIUS}
-              fill="#34C759"
-              opacity={0.85}
+          <g key={i} onClick={() => onBarClick?.(i)} style={{ cursor: 'pointer' }}>
+            {/* Highlight background for selected month */}
+            {isSelected && (
+              <rect
+                x={cx - colW / 2 + 2} y={PAD.top - 4}
+                width={colW - 4} height={CHART_H + 8}
+                rx={6} fill="var(--c-primary)" opacity={0.08}
+              />
+            )}
+            <rect x={cx - barW - 2} y={PAD.top + scaleY(d.income)}
+              width={barW} height={incomeH} rx={BAR_RADIUS}
+              fill="#34C759" opacity={isSelected ? 1 : 0.75}
               style={{ transition: `y 0.6s ease ${i * 0.05}s, height 0.6s ease ${i * 0.05}s` }}
             />
-            {/* Expense bar */}
-            <rect
-              x={cx + 2}
-              y={PAD.top + scaleY(d.expense)}
-              width={barW}
-              height={expenseH}
-              rx={BAR_RADIUS}
-              fill="#D96B6B"
-              opacity={0.75}
+            <rect x={cx + 2} y={PAD.top + scaleY(d.expense)}
+              width={barW} height={expenseH} rx={BAR_RADIUS}
+              fill="#D96B6B" opacity={isSelected ? 1 : 0.65}
               style={{ transition: `y 0.6s ease ${i * 0.05}s, height 0.6s ease ${i * 0.05}s` }}
             />
-            {/* Month label */}
-            <text
-              x={cx} y={H - 6}
-              textAnchor="middle"
-              fontSize="10"
-              fill="var(--c-text2)"
-              fontFamily="inherit"
-            >
+            <text x={cx} y={H - 6} textAnchor="middle" fontSize="10"
+              fill={isSelected ? 'var(--c-primary)' : 'var(--c-text2)'}
+              fontWeight={isSelected ? '700' : '400'}
+              fontFamily="inherit">
               {d.label}
             </text>
           </g>
         )
       })}
 
-      {/* Legend */}
       <g>
         <circle cx={W - 96} cy={8} r={4} fill="#34C759" />
         <text x={W - 89} y={12} fontSize="10" fill="var(--c-text2)" fontFamily="inherit">
