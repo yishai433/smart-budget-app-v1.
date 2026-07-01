@@ -28,6 +28,8 @@
     "vite": "^5.0.12"
   },
   "allowScripts": {
-    "tesseract.js@7.0.0": true
+    "tesseract.js@7.0.0": true,
+    "esbuild@0.21.5": true,
+    "protobufjs@7.6.4": true
   }
 }
