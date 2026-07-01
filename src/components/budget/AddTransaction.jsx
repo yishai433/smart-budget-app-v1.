@@ -194,6 +194,7 @@ export default function AddTransaction({ onClose }) {
               <label className="input-label">{t('transaction.description')}</label>
               <input
                 className="input-field"
+                dir="rtl"
                 placeholder={t('transaction.descriptionPlaceholder')}
                 value={description} onChange={e => setDescription(e.target.value)}
               />
