@@ -81,7 +81,7 @@ export default function ReportsPage() {
   const barData = months.map(m => {
     const txs = transactions.filter(t => t.date?.startsWith(m.key))
     return {
-      label: lang === 'he' ? m.heLabel.slice(0,3) : m.label,
+      label: lang === 'he' ? m.heLabel.slice(0, 4) : m.label.slice(0, 3),
       income:  txs.filter(t => t.type==='income').reduce((s,t) => s+(t.amount||0), 0),
       expense: txs.filter(t => t.type==='expense').reduce((s,t) => s+(t.amount||0), 0),
     }
@@ -205,29 +205,60 @@ export default function ReportsPage() {
               const mTitle = lang === 'he'
                 ? `${HE_MONTHS[m.monthIdx]} ${m.year}`
                 : `${EN_MONTHS[m.monthIdx]} ${m.year}`
+              const rows = [
+                { label: lang==='he'?'הכנסות':'Income',  value: mIncome,   color: '#30D158', bg: '#30D15814', sign: '+' },
+                { label: lang==='he'?'הוצאות':'Expenses', value: mExpense,  color: '#FF453A', bg: '#FF453A14', sign: '-' },
+                { label: lang==='he'?'יתרה':'Balance',    value: mBalance,  color: mBalance >= 0 ? '#30D158' : '#FF453A', bg: mBalance >= 0 ? '#30D15814' : '#FF453A14', sign: mBalance >= 0 ? '+' : '-' },
+              ]
               return (
                 <motion.div
-                  initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                  key={barSelectedIdx}
+                  initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                   style={{
-                    marginTop: 16, padding: '14px 16px',
-                    background: 'var(--c-bg)', borderRadius: 'var(--r-md)',
+                    marginTop: 14,
+                    background: 'var(--c-bg)',
+                    borderRadius: 'var(--r-lg)',
+                    overflow: 'hidden',
+                    border: '1px solid var(--c-sep)',
                   }}
                 >
-                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 10, textAlign: 'center' }}>{mTitle}</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {[
-                      { label: lang==='he'?'הכנסות':'Income', value: mIncome, color: 'var(--c-success)' },
-                      { label: lang==='he'?'הוצאות':'Expenses', value: mExpense, color: 'var(--c-danger)' },
-                      { label: lang==='he'?'יתרה':'Balance', value: mBalance, color: mBalance >= 0 ? 'var(--c-success)' : 'var(--c-danger)' },
-                    ].map(row => (
-                      <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: 13, color: 'var(--c-text2)' }}>{row.label}</span>
-                        <span dir="ltr" style={{ fontWeight: 700, fontSize: 15, color: row.color }}>
-                          {cur}{Math.abs(row.value).toFixed(2)}
-                        </span>
-                      </div>
-                    ))}
+                  {/* Title bar */}
+                  <div style={{
+                    padding: '10px 14px',
+                    borderBottom: '1px solid var(--c-sep)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  }}>
+                    <span style={{ fontWeight: 700, fontSize: 14 }}>{mTitle}</span>
+                    <span style={{ fontSize: 11, color: 'var(--c-text2)' }}>
+                      {mTxs.length} {lang === 'he' ? 'עסקאות' : 'transactions'}
+                    </span>
                   </div>
+
+                  {/* Stats rows */}
+                  {rows.map((row, ri) => (
+                    <div key={row.label} style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '10px 14px',
+                      borderBottom: ri < rows.length - 1 ? '1px solid var(--c-sep)' : undefined,
+                      background: ri === 2 ? row.bg : undefined,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{
+                          width: 8, height: 8, borderRadius: 2,
+                          background: row.color, flexShrink: 0,
+                        }} />
+                        <span style={{ fontSize: 13, fontWeight: ri === 2 ? 700 : 500 }}>{row.label}</span>
+                      </div>
+                      <span dir="ltr" style={{
+                        fontWeight: 700, fontSize: ri === 2 ? 16 : 14,
+                        color: row.color, letterSpacing: -0.3,
+                      }}>
+                        {row.sign}{cur}{Math.abs(row.value).toLocaleString('he-IL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  ))}
                 </motion.div>
               )
             })()}
