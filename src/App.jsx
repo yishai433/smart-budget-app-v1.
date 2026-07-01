@@ -165,6 +165,20 @@ function AppInner() {
       // On iOS, offsetTop stays 0 when keyboard opens — use height comparison instead
       const kbOpen = vv.offsetTop > 20 || vv.height < window.innerHeight - 120
       document.documentElement.classList.toggle('kb-open', kbOpen)
+
+      // WebKit bug: caret position goes stale when the keyboard height changes
+      // while an input is focused (e.g. switching from a numeric to a full
+      // keyboard) — https://bugs.webkit.org/show_bug.cgi?id=176896.
+      // Re-focusing forces WebKit to recompute the caret against the new viewport.
+      const active = document.activeElement
+      if (active?.tagName === 'INPUT') {
+        requestAnimationFrame(() => {
+          if (document.activeElement === active) {
+            active.blur()
+            active.focus({ preventScroll: true })
+          }
+        })
+      }
     }
     vv.addEventListener('resize', update)
     vv.addEventListener('scroll', update)
