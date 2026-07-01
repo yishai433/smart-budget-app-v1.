@@ -248,7 +248,7 @@ body {
   transition: border-color 0.2s;
   -webkit-appearance: none;
 }
-.input-field:focus { border-color: var(--c-primary); }
+.input-field:focus { border-color: var(--c-sep); }
 .input-field::placeholder { color: var(--c-text3); }
 
 /* Toggle switch */
