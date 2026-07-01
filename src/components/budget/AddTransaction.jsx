@@ -196,6 +196,7 @@ export default function AddTransaction({ onClose }) {
                 className="input-field"
                 placeholder={t('transaction.descriptionPlaceholder')}
                 value={description} onChange={e => setDescription(e.target.value)}
+                style={{ textAlign: 'center' }}
               />
             </div>
           </div>
