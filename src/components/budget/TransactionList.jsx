@@ -26,7 +26,7 @@ function groupByMonth(txs) {
   }, {})
 }
 
-function SwipeableRow({ tx, onDelete, t, catDef, cur }) {
+function SwipeableRow({ tx, onDelete, onOpenDetail, t, catDef, cur }) {
   const x = useMotionValue(0)
   const [swiped, setSwiped] = useState(false)
 
@@ -48,6 +48,8 @@ function SwipeableRow({ tx, onDelete, t, catDef, cur }) {
     if (swiped) {
       setSwiped(false)
       snapTo(0)
+    } else {
+      onOpenDetail(tx)
     }
   }
 
@@ -121,10 +123,98 @@ function SwipeableRow({ tx, onDelete, t, catDef, cur }) {
   )
 }
 
+function formatFullDate(dateStr) {
+  try { return new Date(dateStr).toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' }) }
+  catch { return dateStr }
+}
+
+function DetailRow({ label, children }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
+      <span style={{ fontSize: 13, color: 'var(--c-text2)' }}>{label}</span>
+      <span style={{ fontSize: 14, fontWeight: 600 }}>{children}</span>
+    </div>
+  )
+}
+
+function TransactionDetailSheet({ tx, catDef, cur, t, onDelete, onClose }) {
+  const isIncome = tx.type === 'income'
+  return (
+    <>
+      <motion.div className="sheet-overlay"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={onClose}
+      />
+      <div className="sheet-viewport">
+        <motion.div className="sheet"
+          initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+          transition={{ type: 'spring', stiffness: 380, damping: 36 }}
+        >
+          <div className="sheet-handle" />
+          <div className="sheet-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div className="list-icon" style={{ background: catDef.color + '20', color: catDef.color, width: 44, height: 44 }}>
+                <CategoryIcon id={tx.category} size={22} />
+              </div>
+              <div>
+                <h2 className="sheet-title" style={{ fontSize: 17 }}>
+                  {tx.description || t(`categories.${tx.category}`)}
+                </h2>
+                <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2 }}>
+                  {t(`categories.${tx.category}`)}
+                </div>
+              </div>
+            </div>
+            <button onClick={onClose} style={{
+              background: 'var(--c-bg)', border: 'none', borderRadius: 20,
+              width: 32, height: 32, cursor: 'pointer', fontSize: 18, color: 'var(--c-text2)', flexShrink: 0,
+            }}>✕</button>
+          </div>
+
+          <div className="sheet-body">
+            <div style={{ textAlign: 'center', padding: '8px 0 4px' }}>
+              <div dir="ltr" style={{
+                fontSize: 34, fontWeight: 800, letterSpacing: -0.8,
+                color: isIncome ? 'var(--c-success)' : 'var(--c-danger)',
+              }}>
+                {formatMoney(tx.amount, tx.type, cur)}
+              </div>
+            </div>
+
+            <div style={{ borderTop: '1px solid var(--c-sep)' }}>
+              <DetailRow label={t('transaction.date')}>{formatFullDate(tx.date)}</DetailRow>
+              <div style={{ borderTop: '1px solid var(--c-sep)' }} />
+              <DetailRow label={t('transaction.category')}>{t(`categories.${tx.category}`)}</DetailRow>
+              {tx.isRecurring && (
+                <>
+                  <div style={{ borderTop: '1px solid var(--c-sep)' }} />
+                  <DetailRow label={t('transaction.isRecurring')}>
+                    <span style={{ color: 'var(--c-blue)' }}>↻ {t(`transaction.${tx.frequency}`)}</span>
+                  </DetailRow>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="sheet-footer">
+            <button
+              className="btn btn-danger btn-full"
+              onClick={() => { onDelete(tx.id); onClose() }}
+            >
+              🗑 {t('common.delete')}
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    </>
+  )
+}
+
 export default function TransactionList({ filter = 'all' }) {
   const { t, i18n } = useTranslation()
   const { transactions, deleteTransaction, CATEGORIES, settings } = useApp()
   const cur = settings.currency
+  const [detailTx, setDetailTx] = useState(null)
 
   const filtered = filter === 'recurring'
     ? transactions.filter(tx => tx.isRecurring)
@@ -173,6 +263,7 @@ export default function TransactionList({ filter = 'all' }) {
                     <SwipeableRow
                       tx={tx}
                       onDelete={deleteTransaction}
+                      onOpenDetail={setDetailTx}
                       t={t}
                       catDef={catDef}
                       cur={cur}
@@ -184,6 +275,23 @@ export default function TransactionList({ filter = 'all' }) {
           </div>
         </div>
       ))}
+
+      <AnimatePresence>
+        {detailTx && (() => {
+          const catDef = CATEGORIES[detailTx.type]?.find(c => c.id === detailTx.category)
+            || { emoji: detailTx.type === 'income' ? '💰' : '💸', color: '#636366' }
+          return (
+            <TransactionDetailSheet
+              tx={detailTx}
+              catDef={catDef}
+              cur={cur}
+              t={t}
+              onDelete={deleteTransaction}
+              onClose={() => setDetailTx(null)}
+            />
+          )
+        })()}
+      </AnimatePresence>
     </div>
   )
 }
