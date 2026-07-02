@@ -347,8 +347,19 @@ body {
   display: flex;
   flex-direction: column;
   max-height: 100%;
-  /* Extend background visually past bottom edge so no gap shows */
-  box-shadow: 0 200px 0 200px var(--c-card);
+  position: relative;
+}
+/* Extend background visually past bottom edge so no gap shows on overscroll —
+   a plain rect is much cheaper to composite during the spring animation than
+   a 200px-spread box-shadow, which iOS was repainting on every frame. */
+.sheet::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: var(--c-card);
 }
 .sheet-body {
   flex: 1;
