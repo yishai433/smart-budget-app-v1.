@@ -138,7 +138,118 @@ function DetailRow({ label, children }) {
   )
 }
 
-function TransactionDetailSheet({ tx, catDef, cur, t, onDelete, onClose }) {
+function EditTransactionSheet({ tx, cats, cur, t, onSave, onClose }) {
+  const [amountStr, setAmountStr] = useState(String(tx.amount ?? ''))
+  const [description, setDescription] = useState(tx.description || '')
+  const [category, setCategory] = useState(tx.category || '')
+  const [date, setDate] = useState(tx.date || '')
+
+  const handleAmountChange = (e) => {
+    const val = e.target.value.replace(/[^0-9.]/g, '')
+    const parts = val.split('.')
+    if (parts.length > 2) return
+    if (parts[1] && parts[1].length > 2) return
+    setAmountStr(val)
+  }
+  const actualAmount = parseFloat(amountStr) || 0
+  const canSave = actualAmount > 0 && category
+
+  const handleSave = async () => {
+    if (!canSave) return
+    await onSave(tx.id, { amount: actualAmount, description, category, date })
+    onClose()
+  }
+
+  return createPortal((
+    <>
+      <motion.div className="sheet-overlay"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={onClose}
+      />
+      <div className="sheet-viewport">
+        <motion.div className="sheet"
+          initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+          transition={{ type: 'spring', stiffness: 380, damping: 36 }}
+        >
+          <div className="sheet-handle" />
+          <div className="sheet-header">
+            <h2 className="sheet-title">✏️ עריכת עסקה</h2>
+            <button onClick={onClose} style={{
+              background: 'var(--c-bg)', border: 'none', borderRadius: 20,
+              width: 32, height: 32, cursor: 'pointer', fontSize: 18, color: 'var(--c-text2)',
+            }}>✕</button>
+          </div>
+
+          <div className="sheet-body" style={{ gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '5fr 7fr', gap: 10 }}>
+              <div className="input-group" style={{ marginBottom: 0 }}>
+                <label className="input-label">סכום (₪)</label>
+                <input
+                  className="input-field"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={amountStr}
+                  onChange={handleAmountChange}
+                  style={{ textAlign: 'center', fontWeight: 800, fontSize: 20 }}
+                />
+              </div>
+              <div className="input-group" style={{ marginBottom: 0 }}>
+                <label className="input-label">{t('transaction.description')}</label>
+                <input
+                  className="input-field"
+                  placeholder={t('transaction.descriptionPlaceholder')}
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  style={{ textAlign: 'center' }}
+                />
+              </div>
+            </div>
+
+            <div className="input-group" style={{ marginBottom: 0 }}>
+              <label className="input-label">{t('transaction.category')}</label>
+              <div className="cat-grid">
+                {cats.map(cat => (
+                  <button
+                    key={cat.id}
+                    className={`cat-btn ${category === cat.id ? 'selected' : ''}`}
+                    onClick={() => setCategory(cat.id)}
+                    style={category === cat.id
+                      ? { borderColor: cat.color, background: cat.color + '18' }
+                      : {}}
+                  >
+                    <div className="cat-icon" style={{ color: category === cat.id ? cat.color : 'var(--c-text2)' }}>
+                      <CategoryIcon id={cat.id} size={26} />
+                    </div>
+                    <span className="cat-label">{t(`categories.${cat.id}`)}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="input-group" style={{ marginBottom: 0 }}>
+              <label className="input-label">📅 {t('transaction.date')}</label>
+              <input className="input-field" type="date" value={date} onChange={e => setDate(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="sheet-footer">
+            <button
+              className="btn btn-primary btn-full"
+              onClick={handleSave}
+              disabled={!canSave}
+              style={{ opacity: canSave ? 1 : 0.45, transition: 'opacity 0.2s' }}
+            >
+              💾 שמור שינויים
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    </>
+  ), document.body)
+}
+
+function TransactionDetailSheet({ tx, catDef, cur, t, onDelete, onEdit, onClose }) {
   const isIncome = tx.type === 'income'
   // Portal to <body> — the routed page this list lives in is a descendant of
   // AnimatedRoutes' will-change:transform wrapper, which becomes the
@@ -204,12 +315,20 @@ function TransactionDetailSheet({ tx, catDef, cur, t, onDelete, onClose }) {
           </div>
 
           <div className="sheet-footer">
-            <button
-              className="btn btn-danger btn-full"
-              onClick={() => { onDelete(tx.id); onClose() }}
-            >
-              🗑 {t('common.delete')}
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button
+                className="btn btn-primary btn-full"
+                onClick={() => onEdit(tx)}
+              >
+                ✏️ עריכה
+              </button>
+              <button
+                className="btn btn-danger btn-full"
+                onClick={() => { onDelete(tx.id); onClose() }}
+              >
+                🗑 {t('common.delete')}
+              </button>
+            </div>
           </div>
         </motion.div>
       </div>
@@ -219,9 +338,10 @@ function TransactionDetailSheet({ tx, catDef, cur, t, onDelete, onClose }) {
 
 export default function TransactionList({ filter = 'all' }) {
   const { t, i18n } = useTranslation()
-  const { transactions, deleteTransaction, CATEGORIES, settings } = useApp()
+  const { transactions, deleteTransaction, updateTransaction, CATEGORIES, settings } = useApp()
   const cur = settings.currency
   const [detailTx, setDetailTx] = useState(null)
+  const [editingTx, setEditingTx] = useState(null)
 
   const getCatDef = (tx) => CATEGORIES[tx.type]?.find(c => c.id === tx.category)
     || { emoji: tx.type === 'income' ? '💰' : '💸', color: '#636366' }
@@ -293,7 +413,21 @@ export default function TransactionList({ filter = 'all' }) {
             cur={cur}
             t={t}
             onDelete={deleteTransaction}
+            onEdit={(tx) => { setDetailTx(null); setEditingTx(tx) }}
             onClose={() => setDetailTx(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {editingTx && (
+          <EditTransactionSheet
+            tx={editingTx}
+            cats={CATEGORIES[editingTx.type]}
+            cur={cur}
+            t={t}
+            onSave={updateTransaction}
+            onClose={() => setEditingTx(null)}
           />
         )}
       </AnimatePresence>

@@ -298,6 +298,10 @@ export function AppProvider({ children }) {
     await deleteDoc(doc(db, 'transactions', id))
   }, [])
 
+  const updateTransaction = useCallback(async (id, data) => {
+    await updateDoc(doc(db, 'transactions', id), data)
+  }, [])
+
   // Real-time receipts listener
   useEffect(() => {
     if (!user || !activeHouseholdId) return
@@ -446,7 +450,7 @@ export function AppProvider({ children }) {
     totalIncome, totalExpenses, balance,
     shoppingItems, CATEGORIES,
     receipts, addReceipt, deleteReceipt,
-    addTransaction, deleteTransaction,
+    addTransaction, deleteTransaction, updateTransaction,
     addShoppingItem, updateShoppingItem, deleteShoppingItem,
     clearShoppingList, checkoutShopping, loadShoppingTemplate,
     changeLanguage, updateSettings, logout,
