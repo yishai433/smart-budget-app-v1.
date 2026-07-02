@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion'
 import { useApp } from '../../contexts/AppContext'
@@ -139,7 +140,13 @@ function DetailRow({ label, children }) {
 
 function TransactionDetailSheet({ tx, catDef, cur, t, onDelete, onClose }) {
   const isIncome = tx.type === 'income'
-  return (
+  // Portal to <body> — the routed page this list lives in is a descendant of
+  // AnimatedRoutes' will-change:transform wrapper, which becomes the
+  // containing block for position:fixed children and breaks their placement
+  // (the sheet would render relative to the full scrollable page height
+  // instead of the viewport). AddTransaction avoids this by mounting at the
+  // App root; a portal gets the same effect from anywhere in the tree.
+  return createPortal((
     <>
       <motion.div className="sheet-overlay"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -207,7 +214,7 @@ function TransactionDetailSheet({ tx, catDef, cur, t, onDelete, onClose }) {
         </motion.div>
       </div>
     </>
-  )
+  ), document.body)
 }
 
 export default function TransactionList({ filter = 'all' }) {
@@ -215,6 +222,9 @@ export default function TransactionList({ filter = 'all' }) {
   const { transactions, deleteTransaction, CATEGORIES, settings } = useApp()
   const cur = settings.currency
   const [detailTx, setDetailTx] = useState(null)
+
+  const getCatDef = (tx) => CATEGORIES[tx.type]?.find(c => c.id === tx.category)
+    || { emoji: tx.type === 'income' ? '💰' : '💸', color: '#636366' }
 
   const filtered = filter === 'recurring'
     ? transactions.filter(tx => tx.isRecurring)
@@ -249,8 +259,7 @@ export default function TransactionList({ filter = 'all' }) {
           <div style={{ margin: '0 16px' }}>
             <AnimatePresence initial={false}>
               {txs.map((tx, i) => {
-                const catDef = CATEGORIES[tx.type]?.find(c => c.id === tx.category)
-                  || { emoji: tx.type === 'income' ? '💰' : '💸', color: '#636366' }
+                const catDef = getCatDef(tx)
 
                 return (
                   <motion.div
@@ -277,20 +286,16 @@ export default function TransactionList({ filter = 'all' }) {
       ))}
 
       <AnimatePresence>
-        {detailTx && (() => {
-          const catDef = CATEGORIES[detailTx.type]?.find(c => c.id === detailTx.category)
-            || { emoji: detailTx.type === 'income' ? '💰' : '💸', color: '#636366' }
-          return (
-            <TransactionDetailSheet
-              tx={detailTx}
-              catDef={catDef}
-              cur={cur}
-              t={t}
-              onDelete={deleteTransaction}
-              onClose={() => setDetailTx(null)}
-            />
-          )
-        })()}
+        {detailTx && (
+          <TransactionDetailSheet
+            tx={detailTx}
+            catDef={getCatDef(detailTx)}
+            cur={cur}
+            t={t}
+            onDelete={deleteTransaction}
+            onClose={() => setDetailTx(null)}
+          />
+        )}
       </AnimatePresence>
     </div>
   )

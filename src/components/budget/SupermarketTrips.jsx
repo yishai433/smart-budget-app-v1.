@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ShoppingCart } from 'lucide-react'
 import { useApp } from '../../contexts/AppContext'
@@ -18,7 +19,9 @@ function TripDetailSheet({ tx, cur, onClose }) {
     ? items.reduce((s, i) => s + (i.estimatedPrice || 0) * (i.quantity || 1), 0)
     : tx.amount || 0
 
-  return (
+  // Portal to <body> — this page is a descendant of AnimatedRoutes' will-change
+  // wrapper, which becomes the containing block for position:fixed children.
+  return createPortal((
     <>
       <motion.div className="sheet-overlay"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -84,7 +87,7 @@ function TripDetailSheet({ tx, cur, onClose }) {
         </motion.div>
       </div>
     </>
-  )
+  ), document.body)
 }
 
 export default function SupermarketTrips({ cur }) {

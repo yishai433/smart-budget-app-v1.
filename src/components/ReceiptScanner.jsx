@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { storage } from '../firebase'
@@ -105,7 +106,10 @@ export default function ReceiptScanner({ onClose, onSaved, transactionId, transa
 
   const reset = () => { setStep('pick'); setPreview(null); setBlob(null); setError(''); setRawText(''); setShowRaw(false) }
 
-  return (
+  // Portal to <body> — used both from ReceiptsPage (a routed page, whose
+  // AnimatedRoutes wrapper's will-change:transform breaks position:fixed
+  // children) and from AddTransaction (already root-level, portal is a no-op there).
+  return createPortal((
     <>
       <motion.div
         className="sheet-overlay"
@@ -264,5 +268,5 @@ export default function ReceiptScanner({ onClose, onSaved, transactionId, transa
         </motion.div>
       </div>
     </>
-  )
+  ), document.body)
 }

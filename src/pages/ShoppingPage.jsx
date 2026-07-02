@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import ShoppingList from '../components/shopping/ShoppingList'
@@ -31,7 +32,11 @@ function CheckoutModal({ total, onConfirm, onCancel }) {
   const [addExpense, setAddExpense] = useState(true)
   const [supermarket, setSupermarket] = useState('')
 
-  return (
+  // Portal to <body> — ShoppingPage is a routed page inside AnimatedRoutes'
+  // will-change:transform wrapper, which becomes the containing block for
+  // position:fixed children and misplaces the sheet relative to full page
+  // height instead of the viewport.
+  return createPortal((
     <>
       <motion.div className="sheet-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onCancel} />
       <div className="sheet-viewport">
@@ -83,7 +88,7 @@ function CheckoutModal({ total, onConfirm, onCancel }) {
         </motion.div>
       </div>
     </>
-  )
+  ), document.body)
 }
 
 export default function ShoppingPage() {

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '../../contexts/AppContext'
@@ -11,7 +12,11 @@ const CAT_COLORS = {
 }
 
 function SheetWrap({ onClose, children }) {
-  return (
+  // Portal to <body> — ShoppingPage is a routed page inside AnimatedRoutes'
+  // will-change:transform wrapper, which becomes the containing block for
+  // position:fixed children and misplaces the sheet relative to full page
+  // height instead of the viewport.
+  return createPortal((
     <>
       <motion.div className="sheet-overlay"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -26,7 +31,7 @@ function SheetWrap({ onClose, children }) {
         </motion.div>
       </div>
     </>
-  )
+  ), document.body)
 }
 
 function AddItemSheet({ onClose }) {
