@@ -246,8 +246,8 @@ export function AppProvider({ children }) {
       txs.sort((a, b) => {
         const dateCmp = (b.date || '').localeCompare(a.date || '')
         if (dateCmp !== 0) return dateCmp
-        // Same day: earliest purchase first (ascending by creation time)
-        return (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0)
+        // Same day: most recently added first (descending by creation time)
+        return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)
       })
       setTransactions(txs)
       setDbError('')
