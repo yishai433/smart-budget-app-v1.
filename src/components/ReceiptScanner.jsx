@@ -6,8 +6,10 @@ import { storage } from '../firebase'
 import { useApp } from '../contexts/AppContext'
 import { useTranslation } from 'react-i18next'
 import { preprocessForOCR, parseReceiptText, compressImage, imageToBase64, receiptName } from '../utils/receiptOCR'
+import useScrollLock from '../hooks/useScrollLock'
 
 export default function ReceiptScanner({ onClose, onSaved, transactionId, transactionDesc, date }) {
+  useScrollLock()
   const { t } = useTranslation()
   const { user, addReceipt } = useApp()
   const [preview, setPreview] = useState(null)

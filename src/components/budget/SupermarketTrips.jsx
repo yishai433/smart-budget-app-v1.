@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ShoppingCart } from 'lucide-react'
 import { useApp } from '../../contexts/AppContext'
 import CategoryIcon from '../CategoryIcon'
+import useScrollLock from '../../hooks/useScrollLock'
 
 function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -14,6 +15,7 @@ function formatShort(dateStr) {
 }
 
 function TripDetailSheet({ tx, cur, onClose }) {
+  useScrollLock()
   const items = tx.items || []
   const total = items.length > 0
     ? items.reduce((s, i) => s + (i.estimatedPrice || 0) * (i.quantity || 1), 0)

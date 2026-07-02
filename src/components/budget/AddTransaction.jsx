@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '../../contexts/AppContext'
 import ReceiptScanner from '../ReceiptScanner'
 import CategoryIcon from '../CategoryIcon'
+import useScrollLock from '../../hooks/useScrollLock'
 
 const FREQUENCIES = ['daily', 'weekly', 'monthly', 'yearly']
 
@@ -32,6 +33,7 @@ const CategoryGrid = memo(function CategoryGrid({ cats, category, onSelect, t })
 })
 
 export default function AddTransaction({ onClose }) {
+  useScrollLock()
   const { t } = useTranslation()
   const { addTransaction, CATEGORIES, settings } = useApp()
   const [type, setType] = useState('expense')

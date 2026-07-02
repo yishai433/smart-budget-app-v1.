@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '../../contexts/AppContext'
 import CategoryIcon from '../CategoryIcon'
+import useScrollLock from '../../hooks/useScrollLock'
 
 const SHOP_CATS = ['produce','dairy','meat','bakery','frozen','drinks','cleaning','personal','other']
 const CAT_COLORS = {
@@ -12,6 +13,7 @@ const CAT_COLORS = {
 }
 
 function SheetWrap({ onClose, children }) {
+  useScrollLock()
   // Portal to <body> — ShoppingPage is a routed page inside AnimatedRoutes'
   // will-change:transform wrapper, which becomes the containing block for
   // position:fixed children and misplaces the sheet relative to full page

@@ -7,6 +7,7 @@ import { format, isToday, isYesterday, parseISO } from 'date-fns'
 import { he } from 'date-fns/locale'
 import { formatMoney } from '../../utils/format'
 import CategoryIcon from '../CategoryIcon'
+import useScrollLock from '../../hooks/useScrollLock'
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 
@@ -139,6 +140,7 @@ function DetailRow({ label, children }) {
 }
 
 function EditTransactionSheet({ tx, cats, cur, t, onSave, onClose }) {
+  useScrollLock()
   const [amountStr, setAmountStr] = useState(String(tx.amount ?? ''))
   const [description, setDescription] = useState(tx.description || '')
   const [category, setCategory] = useState(tx.category || '')
@@ -250,6 +252,7 @@ function EditTransactionSheet({ tx, cats, cur, t, onSave, onClose }) {
 }
 
 function TransactionDetailSheet({ tx, catDef, cur, t, onDelete, onEdit, onClose }) {
+  useScrollLock()
   const isIncome = tx.type === 'income'
   // Portal to <body> — the routed page this list lives in is a descendant of
   // AnimatedRoutes' will-change:transform wrapper, which becomes the

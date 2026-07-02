@@ -6,6 +6,7 @@ import ShoppingList from '../components/shopping/ShoppingList'
 import { useApp } from '../contexts/AppContext'
 import UserAvatar from '../components/UserAvatar'
 import { ShoppingCart } from 'lucide-react'
+import useScrollLock from '../hooks/useScrollLock'
 
 function CheckoutToggle({ checked, onChange, label, sub }) {
   return (
@@ -27,6 +28,7 @@ function CheckoutToggle({ checked, onChange, label, sub }) {
 }
 
 function CheckoutModal({ total, onConfirm, onCancel }) {
+  useScrollLock()
   const { settings } = useApp()
   const cur = settings.currency
   const [addExpense, setAddExpense] = useState(true)
