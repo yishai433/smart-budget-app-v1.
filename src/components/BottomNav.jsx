@@ -31,19 +31,19 @@ export default function BottomNav() {
   return (
     <nav className="bottom-nav" style={{
       position: 'fixed',
-      bottom: 0,
-      width: '100%',
-      maxWidth: '430px',
-      height: `calc(var(--nav-h) + var(--safe-bottom))`,
-      paddingBottom: 'var(--safe-bottom)',
+      bottom: `calc(var(--safe-bottom) + 12px)`,
+      width: 'calc(100% - 24px)',
+      maxWidth: '406px',
+      height: '66px',
+      borderRadius: '26px',
       /* Solid background instead of backdrop-filter blur — a fixed blurred
          element forces iOS to recompute the blur on every scroll frame, which
          was the main cause of scroll lag. */
       background: '#FFFFFF',
-      borderTop: '0.5px solid rgba(0,0,0,0.08)',
-      boxShadow: '0 -1px 12px rgba(0,0,0,0.05)',
+      boxShadow: '0 8px 30px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)',
       display: 'flex',
       alignItems: 'center',
+      padding: '0 6px',
       zIndex: 150,
     }}>
       {tabs.map(tab => {
@@ -56,42 +56,46 @@ export default function BottomNav() {
             style={{
               flex: 1,
               display: 'flex', flexDirection: 'column',
-              alignItems: 'center', gap: '2px',
+              alignItems: 'center', justifyContent: 'center', gap: '3px',
               border: 'none', background: 'transparent',
-              cursor: 'pointer', padding: '8px 0',
+              cursor: 'pointer', padding: 0,
               position: 'relative',
+              height: '100%',
+              WebkitTapHighlightColor: 'transparent',
             }}
           >
             {active && (
               <motion.div
-                layoutId="nav-indicator"
+                layoutId="nav-pill"
                 style={{
-                  position: 'absolute', top: 0,
-                  width: '36px', height: '3px',
-                  borderRadius: '0 0 3px 3px',
-                  background: 'var(--c-primary)',
+                  position: 'absolute',
+                  inset: '9px 7px',
+                  background: 'var(--c-primary-light)',
+                  borderRadius: '18px',
+                  zIndex: 0,
                 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 34 }}
+                transition={{ type: 'spring', stiffness: 420, damping: 34 }}
               />
             )}
-            <motion.div
-              animate={{ scale: active ? 1.18 : 1, y: active ? -1 : 0 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-            >
+            <div style={{
+              position: 'relative', zIndex: 1,
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', gap: '3px',
+            }}>
               <Icon
                 size={22}
-                strokeWidth={active ? 2.2 : 1.6}
+                strokeWidth={active ? 2.4 : 1.6}
                 color={active ? 'var(--c-primary)' : 'var(--c-text3)'}
               />
-            </motion.div>
-            <span style={{
-              fontSize: '10px',
-              fontWeight: active ? '700' : '500',
-              color: active ? 'var(--c-primary)' : 'var(--c-text3)',
-              letterSpacing: '0.2px',
-            }}>
-              {LABELS[lang][tab.key]}
-            </span>
+              <span style={{
+                fontSize: '10px',
+                fontWeight: active ? '700' : '500',
+                color: active ? 'var(--c-primary)' : 'var(--c-text3)',
+                letterSpacing: '0.2px',
+              }}>
+                {LABELS[lang][tab.key]}
+              </span>
+            </div>
           </button>
         )
       })}
