@@ -36,10 +36,12 @@ export default function BottomNav() {
       maxWidth: '430px',
       height: `calc(var(--nav-h) + var(--safe-bottom))`,
       paddingBottom: 'var(--safe-bottom)',
-      background: 'rgba(255,255,255,0.88)',
-      backdropFilter: 'blur(20px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-      borderTop: '0.5px solid rgba(0,0,0,0.1)',
+      /* Solid background instead of backdrop-filter blur — a fixed blurred
+         element forces iOS to recompute the blur on every scroll frame, which
+         was the main cause of scroll lag. */
+      background: '#FFFFFF',
+      borderTop: '0.5px solid rgba(0,0,0,0.08)',
+      boxShadow: '0 -1px 12px rgba(0,0,0,0.05)',
       display: 'flex',
       alignItems: 'center',
       zIndex: 150,
