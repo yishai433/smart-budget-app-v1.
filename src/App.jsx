@@ -11,6 +11,7 @@ import AuthPage from './pages/AuthPage'
 import ReportsPage from './pages/ReportsPage'
 import ReceiptsPage from './pages/ReceiptsPage'
 import AvatarCreator from './components/AvatarCreator'
+import { Wallet } from 'lucide-react'
 
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null } }
@@ -93,27 +94,68 @@ function LoadingScreen() {
       minHeight: '100dvh',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      background: 'linear-gradient(160deg, #0A2E1A 0%, #1B5E38 100%)',
-      color: 'white', gap: 16,
+      background: 'radial-gradient(circle at 50% 34%, #1B5E38 0%, #0A2E1A 72%)',
+      color: 'white',
+      position: 'relative', overflow: 'hidden',
     }}>
+      {/* Soft glow behind the logo */}
       <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-        style={{ fontSize: 72 }}
-      >💰</motion.div>
+        initial={{ opacity: 0, scale: 0.6 }}
+        animate={{ opacity: 0.5, scale: 1 }}
+        transition={{ duration: 1.2, ease: 'easeOut' }}
+        style={{
+          position: 'absolute',
+          width: 300, height: 300, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(52,199,89,0.35) 0%, transparent 70%)',
+          filter: 'blur(24px)',
+        }}
+      />
+
+      {/* Logo tile */}
+      <motion.div
+        initial={{ scale: 0.7, opacity: 0, y: 8 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+        style={{
+          width: 96, height: 96, borderRadius: 26,
+          background: 'linear-gradient(145deg, #22C55E 0%, #16A349 100%)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 12px 40px rgba(22,163,73,0.45)',
+          position: 'relative', zIndex: 1,
+        }}
+      >
+        <motion.div
+          animate={{ scale: [1, 1.08, 1] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          <Wallet size={46} color="white" strokeWidth={2} />
+        </motion.div>
+      </motion.div>
+
       <motion.h1
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        style={{ fontSize: 28, fontWeight: 800, letterSpacing: -0.5 }}
+        transition={{ delay: 0.25 }}
+        style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.5, marginTop: 26, zIndex: 1 }}
       >תקציב חכם</motion.h1>
       <motion.div
         initial={{ opacity: 0 }}
-        animate={{ opacity: 0.7 }}
+        animate={{ opacity: 0.6 }}
         transition={{ delay: 0.4 }}
-        style={{ fontSize: 14 }}
-      >Smart Budget</motion.div>
+        style={{ fontSize: 13, letterSpacing: 3, marginTop: 5, zIndex: 1 }}
+      >SMART BUDGET</motion.div>
+
+      {/* Loading dots */}
+      <div style={{ display: 'flex', gap: 8, marginTop: 40, zIndex: 1 }}>
+        {[0, 1, 2].map(i => (
+          <motion.div
+            key={i}
+            animate={{ opacity: [0.3, 1, 0.3], y: [0, -5, 0] }}
+            transition={{ duration: 1, repeat: Infinity, delay: i * 0.18, ease: 'easeInOut' }}
+            style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(255,255,255,0.9)' }}
+          />
+        ))}
+      </div>
     </div>
   )
 }
