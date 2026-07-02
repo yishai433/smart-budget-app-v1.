@@ -284,43 +284,48 @@ export default function ReportsPage() {
 
         {/* Big expenses list — user-defined threshold */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <h3 style={{ fontWeight: 700, fontSize: 16 }}>
-              {lang==='he'?'הוצאות גדולות':'Big Expenses'}
-            </h3>
-            {editingThreshold ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <input
-                  className="input-field"
-                  type="text"
-                  inputMode="decimal"
-                  autoFocus
-                  value={thresholdInput}
-                  onChange={e => setThresholdInput(e.target.value.replace(/[^0-9.]/g, ''))}
-                  onKeyDown={e => e.key === 'Enter' && saveThreshold()}
-                  style={{ width: 72, height: 34, fontSize: 14, fontWeight: 700, textAlign: 'center', padding: '0 6px' }}
-                />
-                <button
-                  onClick={saveThreshold}
-                  style={{
-                    background: 'var(--c-primary)', border: 'none', borderRadius: 17,
-                    width: 34, height: 34, cursor: 'pointer', color: 'white', fontSize: 15,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                  }}
-                >✓</button>
-              </div>
-            ) : (
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div>
+              <h3 style={{ fontWeight: 700, fontSize: 16 }}>
+                {lang==='he'?'הוצאות גדולות':'Big Expenses'}
+              </h3>
+              {editingThreshold ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                  <input
+                    className="input-field"
+                    type="text"
+                    inputMode="decimal"
+                    autoFocus
+                    value={thresholdInput}
+                    onChange={e => setThresholdInput(e.target.value.replace(/[^0-9.]/g, ''))}
+                    onKeyDown={e => e.key === 'Enter' && saveThreshold()}
+                    style={{ width: 64, height: 28, fontSize: 13, fontWeight: 700, textAlign: 'center', padding: '0 6px' }}
+                  />
+                  <button
+                    onClick={saveThreshold}
+                    style={{
+                      background: 'var(--c-primary)', border: 'none', borderRadius: 14,
+                      width: 28, height: 28, cursor: 'pointer', color: 'white', fontSize: 13,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}
+                  >✓</button>
+                </div>
+              ) : (
+                <div dir="ltr" style={{ fontSize: 12.5, color: 'var(--c-text2)', marginTop: 2 }}>
+                  מעל {cur}{bigExpenseThreshold.toLocaleString('he-IL')}
+                </div>
+              )}
+            </div>
+            {!editingThreshold && (
               <button
                 onClick={() => { setThresholdInput(String(bigExpenseThreshold)); setEditingThreshold(true) }}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 5,
-                  background: 'var(--c-bg)', border: 'none', borderRadius: 20,
-                  padding: '6px 12px', cursor: 'pointer',
-                  fontSize: 12.5, fontWeight: 600, color: 'var(--c-text2)',
+                  background: 'var(--c-bg)', border: 'none', borderRadius: 16,
+                  width: 32, height: 32, cursor: 'pointer', fontSize: 14,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}
               >
-                <span dir="ltr">מעל {cur}{bigExpenseThreshold.toLocaleString('he-IL')}</span>
-                <span style={{ fontSize: 12 }}>✏️</span>
+                ✏️
               </button>
             )}
           </div>
