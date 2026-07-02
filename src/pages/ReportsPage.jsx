@@ -58,6 +58,20 @@ export default function ReportsPage() {
   const selected = months[selectedIdx]
   const [barSelectedIdx, setBarSelectedIdx] = useState(null)
 
+  const [bigExpenseThreshold, setBigExpenseThreshold] = useState(() => {
+    const saved = localStorage.getItem('sb_big_expense_threshold')
+    return saved ? parseFloat(saved) : 500
+  })
+  const [editingThreshold, setEditingThreshold] = useState(false)
+  const [thresholdInput, setThresholdInput] = useState(String(bigExpenseThreshold))
+
+  const saveThreshold = () => {
+    const val = Math.max(0, parseFloat(thresholdInput) || 0)
+    setBigExpenseThreshold(val)
+    localStorage.setItem('sb_big_expense_threshold', String(val))
+    setEditingThreshold(false)
+  }
+
   // Stats for selected month
   const monthTxs = transactions.filter(t => t.date?.startsWith(selected.key))
   const income   = monthTxs.filter(t => t.type === 'income').reduce((s,t) => s + (t.amount||0), 0)
@@ -268,17 +282,54 @@ export default function ReportsPage() {
         {/* Supermarket trips — last 4 across all months */}
         <SupermarketTrips cur={cur} />
 
-        {/* Top expenses list */}
-        {monthTxs.filter(t=>t.type==='expense').length > 0 && (
-          <div>
-            <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 10 }}>
-              {lang==='he'?'הוצאות גדולות':'Top Expenses'}
+        {/* Big expenses list — user-defined threshold */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <h3 style={{ fontWeight: 700, fontSize: 16 }}>
+              {lang==='he'?'הוצאות גדולות':'Big Expenses'}
             </h3>
+            {editingThreshold ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input
+                  className="input-field"
+                  type="text"
+                  inputMode="decimal"
+                  autoFocus
+                  value={thresholdInput}
+                  onChange={e => setThresholdInput(e.target.value.replace(/[^0-9.]/g, ''))}
+                  onKeyDown={e => e.key === 'Enter' && saveThreshold()}
+                  style={{ width: 72, height: 34, fontSize: 14, fontWeight: 700, textAlign: 'center', padding: '0 6px' }}
+                />
+                <button
+                  onClick={saveThreshold}
+                  style={{
+                    background: 'var(--c-primary)', border: 'none', borderRadius: 17,
+                    width: 34, height: 34, cursor: 'pointer', color: 'white', fontSize: 15,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}
+                >✓</button>
+              </div>
+            ) : (
+              <button
+                onClick={() => { setThresholdInput(String(bigExpenseThreshold)); setEditingThreshold(true) }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  background: 'var(--c-bg)', border: 'none', borderRadius: 20,
+                  padding: '6px 12px', cursor: 'pointer',
+                  fontSize: 12.5, fontWeight: 600, color: 'var(--c-text2)',
+                }}
+              >
+                <span dir="ltr">מעל {cur}{bigExpenseThreshold.toLocaleString('he-IL')}</span>
+                <span style={{ fontSize: 12 }}>✏️</span>
+              </button>
+            )}
+          </div>
+
+          {monthTxs.filter(t => t.type === 'expense' && t.amount >= bigExpenseThreshold).length > 0 ? (
             <div className="card-list">
               {monthTxs
-                .filter(t => t.type === 'expense')
+                .filter(t => t.type === 'expense' && t.amount >= bigExpenseThreshold)
                 .sort((a,b) => b.amount - a.amount)
-                .slice(0, 5)
                 .map((tx, i) => {
                   const def = CATEGORIES.expense.find(c=>c.id===tx.category)||{emoji:'📦',color:'#636366'}
                   return (
@@ -307,8 +358,12 @@ export default function ReportsPage() {
                 })
               }
             </div>
-          </div>
-        )}
+          ) : (
+            <div style={{ textAlign: 'center', color: 'var(--c-text2)', fontSize: 13, padding: '20px 0' }}>
+              {lang==='he' ? `אין הוצאות מעל ${cur}${bigExpenseThreshold.toLocaleString('he-IL')} החודש` : `No expenses above ${cur}${bigExpenseThreshold} this month`}
+            </div>
+          )}
+        </div>
 
         <div style={{ height: 8 }} />
       </div>
