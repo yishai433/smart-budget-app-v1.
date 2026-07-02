@@ -320,8 +320,8 @@ export default function ReportsPage() {
               <button
                 onClick={() => { setThresholdInput(String(bigExpenseThreshold)); setEditingThreshold(true) }}
                 style={{
-                  background: 'var(--c-bg)', border: 'none', borderRadius: 16,
-                  width: 32, height: 32, cursor: 'pointer', fontSize: 14,
+                  background: 'var(--c-primary-light)', border: 'none', borderRadius: 16,
+                  width: 32, height: 32, cursor: 'pointer', fontSize: 13,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}
               >
