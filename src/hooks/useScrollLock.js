@@ -1,41 +1,38 @@
 import { useEffect } from 'react'
 
 // Freezes the page while a sheet/modal is mounted. `#root` is this app's
-// actual scroll container (not body/window) — but plain `overflow: hidden`
-// on it isn't enough on iOS: WKWebView still applies its native rubber-band
-// bounce to the document itself whenever a touch/drag isn't fully consumed
-// by an inner scrollable element (e.g. dragging inside a short sheet with
-// nothing to scroll). Taking #root out of normal flow with position:fixed
-// collapses <html>/<body> to zero scrollable height, which stops the native
-// bounce at the source instead of just hiding an inner overflow.
+// actual scroll container (not body/window), so a simple overflow:hidden on
+// it is enough to stop its own internal scroll — and it's safe, since it
+// doesn't touch #root's position or dimensions.
+//
+// iOS's native rubber-band bounce is a separate thing: it's driven by
+// whether <body>/<html> are scrollable, not by an inner div's overflow. It
+// still fires when a touch/drag isn't fully consumed by an inner scrollable
+// element (e.g. dragging inside a short sheet with nothing to scroll).
+// Locking body's position stops that at the source without altering #root's
+// own box, which is what broke the layout when #root itself was pinned.
 export default function useScrollLock() {
   useEffect(() => {
     const root = document.getElementById('root')
-    if (!root) return
-    const scrollTop = root.scrollTop
-    // Capture the rendered box before switching to fixed — #root is
-    // centered via max-width + margin:auto, which position:fixed would
-    // otherwise blow away.
-    const rect = root.getBoundingClientRect()
-    const prev = {
-      position: root.style.position,
-      top: root.style.top,
-      left: root.style.left,
-      width: root.style.width,
-      overflow: root.style.overflow,
+    const prevRootOverflow = root?.style.overflow
+    if (root) root.style.overflow = 'hidden'
+
+    const scrollY = window.scrollY
+    const prevBody = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      width: document.body.style.width,
     }
-    root.style.position = 'fixed'
-    root.style.top = `${rect.top}px`
-    root.style.left = `${rect.left}px`
-    root.style.width = `${rect.width}px`
-    root.style.overflow = 'hidden'
+    document.body.style.position = 'fixed'
+    document.body.style.top = `${-scrollY}px`
+    document.body.style.width = '100%'
+
     return () => {
-      root.style.position = prev.position
-      root.style.top = prev.top
-      root.style.left = prev.left
-      root.style.width = prev.width
-      root.style.overflow = prev.overflow
-      root.scrollTop = scrollTop
+      if (root) root.style.overflow = prevRootOverflow
+      document.body.style.position = prevBody.position
+      document.body.style.top = prevBody.top
+      document.body.style.width = prevBody.width
+      window.scrollTo(0, scrollY)
     }
   }, [])
 }
