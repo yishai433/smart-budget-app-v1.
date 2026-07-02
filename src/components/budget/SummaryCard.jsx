@@ -58,7 +58,7 @@ export default function SummaryCard() {
             fontWeight: 800,
             letterSpacing: -2,
             lineHeight: 1,
-            color: totalExpenses > 0 ? '#E07070' : 'rgba(255,255,255,0.4)',
+            color: totalExpenses > 0 ? '#FFFFFF' : 'rgba(255,255,255,0.4)',
           }}>
             {cur}<AnimatedNumber value={totalExpenses} />
           </div>
