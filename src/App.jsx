@@ -159,33 +159,43 @@ function AppInner() {
   useEffect(() => {
     const vv = window.visualViewport
     if (!vv) return
-    const update = () => {
+    let lastHeight = vv.height
+    const syncVars = () => {
       document.documentElement.style.setProperty('--kb-height', `${vv.height}px`)
       document.documentElement.style.setProperty('--kb-top', `${vv.offsetTop}px`)
       // On iOS, offsetTop stays 0 when keyboard opens — use height comparison instead
       const kbOpen = vv.offsetTop > 20 || vv.height < window.innerHeight - 120
       document.documentElement.classList.toggle('kb-open', kbOpen)
-
-      // WebKit bug: caret position goes stale when the keyboard height changes
-      // while an input is focused (e.g. switching from a numeric to a full
-      // keyboard) — https://bugs.webkit.org/show_bug.cgi?id=176896.
-      // Re-focusing forces WebKit to recompute the caret against the new viewport.
-      const active = document.activeElement
-      if (active?.tagName === 'INPUT') {
-        requestAnimationFrame(() => {
-          if (document.activeElement === active) {
-            active.blur()
-            active.focus({ preventScroll: true })
-          }
-        })
+    }
+    // Only the resize handler touches focus — and only when the keyboard height
+    // truly changed (e.g. switching from a numeric to a full keyboard). Running
+    // this on every scroll event caused a refocus loop that froze the input.
+    const onResize = () => {
+      syncVars()
+      const delta = Math.abs(vv.height - lastHeight)
+      lastHeight = vv.height
+      // WebKit bug: caret goes stale when the keyboard height changes while an
+      // input is focused — https://bugs.webkit.org/show_bug.cgi?id=176896.
+      // A single blur+focus forces WebKit to recompute the caret. The delta
+      // guard skips predictive-bar toggles and scroll jitter.
+      if (delta > 60) {
+        const active = document.activeElement
+        if (active?.tagName === 'INPUT') {
+          requestAnimationFrame(() => {
+            if (document.activeElement === active) {
+              active.blur()
+              active.focus({ preventScroll: true })
+            }
+          })
+        }
       }
     }
-    vv.addEventListener('resize', update)
-    vv.addEventListener('scroll', update)
-    update()
+    vv.addEventListener('resize', onResize)
+    vv.addEventListener('scroll', syncVars)
+    syncVars()
     return () => {
-      vv.removeEventListener('resize', update)
-      vv.removeEventListener('scroll', update)
+      vv.removeEventListener('resize', onResize)
+      vv.removeEventListener('scroll', syncVars)
     }
   }, [])
 

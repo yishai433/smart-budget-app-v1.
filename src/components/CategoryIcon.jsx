@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import {
   Home, Car, Utensils, Shirt, Heart, BookOpen, Film, Tv,
   Scissors, Smartphone, Package, Briefcase, Laptop, Gift,
@@ -34,7 +35,9 @@ const ICONS = {
   personal:      Sparkles,
 }
 
-export default function CategoryIcon({ id, size = 22, color = 'currentColor', strokeWidth = 1.8 }) {
+function CategoryIcon({ id, size = 22, color = 'currentColor', strokeWidth = 1.8 }) {
   const Icon = ICONS[id] || Package
   return <Icon size={size} color={color} strokeWidth={strokeWidth} />
 }
+
+export default memo(CategoryIcon)

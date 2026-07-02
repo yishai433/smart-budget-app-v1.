@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback, memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '../../contexts/AppContext'
@@ -6,6 +6,30 @@ import ReceiptScanner from '../ReceiptScanner'
 import CategoryIcon from '../CategoryIcon'
 
 const FREQUENCIES = ['daily', 'weekly', 'monthly', 'yearly']
+
+// Memoized so typing in the amount/description fields doesn't re-render all
+// category buttons (each renders an SVG icon) on every keystroke.
+const CategoryGrid = memo(function CategoryGrid({ cats, category, onSelect, t }) {
+  return (
+    <div className="cat-grid">
+      {cats.map(cat => (
+        <button
+          key={cat.id}
+          className={`cat-btn ${category === cat.id ? 'selected' : ''}`}
+          onClick={() => onSelect(cat.id)}
+          style={category === cat.id
+            ? { borderColor: cat.color, background: cat.color + '18' }
+            : {}}
+        >
+          <div className="cat-icon" style={{ color: category === cat.id ? cat.color : 'var(--c-text2)' }}>
+            <CategoryIcon id={cat.id} size={26} />
+          </div>
+          <span className="cat-label">{t(`categories.${cat.id}`)}</span>
+        </button>
+      ))}
+    </div>
+  )
+})
 
 export default function AddTransaction({ onClose }) {
   const { t } = useTranslation()
@@ -25,6 +49,11 @@ export default function AddTransaction({ onClose }) {
   const [showScanner, setShowScanner] = useState(false)
 
   const cats = CATEGORIES[type]
+
+  const handleSelectCategory = useCallback((id) => {
+    setCategory(id)
+    if (id !== 'other') setOtherNote('')
+  }, [])
 
   const handleAmountChange = (e) => {
     const val = e.target.value.replace(/[^0-9.]/g, '')
@@ -204,23 +233,7 @@ export default function AddTransaction({ onClose }) {
           {/* Category */}
           <div className="input-group" style={{ marginBottom: 0 }}>
             <label className="input-label">{t('transaction.category')}</label>
-            <div className="cat-grid">
-              {cats.map(cat => (
-                <button
-                  key={cat.id}
-                  className={`cat-btn ${category === cat.id ? 'selected' : ''}`}
-                  onClick={() => { setCategory(cat.id); if (cat.id !== 'other') setOtherNote('') }}
-                  style={category === cat.id
-                    ? { borderColor: cat.color, background: cat.color + '18' }
-                    : {}}
-                >
-                  <div className="cat-icon" style={{ color: category === cat.id ? cat.color : 'var(--c-text2)' }}>
-                    <CategoryIcon id={cat.id} size={26} />
-                  </div>
-                  <span className="cat-label">{t(`categories.${cat.id}`)}</span>
-                </button>
-              ))}
-            </div>
+            <CategoryGrid cats={cats} category={category} onSelect={handleSelectCategory} t={t} />
             <AnimatePresence>
               {category === 'other' && (
                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
