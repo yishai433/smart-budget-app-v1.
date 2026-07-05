@@ -35,10 +35,15 @@ const CATEGORIES = {
   ]
 }
 
+// Pro subscription allowlist — receipt scanning is gated to these accounts.
+// Household members of an allowlisted owner get Pro too (partner access).
+const PRO_EMAILS = ['yishai560@gmail.com']
+
 export function AppProvider({ children }) {
   const [user, setUser] = useState(null)
   const [household, setHousehold] = useState(null)
   const [activeHouseholdId, setActiveHouseholdId] = useState(null) // uid of the household owner
+  const [isPro, setIsPro] = useState(false)
   const [transactions, setTransactions] = useState([])
   const [shoppingItems, setShoppingItems] = useState([])
   const [receipts, setReceipts] = useState([])
@@ -71,6 +76,7 @@ export function AppProvider({ children }) {
         setUser(null)
         setHousehold(null)
         setActiveHouseholdId(null)
+        setIsPro(false)
         setPartnerProfile(null)
         setTransactions([])
         setShoppingItems([])
@@ -82,6 +88,22 @@ export function AppProvider({ children }) {
     })
     return unsub
   }, [])
+
+  // Pro gate: allowlisted email, or member of an allowlisted owner's household
+  useEffect(() => {
+    if (!user) { setIsPro(false); return }
+    if (PRO_EMAILS.includes(user.email?.toLowerCase())) { setIsPro(true); return }
+    if (!activeHouseholdId || activeHouseholdId === user.uid) { setIsPro(false); return }
+    let cancelled = false
+    getDoc(doc(db, 'userProfiles', activeHouseholdId))
+      .then(snap => {
+        if (cancelled) return
+        const ownerEmail = snap.exists() ? snap.data().email?.toLowerCase() : null
+        setIsPro(PRO_EMAILS.includes(ownerEmail))
+      })
+      .catch(() => { if (!cancelled) setIsPro(false) })
+    return () => { cancelled = true }
+  }, [user, activeHouseholdId])
 
   const initHousehold = async (uid) => {
     // Load profile (avatar + settings + linkedHouseholdId)
@@ -444,7 +466,7 @@ export function AppProvider({ children }) {
   const balance = totalIncome - totalExpenses
 
   const value = {
-    user, household, activeHouseholdId, loading, settings,
+    user, household, activeHouseholdId, loading, settings, isPro,
     avatarConfig, avatarUrl, saveAvatar, partnerProfile,
     transactions, monthTransactions,
     totalIncome, totalExpenses, balance,

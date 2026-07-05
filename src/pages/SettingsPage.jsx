@@ -40,7 +40,7 @@ function Toggle({ checked, onChange }) {
 
 export default function SettingsPage() {
   const { t } = useTranslation()
-  const { settings, changeLanguage, updateSettings, household, user, activeHouseholdId, logout } = useApp()
+  const { settings, changeLanguage, updateSettings, household, user, activeHouseholdId, logout, isPro } = useApp()
   const { avatarConfig } = useApp()
   const [editingAvatar, setEditingAvatar] = useState(false)
   const [joinCode, setJoinCode] = useState('')
@@ -440,23 +440,48 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Receipts */}
+        {/* Receipts — Pro feature */}
         <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text2)', padding: '0 4px 8px', letterSpacing: 0.5, textTransform: 'uppercase' }}>
           🧾 {t('receipts.title')}
         </h3>
         <div className="card" style={{ marginBottom: 20 }}>
           <div className="card-inner">
             <div className="toggle-wrap">
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 15 }}>{t('receipts.enabled')}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ fontWeight: 600, fontSize: 15 }}>{t('receipts.enabled')}</div>
+                  <span style={{
+                    background: isPro
+                      ? 'linear-gradient(135deg, #F59E0B, #D97706)'
+                      : 'var(--c-sep)',
+                    color: isPro ? 'white' : 'var(--c-text2)',
+                    fontSize: 10, fontWeight: 800, letterSpacing: 0.8,
+                    padding: '3px 9px', borderRadius: 20,
+                  }}>
+                    PRO ✦
+                  </span>
+                </div>
                 <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2 }}>
-                  {t('receipts.enabledDesc')} — {settings.receiptsEnabled ? 'טאב חשבוניות פעיל בתפריט' : 'יופיע כטאב בתפריט התחתון'}
+                  מנוי פרו — {isPro
+                    ? (settings.receiptsEnabled ? 'טאב חשבוניות פעיל בתפריט' : t('receipts.enabledDesc'))
+                    : 'זמין בקרוב! פיצ׳ר זה נעול כרגע'}
                 </div>
               </div>
-              <Toggle
-                checked={settings.receiptsEnabled}
-                onChange={v => updateSettings({ receiptsEnabled: v })}
-              />
+              {isPro ? (
+                <Toggle
+                  checked={settings.receiptsEnabled}
+                  onChange={v => updateSettings({ receiptsEnabled: v })}
+                />
+              ) : (
+                <div style={{
+                  width: 36, height: 36, borderRadius: 18,
+                  background: 'var(--c-bg)', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 16,
+                }}>
+                  🔒
+                </div>
+              )}
             </div>
           </div>
         </div>

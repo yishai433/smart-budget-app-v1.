@@ -35,7 +35,7 @@ const CategoryGrid = memo(function CategoryGrid({ cats, category, onSelect, t })
 export default function AddTransaction({ onClose }) {
   useScrollLock()
   const { t } = useTranslation()
-  const { addTransaction, CATEGORIES, settings } = useApp()
+  const { addTransaction, CATEGORIES, settings, isPro } = useApp()
   const [type, setType] = useState('expense')
   const [amountStr, setAmountStr] = useState('')
   const [description, setDescription] = useState('')
@@ -84,7 +84,7 @@ export default function AddTransaction({ onClose }) {
         isRecurring,
         frequency: isRecurring ? frequency : null,
       })
-      if (settings.receiptsEnabled) {
+      if (settings.receiptsEnabled && isPro) {
         setSavedTxId(txId)
         setShowReceiptPrompt(true)
       } else {

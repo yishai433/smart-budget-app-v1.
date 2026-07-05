@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
@@ -24,6 +24,55 @@ export default function ReceiptScanner({ onClose, onSaved, transactionId, transa
   const [error, setError] = useState('')
   const cameraRef = useRef(null)
   const galleryRef = useRef(null)
+  const videoRef = useRef(null)
+  const streamRef = useRef(null)
+
+  const stopCamera = useCallback(() => {
+    streamRef.current?.getTracks().forEach(t => t.stop())
+    streamRef.current = null
+  }, [])
+
+  // Release the camera if the sheet unmounts mid-stream
+  useEffect(() => stopCamera, [stopCamera])
+
+  const openCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
+      })
+      streamRef.current = stream
+      setStep('camera')
+      // Video element mounts on the next render — attach the stream then
+      requestAnimationFrame(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+          videoRef.current.play().catch(() => {})
+        } else {
+          stopCamera()
+        }
+      })
+    } catch {
+      // Permission denied / unsupported — fall back to the native capture input
+      cameraRef.current?.click()
+    }
+  }
+
+  const capturePhoto = () => {
+    const video = videoRef.current
+    if (!video || !video.videoWidth) return
+    const canvas = document.createElement('canvas')
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    canvas.getContext('2d').drawImage(video, 0, 0)
+    stopCamera()
+    canvas.toBlob(b => {
+      if (b) handleFile(new File([b], 'receipt.jpg', { type: 'image/jpeg' }))
+    }, 'image/jpeg', 0.92)
+  }
 
   const handleFile = async (file) => {
     if (!file) return
@@ -143,13 +192,75 @@ export default function ReceiptScanner({ onClose, onSaved, transactionId, transa
             {step === 'pick' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <button className="btn btn-primary btn-full" style={{ fontSize: 17, padding: 16 }}
-                  onClick={() => cameraRef.current.click()}>
+                  onClick={openCamera}>
                   📷 {t('receipts.camera')}
                 </button>
                 <button className="btn btn-secondary btn-full" style={{ fontSize: 17, padding: 16 }}
                   onClick={() => galleryRef.current.click()}>
                   🖼 {t('receipts.gallery')}
                 </button>
+              </div>
+            )}
+
+            {/* STEP: live camera */}
+            {step === 'camera' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{
+                  position: 'relative', width: '100%',
+                  borderRadius: 'var(--r-lg)', overflow: 'hidden',
+                  background: '#000', aspectRatio: '3 / 4',
+                }}>
+                  <video
+                    ref={videoRef}
+                    autoPlay playsInline muted
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                  {/* Receipt framing guide */}
+                  <div style={{
+                    position: 'absolute', inset: '6% 12%',
+                    border: '2.5px dashed rgba(255,255,255,0.55)',
+                    borderRadius: 14, pointerEvents: 'none',
+                  }} />
+                  <div style={{
+                    position: 'absolute', bottom: 10, left: 0, right: 0,
+                    textAlign: 'center', color: 'rgba(255,255,255,0.85)',
+                    fontSize: 12, fontWeight: 600, textShadow: '0 1px 4px rgba(0,0,0,0.6)',
+                    pointerEvents: 'none',
+                  }}>
+                    מקם את החשבונית בתוך המסגרת
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24 }}>
+                  <button
+                    onClick={() => { stopCamera(); setStep('pick') }}
+                    style={{
+                      background: 'var(--c-bg)', border: 'none', borderRadius: 22,
+                      width: 44, height: 44, cursor: 'pointer', fontSize: 17, color: 'var(--c-text2)',
+                    }}
+                  >✕</button>
+                  {/* Shutter */}
+                  <button
+                    onClick={capturePhoto}
+                    aria-label="צלם"
+                    style={{
+                      width: 68, height: 68, borderRadius: '50%',
+                      background: 'white', cursor: 'pointer',
+                      border: '4px solid var(--c-primary)',
+                      boxShadow: '0 4px 16px rgba(22,163,73,0.35)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    <div style={{ width: 50, height: 50, borderRadius: '50%', background: 'var(--c-primary)' }} />
+                  </button>
+                  <button
+                    onClick={() => { stopCamera(); galleryRef.current?.click() }}
+                    style={{
+                      background: 'var(--c-bg)', border: 'none', borderRadius: 22,
+                      width: 44, height: 44, cursor: 'pointer', fontSize: 17,
+                    }}
+                  >🖼</button>
+                </div>
               </div>
             )}
 

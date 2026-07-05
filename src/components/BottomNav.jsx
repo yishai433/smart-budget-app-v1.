@@ -19,12 +19,12 @@ const LABELS = {
 
 export default function BottomNav() {
   const { i18n } = useTranslation()
-  const { settings } = useApp()
+  const { settings, isPro } = useApp()
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const lang = i18n.language === 'he' ? 'he' : 'en'
 
-  const tabs = settings.receiptsEnabled
+  const tabs = settings.receiptsEnabled && isPro
     ? [...BASE_TABS, RECEIPTS_TAB, SETTINGS_TAB]
     : [...BASE_TABS, SETTINGS_TAB]
 

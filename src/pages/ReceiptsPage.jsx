@@ -244,10 +244,23 @@ function ReceiptCard({ receipt, onDelete }) {
 
 export default function ReceiptsPage() {
   const { t, i18n } = useTranslation()
-  const { receipts, deleteReceipt } = useApp()
+  const { receipts, deleteReceipt, isPro } = useApp()
   const [showScanner, setShowScanner] = useState(false)
   const showToast = (msg) => {
     window.dispatchEvent(new CustomEvent('sb-toast', { detail: msg }))
+  }
+
+  // Pro gate — direct URL access without the subscription shows a lock screen
+  if (!isPro) {
+    return (
+      <div className="page">
+        <div className="empty-state" style={{ paddingTop: 120 }}>
+          <div className="empty-icon">🔒</div>
+          <h3>מנוי פרו</h3>
+          <p>סריקת חשבוניות זמינה למנויי פרו בלבד — בקרוב!</p>
+        </div>
+      </div>
+    )
   }
 
   const handleDelete = async (id, storagePath) => {
