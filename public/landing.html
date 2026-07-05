@@ -202,41 +202,93 @@
   .feature-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
   .feature-card p { font-size: 14px; color: var(--text2); line-height: 1.6; }
 
-  /* ===== Guide (per-screen walkthrough) ===== */
-  .guide { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
-  .guide-card {
-    background: var(--card); border-radius: 22px; border: 1px solid var(--sep);
-    overflow: hidden;
+  /* ===== Walkthrough (per-screen, with phone screenshot) ===== */
+  .walk { display: flex; flex-direction: column; gap: 72px; }
+  .walk-row {
+    display: flex; align-items: center; gap: 56px; flex-wrap: wrap;
+    justify-content: center;
   }
-  .guide-top {
-    display: flex; align-items: center; gap: 14px;
-    padding: 22px 24px; color: white;
-  }
-  .guide-top .ic {
-    width: 46px; height: 46px; border-radius: 14px; flex-shrink: 0;
-    background: rgba(255,255,255,0.18);
-    display: flex; align-items: center; justify-content: center; font-size: 22px;
-  }
-  .guide-top h3 { font-size: 18px; font-weight: 800; margin-bottom: 2px; }
-  .guide-top span { font-size: 12.5px; opacity: 0.8; }
-  .guide-body { padding: 20px 24px 24px; }
-  .guide-list { list-style: none; display: flex; flex-direction: column; gap: 14px; }
-  .guide-list li { display: flex; gap: 12px; align-items: flex-start; }
-  .guide-list .n {
-    width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+  .walk-row.rev { flex-direction: row-reverse; }
+  .walk-steps { flex: 1; min-width: 300px; max-width: 520px; }
+  .walk-badge {
+    display: inline-flex; align-items: center; gap: 8px;
     background: var(--primary-light); color: var(--primary-dark);
-    font-size: 12px; font-weight: 800;
+    font-size: 13px; font-weight: 700; padding: 8px 16px; border-radius: 20px;
+    margin-bottom: 16px;
+  }
+  .walk-steps h3 { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 20px; }
+  .walk-list { list-style: none; display: flex; flex-direction: column; gap: 16px; }
+  .walk-list li { display: flex; gap: 14px; align-items: flex-start; }
+  .walk-list .n {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    background: var(--primary); color: white;
+    font-size: 13px; font-weight: 800;
     display: flex; align-items: center; justify-content: center;
     margin-top: 1px;
   }
-  .guide-list b { display: block; font-size: 14px; font-weight: 700; margin-bottom: 2px; }
-  .guide-list p { font-size: 13px; color: var(--text2); line-height: 1.55; }
-  .guide-tag {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: var(--primary-light); color: var(--primary-dark);
-    font-size: 12.5px; font-weight: 700; padding: 8px 14px; border-radius: 12px;
-    margin-top: 16px;
+  .walk-list b { display: block; font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+  .walk-list p { font-size: 14px; color: var(--text2); line-height: 1.55; }
+  .walk-phone-wrap { flex-shrink: 0; }
+
+  /* Reports screen mock */
+  .mock-report { padding: 14px; }
+  .mock-report h4 { font-size: 12px; font-weight: 700; margin: 4px 2px 10px; }
+  .mock-donut {
+    width: 110px; height: 110px; border-radius: 50%; margin: 4px auto 14px;
+    background: conic-gradient(#16A349 0 38%, #0A84FF 38% 62%, #FF9F0A 62% 82%, #BF5AF2 82% 100%);
+    display: flex; align-items: center; justify-content: center; position: relative;
   }
+  .mock-donut::after {
+    content: '₪3,647'; position: absolute; width: 66px; height: 66px; border-radius: 50%;
+    background: white; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800;
+  }
+  .mock-bars { display: flex; align-items: flex-end; justify-content: space-around; height: 84px; padding: 0 6px; border-bottom: 1px solid var(--sep); }
+  .mock-bars .bg { display: flex; gap: 2px; align-items: flex-end; }
+  .mock-bars .b { width: 7px; border-radius: 3px 3px 0 0; }
+  .mock-bars .b.g { background: #34C759; }
+  .mock-bars .b.r { background: #FF3B30; }
+  .mock-bars .lbl { font-size: 7px; color: var(--text2); text-align: center; margin-top: 3px; }
+  .mock-big { display: flex; align-items: center; justify-content: space-between; padding: 8px 4px; }
+  .mock-big span { font-size: 11px; font-weight: 700; }
+  .mock-big .pill { background: var(--primary-light); color: var(--primary-dark); font-size: 9px; font-weight: 700; padding: 4px 8px; border-radius: 10px; }
+
+  /* Shopping screen mock */
+  .mock-shop { padding: 12px; }
+  .mock-progress { height: 6px; border-radius: 3px; background: var(--sep); margin: 4px 4px 12px; overflow: hidden; }
+  .mock-progress > div { height: 100%; width: 60%; background: var(--primary); border-radius: 3px; }
+  .mock-item {
+    display: flex; align-items: center; gap: 10px; background: white;
+    border-radius: 12px; padding: 9px 11px; margin-bottom: 7px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05); position: relative; overflow: hidden;
+  }
+  .mock-item .strip { position: absolute; right: 0; top: 0; bottom: 0; width: 4px; }
+  .mock-item .chk { width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; color: white; }
+  .mock-item .chk.on { background: #34C759; }
+  .mock-item .chk.off { border: 2px solid var(--sep); }
+  .mock-item .nm { flex: 1; }
+  .mock-item .nm b { display: block; font-size: 12px; }
+  .mock-item .nm span { font-size: 10px; color: var(--text2); }
+  .mock-item .pr { font-size: 12px; font-weight: 700; }
+
+  /* Settings / invite mock */
+  .mock-set { padding: 14px; }
+  .mock-invite {
+    background: white; border-radius: 16px; padding: 16px; text-align: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 10px;
+  }
+  .mock-invite .lbl { font-size: 9px; color: var(--text3); margin-bottom: 6px; }
+  .mock-invite .code { font-size: 26px; font-weight: 800; letter-spacing: 5px; color: var(--primary); font-family: monospace; }
+  .mock-set-btn { background: var(--primary); color: white; text-align: center; font-size: 12px; font-weight: 700; padding: 11px; border-radius: 14px; box-shadow: 0 4px 12px rgba(22,163,73,0.3); }
+
+  /* Add-transaction sheet mock */
+  .mock-seg { display: flex; background: var(--bg); border-radius: 12px; padding: 3px; margin: 0 0 12px; }
+  .mock-seg > div { flex: 1; text-align: center; font-size: 11px; font-weight: 700; padding: 7px; border-radius: 9px; }
+  .mock-seg .on { background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .mock-seg .off { color: var(--text2); }
+  .mock-cats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .mock-cat { aspect-ratio: 1; border-radius: 12px; background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .mock-cat.sel { background: var(--primary-light); border: 1.5px solid var(--primary); }
 
   /* ===== How it works ===== */
   .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
@@ -287,9 +339,12 @@
     color: var(--text3); font-size: 13px;
   }
 
+  /* Compact phone used inside the walkthrough */
+  .walk-phone-wrap .phone { width: 250px; transform: none; }
+  .walk-phone-wrap .phone-screen { height: 500px; }
+
   @media (max-width: 860px) {
     .features { grid-template-columns: repeat(2, 1fr); }
-    .guide { grid-template-columns: 1fr; }
     .steps { grid-template-columns: 1fr; }
     .audience { grid-template-columns: repeat(2, 1fr); }
     .hero-inner { justify-content: center; text-align: center; }
@@ -298,6 +353,10 @@
     .phone-col { margin: 0 auto; }
     .band { text-align: center; justify-content: center; }
     .band-text p { margin: 0 auto; }
+    .walk { gap: 48px; }
+    .walk-row, .walk-row.rev { flex-direction: column; gap: 28px; }
+    .walk-steps { text-align: center; }
+    .walk-list li { text-align: right; }
   }
   @media (max-width: 520px) {
     .features { grid-template-columns: 1fr; }
@@ -438,71 +497,197 @@
     <div class="wrap">
       <div class="section-head">
         <span class="section-eyebrow">מדריך שימוש</span>
-        <h2>סיור קצר בכל מסך באפליקציה</h2>
-        <p>ארבעה טאבים בתחתית המסך — הנה בדיוק מה יש בכל אחד מהם ואיך להשתמש בו.</p>
+        <h2>סיור מסך-אחר-מסך באפליקציה</h2>
+        <p>ארבעה טאבים בתחתית המסך. הנה בדיוק איך נראה כל אחד ואיך משתמשים בו — עם צילום של המסך עצמו.</p>
       </div>
-      <div class="guide">
 
-        <div class="guide-card">
-          <div class="guide-top" style="background:linear-gradient(135deg,var(--header-start),var(--header-end));">
-            <div class="ic">💰</div>
-            <div><h3>תקציב</h3><span>המסך הראשי — כאן רואים את ההוצאות</span></div>
-          </div>
-          <div class="guide-body">
-            <ul class="guide-list">
-              <li><div class="n">1</div><div><b>כרטיס הסיכום העליון</b><p>מציג את סך ההוצאות של החודש הנוכחי, ומתחתיו פירוט הכנסות מול הוצאות ואחוז חיסכון.</p></div></li>
-              <li><div class="n">2</div><div><b>רשימת העסקאות</b><p>כל ההכנסות וההוצאות, מקובצות לפי חודש — העדכנית ביותר תמיד למעלה.</p></div></li>
-              <li><div class="n">3</div><div><b>לחיצה על עסקה</b><p>פותחת את הפרטים המלאים, עם אפשרות לערוך (סכום, תיאור, קטגוריה, תאריך) או למחוק.</p></div></li>
-              <li><div class="n">4</div><div><b>כפתור + הירוק</b><p>מוסיף הוצאה או הכנסה חדשה תוך שניות — כולל סימון "הוצאה קבועה" לתשלומים חוזרים.</p></div></li>
+      <div class="walk">
+
+        <div class="walk-row">
+          <div class="walk-steps">
+            <div class="walk-badge">💰 טאב תקציב</div>
+            <h3>המסך הראשי — כאן רואים את ההוצאות</h3>
+            <ul class="walk-list">
+              <li><div class="n">1</div><div><b>כרטיס הסיכום העליון</b><p>הסכום הגדול = סך ההוצאות של החודש. מתחתיו פירוט הכנסות מול הוצאות.</p></div></li>
+              <li><div class="n">2</div><div><b>רשימת העסקאות</b><p>כל ההכנסות וההוצאות מקובצות לפי חודש — העדכנית ביותר תמיד למעלה.</p></div></li>
+              <li><div class="n">3</div><div><b>לחיצה על עסקה</b><p>פותחת פרטים מלאים — אפשר לערוך סכום, תיאור, קטגוריה ותאריך, או למחוק.</p></div></li>
+              <li><div class="n">4</div><div><b>כפתור + הירוק</b><p>מוסיף הוצאה/הכנסה חדשה בשניות, כולל סימון "קבועה" לתשלומים חוזרים.</p></div></li>
             </ul>
-            <div class="guide-tag">📍 כאן בדיוק רואים את ההוצאות שלכם</div>
+          </div>
+          <div class="walk-phone-wrap">
+            <div class="phone"><div class="phone-screen">
+              <div class="mock-header"><div class="mock-header-top">
+                <div><p>יולי 2026</p><h2>תקציב חכם</h2></div><div class="mock-avatar"></div>
+              </div></div>
+              <div class="mock-card">
+                <div class="mock-card-top"><p>הוצאות — החודש</p><div class="num">₪3,647</div></div>
+                <div class="mock-card-bottom">
+                  <div><p>הוצאות</p><div class="val exp">−3,647</div></div><div></div>
+                  <div><p>הכנסות</p><div class="val inc">+9,200</div></div>
+                </div>
+              </div>
+              <div class="mock-rows">
+                <div class="mock-row"><div class="ic" style="background:#FEE2E2;color:#DC2626;">🏠</div><div class="tx"><b>שכירות</b><span>01/07 · דיור</span></div><div class="amt" style="color:var(--danger)">−2,700</div></div>
+                <div class="mock-row"><div class="ic" style="background:#DCFCE7;color:#16A349;">💼</div><div class="tx"><b>משכורת</b><span>01/07 · הכנסה</span></div><div class="amt" style="color:#34C759">+9,200</div></div>
+                <div class="mock-row"><div class="ic" style="background:#F3E8FF;color:#9333EA;">👕</div><div class="tx"><b>TFS</b><span>01/07 · ביגוד</span></div><div class="amt" style="color:var(--danger)">−560</div></div>
+              </div>
+              <div class="mock-nav">
+                <div class="tab"><div class="dot"></div>הגדרות</div><div class="tab"><div class="dot"></div>קניות</div>
+                <div class="tab"><div class="dot"></div>דוחות</div><div class="tab active"><div class="dot"></div>תקציב</div>
+              </div>
+            </div></div>
           </div>
         </div>
 
-        <div class="guide-card">
-          <div class="guide-top" style="background:linear-gradient(135deg,#1D4ED8,#1E3A8A);">
-            <div class="ic">📊</div>
-            <div><h3>דוחות</h3><span>לאן הכסף באמת זורם</span></div>
-          </div>
-          <div class="guide-body">
-            <ul class="guide-list">
+        <div class="walk-row rev">
+          <div class="walk-steps">
+            <div class="walk-badge">📊 טאב דוחות</div>
+            <h3>לאן הכסף באמת זורם</h3>
+            <ul class="walk-list">
               <li><div class="n">1</div><div><b>בורר חודשים</b><p>בחצים למעלה עוברים בין חודשים ורואים הכנסות, הוצאות ויתרה של כל אחד.</p></div></li>
-              <li><div class="n">2</div><div><b>גרף עוגה לפי קטגוריה</b><p>בדיוק כמה הלך על אוכל, ביגוד, תחבורה וכו' — כדי לראות איפה אפשר לצמצם.</p></div></li>
+              <li><div class="n">2</div><div><b>גרף עוגה לפי קטגוריה</b><p>בדיוק כמה הלך על אוכל, ביגוד, תחבורה — כדי לראות איפה אפשר לצמצם.</p></div></li>
               <li><div class="n">3</div><div><b>מגמת 6 חודשים</b><p>לוחצים על כל עמודה בגרף ורואים פירוט מלא של אותו חודש.</p></div></li>
-              <li><div class="n">4</div><div><b>הוצאות גדולות</b><p>קובעים סף אישי (ברירת מחדל ₪500, לחיצה על העיפרון הקטן משנה אותו) ורואים מיד כל מה שחצה אותו.</p></div></li>
+              <li><div class="n">4</div><div><b>הוצאות גדולות</b><p>קובעים סף אישי (העיפרון משנה אותו) ורואים מיד כל מה שחצה אותו.</p></div></li>
             </ul>
+          </div>
+          <div class="walk-phone-wrap">
+            <div class="phone"><div class="phone-screen">
+              <div class="mock-header" style="padding:24px 18px 20px;"><div class="mock-header-top">
+                <div><h2>דוחות</h2></div><div class="mock-avatar"></div>
+              </div></div>
+              <div class="mock-report">
+                <h4>הוצאות לפי קטגוריה</h4>
+                <div class="mock-donut"></div>
+                <h4>טרנד 6 חודשים</h4>
+                <div class="mock-bars">
+                  <div><div class="bg"><div class="b g" style="height:30px"></div><div class="b r" style="height:52px"></div></div><div class="lbl">פבר</div></div>
+                  <div><div class="bg"><div class="b g" style="height:44px"></div><div class="b r" style="height:38px"></div></div><div class="lbl">מרץ</div></div>
+                  <div><div class="bg"><div class="b g" style="height:60px"></div><div class="b r" style="height:46px"></div></div><div class="lbl">אפר</div></div>
+                  <div><div class="bg"><div class="b g" style="height:40px"></div><div class="b r" style="height:58px"></div></div><div class="lbl">מאי</div></div>
+                  <div><div class="bg"><div class="b g" style="height:70px"></div><div class="b r" style="height:50px"></div></div><div class="lbl">יונ</div></div>
+                  <div><div class="bg"><div class="b g" style="height:66px"></div><div class="b r" style="height:42px"></div></div><div class="lbl">יול</div></div>
+                </div>
+                <div class="mock-big"><span>הוצאות גדולות</span><span class="pill">מעל ₪500 ✏️</span></div>
+              </div>
+            </div></div>
           </div>
         </div>
 
-        <div class="guide-card">
-          <div class="guide-top" style="background:linear-gradient(135deg,#B45309,#78350F);">
-            <div class="ic">🛒</div>
-            <div><h3>קניות</h3><span>רשימה שזוכרת בשבילכם</span></div>
-          </div>
-          <div class="guide-body">
-            <ul class="guide-list">
+        <div class="walk-row">
+          <div class="walk-steps">
+            <div class="walk-badge">🛒 טאב קניות</div>
+            <h3>רשימה שזוכרת בשבילכם</h3>
+            <ul class="walk-list">
               <li><div class="n">1</div><div><b>הוספת פריט</b><p>שם, מחיר, כמות וקטגוריה — בפעם הבאה המחיר והכמות כבר ימולאו לבד.</p></div></li>
               <li><div class="n">2</div><div><b>סימון V בזמן הקניה</b><p>מסמנים כל פריט שכבר בעגלה — הסכום למעלה מתעדכן בזמן אמת.</p></div></li>
               <li><div class="n">3</div><div><b>לחיצה על פריט</b><p>פותחת עריכה מהירה של מחיר וכמות, אם משהו השתנה בקופה.</p></div></li>
-              <li><div class="n">4</div><div><b>סיום קניה</b><p>יוצר אוטומטית הוצאה בטאב "תקציב" ושומר את הקניה בהיסטוריה — נגישה מטאב "דוחות".</p></div></li>
+              <li><div class="n">4</div><div><b>סיום קניה</b><p>יוצר אוטומטית הוצאה בטאב תקציב, ושומר את הקניה בהיסטוריה.</p></div></li>
             </ul>
+          </div>
+          <div class="walk-phone-wrap">
+            <div class="phone"><div class="phone-screen">
+              <div class="mock-header" style="padding:24px 18px 18px;"><div class="mock-header-top">
+                <div><h2>קניות</h2></div><div class="mock-avatar"></div>
+              </div></div>
+              <div class="mock-shop">
+                <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text2);margin:2px 4px 4px;"><span>3/5 פריטים</span><span style="font-weight:700;color:var(--text)">₪186.50</span></div>
+                <div class="mock-progress"><div></div></div>
+                <div class="mock-item"><div class="strip" style="background:#34C759"></div><div class="chk on">✓</div><div class="nm"><b>עגבניות</b><span>×2 · ₪12.80</span></div><div class="pr">₪12.80</div></div>
+                <div class="mock-item"><div class="strip" style="background:#5AC8FA"></div><div class="chk on">✓</div><div class="nm"><b>חלב</b><span>×1 · ₪5.90</span></div><div class="pr">₪5.90</div></div>
+                <div class="mock-item"><div class="strip" style="background:#FF6B6B"></div><div class="chk on">✓</div><div class="nm"><b>סלמון</b><span>×1 · ₪48.00</span></div><div class="pr">₪48.00</div></div>
+                <div class="mock-item"><div class="strip" style="background:#FF9F0A"></div><div class="chk off"></div><div class="nm"><b>לחם</b><span>×2 · ₪16.00</span></div><div class="pr">₪16.00</div></div>
+                <div style="background:var(--primary);color:white;text-align:center;font-size:12px;font-weight:700;padding:11px;border-radius:14px;margin-top:6px;">🛍 סיים קניה — ₪186.50</div>
+              </div>
+              <div class="mock-nav">
+                <div class="tab"><div class="dot"></div>הגדרות</div><div class="tab active"><div class="dot"></div>קניות</div>
+                <div class="tab"><div class="dot"></div>דוחות</div><div class="tab"><div class="dot"></div>תקציב</div>
+              </div>
+            </div></div>
           </div>
         </div>
 
-        <div class="guide-card">
-          <div class="guide-top" style="background:linear-gradient(135deg,#4B5563,#1F2937);">
-            <div class="ic">⚙️</div>
-            <div><h3>הגדרות</h3><span>שיתוף עם בן/בת הזוג ואישי</span></div>
-          </div>
-          <div class="guide-body">
-            <ul class="guide-list">
-              <li><div class="n">1</div><div><b>הזמן בן/בת זוג</b><p>יוצרים קוד חד-פעמי (תקף 24 שעות) ושולחים — כל הנתונים משותפים ברגע שהם מזינים אותו.</p></div></li>
-              <li><div class="n">2</div><div><b>הצטרפות לחשבון</b><p>קיבלתם קוד? מזינים אותו כאן כדי להתחבר לתקציב של מישהו אחר.</p></div></li>
-              <li><div class="n">3</div><div><b>העדפות אישיות</b><p>שפה, מטבע, אווטאר, ותזכורות — הכול נשמר לכם אוטומטית.</p></div></li>
+        <div class="walk-row rev">
+          <div class="walk-steps">
+            <div class="walk-badge">⚙️ טאב הגדרות</div>
+            <h3>שיתוף עם בן/בת הזוג</h3>
+            <ul class="walk-list">
+              <li><div class="n">1</div><div><b>הזמן בן/בת זוג</b><p>יוצרים קוד חד-פעמי (תקף 24 שעות) ושולחים — הנתונים משותפים ברגע שהם מזינים אותו.</p></div></li>
+              <li><div class="n">2</div><div><b>הצטרפות לחשבון</b><p>קיבלתם קוד? מזינים אותו כאן כדי להתחבר לתקציב משותף.</p></div></li>
+              <li><div class="n">3</div><div><b>העדפות אישיות</b><p>שפה, מטבע, אווטאר ותזכורות — הכול נשמר לכם אוטומטית.</p></div></li>
             </ul>
+          </div>
+          <div class="walk-phone-wrap">
+            <div class="phone"><div class="phone-screen">
+              <div class="mock-header" style="padding:24px 18px 18px;"><div class="mock-header-top">
+                <div><h2>הגדרות</h2></div><div class="mock-avatar"></div>
+              </div></div>
+              <div class="mock-set">
+                <div style="font-size:12px;font-weight:700;margin:2px 2px 8px;">📤 הזמן בן/בת זוג</div>
+                <div class="mock-invite">
+                  <div class="lbl">קוד חד-פעמי · תוקף 24 שעות</div>
+                  <div class="code">7K2P9M</div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px;">
+                  <div style="background:var(--bg);text-align:center;font-size:11px;font-weight:700;padding:10px;border-radius:12px;">📋 העתק</div>
+                  <div class="mock-set-btn">💬 שלח הזמנה</div>
+                </div>
+                <div style="font-size:12px;font-weight:700;margin:2px 2px 8px;">📥 הצטרף לחשבון</div>
+                <div style="display:flex;gap:6px;">
+                  <div style="flex:1;background:var(--bg);border-radius:12px;text-align:center;font-size:15px;font-weight:800;letter-spacing:3px;color:var(--text3);padding:10px;">ABC123</div>
+                  <div style="background:var(--primary);color:white;font-size:11px;font-weight:700;padding:10px 16px;border-radius:12px;">הצטרף</div>
+                </div>
+              </div>
+              <div class="mock-nav">
+                <div class="tab active"><div class="dot"></div>הגדרות</div><div class="tab"><div class="dot"></div>קניות</div>
+                <div class="tab"><div class="dot"></div>דוחות</div><div class="tab"><div class="dot"></div>תקציב</div>
+              </div>
+            </div></div>
           </div>
         </div>
 
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:0;">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="section-eyebrow">להוסיף הוצאה</span>
+        <h2>ככה מוסיפים עסקה — בשלוש שניות</h2>
+        <p>לחיצה על כפתור ה-+ הירוק פותחת את החלון הזה. בוחרים סוג, מקלידים סכום, בוחרים קטגוריה — ושומרים.</p>
+      </div>
+      <div class="walk-row">
+        <div class="walk-steps">
+          <div class="walk-badge">➕ חלון הוספה</div>
+          <h3>הכול במסך אחד</h3>
+          <ul class="walk-list">
+            <li><div class="n">1</div><div><b>הוצאה או הכנסה</b><p>מחליפים בין שני המצבים בראש החלון — אדום להוצאה, ירוק להכנסה.</p></div></li>
+            <li><div class="n">2</div><div><b>סכום ותיאור</b><p>מקלידים כמה, ואפשר להוסיף תיאור קצר ("למה שולם?").</p></div></li>
+            <li><div class="n">3</div><div><b>בחירת קטגוריה</b><p>לוחצים על אחת מהקטגוריות — היא נצבעת בירוק כשהיא נבחרת.</p></div></li>
+            <li><div class="n">4</div><div><b>שמירה</b><p>העסקה נכנסת מיד לרשימה בטאב תקציב ומתעדכנת בסיכום החודשי.</p></div></li>
+          </ul>
+        </div>
+        <div class="walk-phone-wrap">
+          <div class="phone"><div class="phone-screen" style="background:white;">
+            <div style="padding:20px 18px 0;display:flex;align-items:center;justify-content:space-between;">
+              <h2 style="font-size:18px;font-weight:800;">הוסף הוצאה</h2>
+              <div style="width:30px;height:30px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--text2);">✕</div>
+            </div>
+            <div style="padding:16px 18px;">
+              <div class="mock-seg"><div class="off">🟢 הכנסה</div><div class="on">🔴 הוצאה</div></div>
+              <div style="display:grid;grid-template-columns:5fr 7fr;gap:8px;margin-bottom:14px;">
+                <div><div style="font-size:10px;color:var(--text2);margin-bottom:4px;">סכום (₪)</div><div style="background:var(--bg);border-radius:12px;text-align:center;font-size:18px;font-weight:800;padding:11px;">68.00</div></div>
+                <div><div style="font-size:10px;color:var(--text2);margin-bottom:4px;">תיאור</div><div style="background:var(--bg);border-radius:12px;text-align:center;font-size:13px;color:var(--text3);padding:14px 8px;">למה שולם?</div></div>
+              </div>
+              <div style="font-size:10px;color:var(--text2);margin-bottom:6px;">קטגוריה</div>
+              <div class="mock-cats">
+                <div class="mock-cat">👕</div><div class="mock-cat">🚗</div><div class="mock-cat sel">🍽️</div><div class="mock-cat">🏠</div>
+                <div class="mock-cat">📺</div><div class="mock-cat">🎬</div><div class="mock-cat">📚</div><div class="mock-cat">❤️</div>
+              </div>
+              <div style="background:var(--primary);color:white;text-align:center;font-size:14px;font-weight:700;padding:13px;border-radius:16px;margin-top:16px;box-shadow:0 6px 16px rgba(22,163,73,0.3);">שמור</div>
+            </div>
+          </div></div>
+        </div>
       </div>
     </div>
   </section>
