@@ -235,6 +235,92 @@ export function receiptName(merchant, date) {
   return date ? `${base}-${date}` : base
 }
 
+// CamScanner-style document enhancement ("magic color"):
+// 1. Estimate the paper background by heavy downscale + blur
+// 2. Divide each pixel by the background luminance → shadows flatten,
+//    paper turns uniform white regardless of lighting
+// 3. Mild S-curve for darker, crisper text
+// Keeps color (logos, stamps) while producing a clean scanned look.
+export function enhanceDocument(file, maxSize = 1600) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const scale = Math.min(1, maxSize / Math.max(img.width, img.height))
+      const w = Math.round(img.width * scale)
+      const h = Math.round(img.height * scale)
+
+      const canvas = document.createElement('canvas')
+      canvas.width = w; canvas.height = h
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, w, h)
+
+      // Background estimate: shrink 16x with blur, scale back up.
+      // Canvas bilinear resampling does the smoothing for us.
+      const bw = Math.max(1, Math.round(w / 16))
+      const bh = Math.max(1, Math.round(h / 16))
+      const small = document.createElement('canvas')
+      small.width = bw; small.height = bh
+      const sctx = small.getContext('2d')
+      sctx.filter = 'blur(2px)'
+      sctx.drawImage(canvas, 0, 0, bw, bh)
+
+      const bg = document.createElement('canvas')
+      bg.width = w; bg.height = h
+      const bctx = bg.getContext('2d')
+      bctx.filter = 'blur(6px)'
+      bctx.drawImage(small, 0, 0, w, h)
+
+      const imgData = ctx.getImageData(0, 0, w, h)
+      const bgData = bctx.getImageData(0, 0, w, h)
+      const d = imgData.data
+      const b = bgData.data
+
+      for (let i = 0; i < d.length; i += 4) {
+        // Background luminance at this pixel (the "paper color" here)
+        const bgLum = Math.max(30, b[i] * 0.299 + b[i + 1] * 0.587 + b[i + 2] * 0.114)
+        const gain = 245 / bgLum
+        for (let c = 0; c < 3; c++) {
+          // Flatten illumination, then push contrast slightly
+          let v = d[i + c] * gain
+          v = (v - 140) * 1.18 + 150
+          d[i + c] = v < 0 ? 0 : v > 255 ? 255 : v
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0)
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error('enhance failed'))),
+        'image/jpeg', 0.9
+      )
+    }
+    img.onerror = reject
+    img.src = url
+  })
+}
+
+// Tiny thumbnail for list views — keeps the receipts grid light so scrolling
+// stays smooth (full image is only decoded in the fullscreen viewer).
+export function makeThumb(file, maxSize = 300) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const scale = Math.min(1, maxSize / Math.max(img.width, img.height))
+      const w = Math.round(img.width * scale)
+      const h = Math.round(img.height * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width = w; canvas.height = h
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+      resolve(canvas.toDataURL('image/jpeg', 0.72))
+    }
+    img.onerror = reject
+    img.src = url
+  })
+}
+
 // Compress for storage (keeps the original photo readable, smaller upload)
 export function compressImage(file) {
   return new Promise((resolve) => {
@@ -258,15 +344,16 @@ export function compressImage(file) {
   })
 }
 
-// Produce a base64 data-URL thumbnail (≤800px, JPEG 0.82) suitable for
-// storing directly in Firestore — avoids Firebase Storage CORS issues.
+// Produce a base64 data-URL (≤1200px, JPEG 0.85) suitable for storing
+// directly in Firestore — avoids Firebase Storage CORS issues. Enhanced
+// documents (flat white background) compress well at this size.
 export function imageToBase64(file) {
   return new Promise((resolve, reject) => {
     const img = new Image()
     const url = URL.createObjectURL(file)
     img.onload = () => {
       URL.revokeObjectURL(url)
-      const MAX = 800
+      const MAX = 1200
       let w = img.width, h = img.height
       if (w > MAX || h > MAX) {
         if (w > h) { h = Math.round((h * MAX) / w); w = MAX }
@@ -275,7 +362,7 @@ export function imageToBase64(file) {
       const canvas = document.createElement('canvas')
       canvas.width = w; canvas.height = h
       canvas.getContext('2d').drawImage(img, 0, 0, w, h)
-      resolve(canvas.toDataURL('image/jpeg', 0.82))
+      resolve(canvas.toDataURL('image/jpeg', 0.85))
     }
     img.onerror = reject
     img.src = url

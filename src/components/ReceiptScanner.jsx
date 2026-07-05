@@ -5,7 +5,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { storage } from '../firebase'
 import { useApp } from '../contexts/AppContext'
 import { useTranslation } from 'react-i18next'
-import { preprocessForOCR, parseReceiptText, compressImage, imageToBase64, receiptName } from '../utils/receiptOCR'
+import { preprocessForOCR, parseReceiptText, enhanceDocument, makeThumb, imageToBase64, receiptName } from '../utils/receiptOCR'
 import useScrollLock from '../hooks/useScrollLock'
 
 export default function ReceiptScanner({ onClose, onSaved, transactionId, transactionDesc, date }) {
@@ -76,9 +76,13 @@ export default function ReceiptScanner({ onClose, onSaved, transactionId, transa
 
   const handleFile = async (file) => {
     if (!file) return
-    const compressed = await compressImage(file)
-    setBlob(compressed)
-    setPreview(URL.createObjectURL(compressed))
+    // CamScanner-style enhancement: flatten shadows, whiten paper, crisp text.
+    // The preview and the saved image are both the enhanced version.
+    let doc
+    try { doc = await enhanceDocument(file) }
+    catch { doc = file }
+    setBlob(doc)
+    setPreview(URL.createObjectURL(doc))
     runOCR(file)
   }
 
@@ -132,11 +136,14 @@ export default function ReceiptScanner({ onClose, onSaved, transactionId, transa
     setUploading(true)
     setError('')
     try {
-      // Convert to base64 — stored directly in Firestore, no Storage CORS needed
+      // Convert to base64 — stored directly in Firestore, no Storage CORS needed.
+      // thumbData is a tiny copy for the grid so the list scrolls smoothly.
       const imageData = blob ? await imageToBase64(blob) : null
+      const thumbData = blob ? await makeThumb(blob) : null
       const receiptDate = result.date || new Date().toISOString().split('T')[0]
       await addReceipt({
         imageData,
+        thumbData,
         imageUrl: null,
         storagePath: null,
         date: receiptDate,

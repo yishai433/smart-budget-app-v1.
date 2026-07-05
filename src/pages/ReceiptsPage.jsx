@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '../contexts/AppContext'
@@ -81,11 +82,13 @@ function ReceiptCard({ receipt, onDelete }) {
     setDownloading(false)
   }
   const imgSrc = receipt.imageData || receipt.imageUrl
+  // Grid renders the tiny thumbnail; the full image is only decoded when the
+  // fullscreen viewer opens — keeps scrolling smooth with many receipts.
+  const thumbSrc = receipt.thumbData || imgSrc
 
   return (
     <>
       <motion.div
-        layout
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95 }}
@@ -107,8 +110,9 @@ function ReceiptCard({ receipt, onDelete }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
-          {imgSrc
-            ? <img src={imgSrc} alt="receipt" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          {thumbSrc
+            ? <img src={thumbSrc} alt="receipt" loading="lazy" decoding="async"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             : <span style={{ fontSize: 40 }}>🧾</span>
           }
         </div>
@@ -148,8 +152,9 @@ function ReceiptCard({ receipt, onDelete }) {
         </div>
       </motion.div>
 
-      {/* Full-screen viewer */}
-      <AnimatePresence>
+      {/* Full-screen viewer — portaled: this page sits inside AnimatedRoutes'
+          will-change wrapper, which breaks position:fixed placement */}
+      {createPortal(<AnimatePresence>
         {viewing && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -195,10 +200,10 @@ function ReceiptCard({ receipt, onDelete }) {
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>, document.body)}
 
-      {/* Delete confirm */}
-      <AnimatePresence>
+      {/* Delete confirm — portaled for the same reason */}
+      {createPortal(<AnimatePresence>
         {confirmDelete && (
           <>
             <motion.div
@@ -237,7 +242,7 @@ function ReceiptCard({ receipt, onDelete }) {
             </motion.div>
           </>
         )}
-      </AnimatePresence>
+      </AnimatePresence>, document.body)}
     </>
   )
 }
