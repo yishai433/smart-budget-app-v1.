@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>תקציב חכם — ניהול תקציב משותף, פשוט וחכם</title>
+<link rel="icon" type="image/png" href="icon.png" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #16A349;
+    --primary-dark: #0D7A35;
+    --primary-light: #DCFCE7;
+    --header-start: #0A2E1A;
+    --header-end: #1B5E38;
+    --danger: #B83030;
+    --bg: #F2F2F7;
+    --card: #FFFFFF;
+    --text: #1C1C1E;
+    --text2: #6C6C70;
+    --text3: #AEAEB2;
+    --sep: #E5E5EA;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  a { text-decoration: none; }
+  img { max-width: 100%; display: block; }
+
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+  /* ===== Nav ===== */
+  .nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(242,242,247,0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--sep);
+  }
+  .nav-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 0;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 17px; }
+  .brand img { width: 34px; height: 34px; border-radius: 9px; }
+  .nav-cta {
+    background: var(--primary); color: white; font-weight: 700; font-size: 14px;
+    padding: 10px 20px; border-radius: 20px;
+    box-shadow: 0 4px 14px rgba(22,163,73,0.3);
+    transition: transform 0.15s ease;
+  }
+  .nav-cta:active { transform: scale(0.96); }
+
+  /* ===== Hero ===== */
+  .hero {
+    background: radial-gradient(circle at 50% 0%, var(--header-end) 0%, var(--header-start) 70%);
+    color: white;
+    padding: 72px 0 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; top: -80px; right: -100px;
+    width: 340px; height: 340px; border-radius: 50%;
+    background: rgba(52,199,89,0.18); filter: blur(10px);
+  }
+  .hero::after {
+    content: '';
+    position: absolute; bottom: 40px; left: -120px;
+    width: 300px; height: 300px; border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+  }
+  .hero-inner {
+    position: relative; z-index: 1;
+    display: flex; align-items: flex-end; gap: 60px;
+    flex-wrap: wrap;
+  }
+  .hero-text { flex: 1; min-width: 320px; padding-bottom: 60px; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18);
+    color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 600;
+    padding: 7px 16px; border-radius: 20px; margin-bottom: 22px;
+  }
+  .hero-text h1 {
+    font-size: clamp(34px, 5vw, 54px);
+    font-weight: 800; letter-spacing: -1.5px; line-height: 1.15;
+    margin-bottom: 20px;
+  }
+  .hero-text h1 span { color: #6EE7A0; }
+  .hero-text p.lead {
+    font-size: 18px; line-height: 1.6; color: rgba(255,255,255,0.75);
+    max-width: 480px; margin-bottom: 34px;
+  }
+  .hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; }
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--primary); color: white; font-weight: 700; font-size: 16px;
+    padding: 16px 30px; border-radius: 30px;
+    box-shadow: 0 10px 30px rgba(22,163,73,0.4);
+    transition: transform 0.15s ease;
+  }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-ghost {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.08); color: white; font-weight: 600; font-size: 16px;
+    padding: 16px 26px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.2);
+  }
+  .hero-stats {
+    display: flex; gap: 32px; margin-top: 40px; flex-wrap: wrap;
+  }
+  .hero-stat b { display: block; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+  .hero-stat span { font-size: 13px; color: rgba(255,255,255,0.6); }
+
+  /* ===== Phone mockup ===== */
+  .phone-col { flex-shrink: 0; padding-bottom: 0; }
+  .phone {
+    width: 280px; background: #000; border-radius: 40px; padding: 10px;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06);
+    transform: rotate(-2deg);
+  }
+  .phone-screen {
+    background: var(--bg); border-radius: 30px; overflow: hidden;
+    position: relative; height: 560px;
+  }
+  .mock-header {
+    background: linear-gradient(160deg, var(--header-start) 0%, var(--header-end) 100%);
+    padding: 30px 18px 46px; color: white; position: relative;
+  }
+  .mock-header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .mock-header-top div p:first-child { font-size: 11px; opacity: 0.65; }
+  .mock-header-top div h2 { font-size: 19px; font-weight: 800; }
+  .mock-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--primary); border: 2px solid white; }
+  .mock-card {
+    background: white; border-radius: 18px; margin: -32px 14px 0; overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08); position: relative; z-index: 2;
+  }
+  .mock-card-top { padding: 16px; text-align: center; background: linear-gradient(135deg, var(--header-start), var(--header-end)); color: white; }
+  .mock-card-top p { font-size: 10px; opacity: 0.65; margin-bottom: 4px; }
+  .mock-card-top .num { font-size: 30px; font-weight: 800; letter-spacing: -1px; }
+  .mock-card-bottom { display: grid; grid-template-columns: 1fr 1px 1fr; }
+  .mock-card-bottom > div { padding: 10px; text-align: center; }
+  .mock-card-bottom > div:nth-child(2) { background: var(--sep); }
+  .mock-card-bottom p { font-size: 9px; color: var(--text2); margin-bottom: 3px; }
+  .mock-card-bottom .val { font-size: 14px; font-weight: 800; }
+  .mock-card-bottom .val.exp { color: var(--danger); }
+  .mock-card-bottom .val.inc { color: #34C759; }
+  .mock-rows { margin: 14px 14px 0; display: flex; flex-direction: column; gap: 8px; }
+  .mock-row {
+    background: white; border-radius: 14px; padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  .mock-row .ic { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+  .mock-row .tx { flex: 1; }
+  .mock-row .tx b { display: block; font-size: 12px; }
+  .mock-row .tx span { font-size: 10px; color: var(--text2); }
+  .mock-row .amt { font-size: 12px; font-weight: 800; }
+  .mock-nav {
+    position: absolute; bottom: 14px; left: 14px; right: 14px;
+    background: white; border-radius: 22px; height: 54px;
+    display: flex; align-items: center; justify-content: space-around;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  }
+  .mock-nav .tab { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 8px; color: var(--text3); }
+  .mock-nav .tab.active { color: var(--primary); font-weight: 700; }
+  .mock-nav .dot { width: 18px; height: 18px; border-radius: 6px; background: var(--sep); }
+  .mock-nav .tab.active .dot { background: var(--primary-light); }
+
+  /* ===== Section shared ===== */
+  section { padding: 90px 0; }
+  .section-head { text-align: center; max-width: 620px; margin: 0 auto 56px; }
+  .section-eyebrow {
+    display: inline-block; color: var(--primary); font-weight: 700; font-size: 13px;
+    letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px;
+  }
+  .section-head h2 { font-size: clamp(26px, 4vw, 38px); font-weight: 800; letter-spacing: -1px; margin-bottom: 14px; }
+  .section-head p { font-size: 16px; color: var(--text2); line-height: 1.6; }
+
+  /* ===== Features grid ===== */
+  .features {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+  }
+  .feature-card {
+    background: var(--card); border-radius: 20px; padding: 28px 24px;
+    border: 1px solid var(--sep);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .feature-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,0.08); }
+  .feature-icon {
+    width: 52px; height: 52px; border-radius: 15px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; margin-bottom: 18px;
+  }
+  .feature-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+  .feature-card p { font-size: 14px; color: var(--text2); line-height: 1.6; }
+
+  /* ===== How it works ===== */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .step { text-align: center; padding: 0 12px; }
+  .step-num {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--primary); color: white; font-weight: 800; font-size: 17px;
+    display: flex; align-items: center; justify-content: center; margin: 0 auto 18px;
+    box-shadow: 0 6px 16px rgba(22,163,73,0.3);
+  }
+  .step h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .step p { font-size: 14px; color: var(--text2); line-height: 1.6; }
+  .step-arrow { display: none; }
+
+  /* ===== Savings band ===== */
+  .band {
+    background: linear-gradient(135deg, var(--header-start), var(--header-end));
+    color: white; border-radius: 28px; padding: 56px 40px;
+    display: flex; align-items: center; gap: 40px; flex-wrap: wrap;
+  }
+  .band-text { flex: 1; min-width: 280px; }
+  .band-text h2 { font-size: 28px; font-weight: 800; margin-bottom: 12px; letter-spacing: -0.5px; }
+  .band-text p { color: rgba(255,255,255,0.7); font-size: 15px; line-height: 1.6; max-width: 480px; }
+  .band-stats { display: flex; gap: 30px; flex-wrap: wrap; }
+  .band-stat { text-align: center; }
+  .band-stat b { display: block; font-size: 32px; font-weight: 800; color: #6EE7A0; }
+  .band-stat span { font-size: 12px; color: rgba(255,255,255,0.6); }
+
+  /* ===== Audience ===== */
+  .audience { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .audience-card {
+    text-align: center; padding: 26px 16px; border-radius: 18px;
+    background: var(--card); border: 1px solid var(--sep);
+  }
+  .audience-card .emoji { font-size: 30px; margin-bottom: 12px; }
+  .audience-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .audience-card p { font-size: 12.5px; color: var(--text2); line-height: 1.5; }
+
+  /* ===== Final CTA ===== */
+  .final-cta { text-align: center; padding: 100px 0 90px; }
+  .final-cta h2 { font-size: clamp(28px, 4.5vw, 42px); font-weight: 800; letter-spacing: -1px; margin-bottom: 16px; }
+  .final-cta p { font-size: 16px; color: var(--text2); margin-bottom: 34px; }
+  .final-cta .btn-primary { font-size: 17px; padding: 18px 38px; }
+  .final-note { font-size: 13px; color: var(--text3); margin-top: 18px; }
+
+  footer {
+    border-top: 1px solid var(--sep); padding: 30px 0; text-align: center;
+    color: var(--text3); font-size: 13px;
+  }
+
+  @media (max-width: 860px) {
+    .features { grid-template-columns: repeat(2, 1fr); }
+    .steps { grid-template-columns: 1fr; }
+    .audience { grid-template-columns: repeat(2, 1fr); }
+    .hero-inner { justify-content: center; text-align: center; }
+    .hero-text { padding-bottom: 20px; }
+    .hero-ctas, .hero-stats { justify-content: center; }
+    .phone-col { margin: 0 auto; }
+    .band { text-align: center; justify-content: center; }
+    .band-text p { margin: 0 auto; }
+  }
+  @media (max-width: 520px) {
+    .features { grid-template-columns: 1fr; }
+    .audience { grid-template-columns: 1fr 1fr; }
+    .phone { width: 240px; transform: none; }
+    .phone-screen { height: 480px; }
+  }
+</style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="wrap nav-inner">
+      <div class="brand">
+        <img src="icon.png" alt="תקציב חכם" />
+        תקציב חכם
+      </div>
+      <a class="nav-cta" href="./">פתח את האפליקציה</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="wrap hero-inner">
+      <div class="hero-text">
+        <div class="eyebrow">💰 ניהול תקציב חכם לזוגות ולמשפחות</div>
+        <h1>דעו בדיוק <span>לאן הכסף הולך</span> —<br>בלי טבלאות, בלי ניחושים</h1>
+        <p class="lead">
+          תקציב חכם עוקב אחר ההוצאות וההכנסות שלכם, משתף אותן עם בן/בת הזוג בזמן אמת,
+          וזוכר בשבילכם את רשימת הקניות והמחירים — כדי שתתמקדו בהחלטה,
+          לא בזכירה.
+        </p>
+        <div class="hero-ctas">
+          <a class="btn-primary" href="./">🚀 להתחלה — זה חינם</a>
+          <a class="btn-ghost" href="#features">גלו איך זה עובד ↓</a>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat"><b>6</b><span>חודשי מגמה בכל דוח</span></div>
+          <div class="hero-stat"><b>2</b><span>משתמשים בתקציב אחד</span></div>
+          <div class="hero-stat"><b>0 ₪</b><span>עלות שימוש</span></div>
+        </div>
+      </div>
+
+      <div class="phone-col">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="mock-header">
+              <div class="mock-header-top">
+                <div>
+                  <p>יולי 2026</p>
+                  <h2>תקציב חכם</h2>
+                </div>
+                <div class="mock-avatar"></div>
+              </div>
+            </div>
+            <div class="mock-card">
+              <div class="mock-card-top">
+                <p>הוצאות — החודש</p>
+                <div class="num">₪3,647</div>
+              </div>
+              <div class="mock-card-bottom">
+                <div><p>הוצאות</p><div class="val exp">−3,647</div></div>
+                <div></div>
+                <div><p>הכנסות</p><div class="val inc">+9,200</div></div>
+              </div>
+            </div>
+            <div class="mock-rows">
+              <div class="mock-row">
+                <div class="ic" style="background:#FEE2E2;color:#DC2626;">🏠</div>
+                <div class="tx"><b>שכירות</b><span>01/07 · דיור</span></div>
+                <div class="amt" style="color:var(--danger)">−2,700</div>
+              </div>
+              <div class="mock-row">
+                <div class="ic" style="background:#DCFCE7;color:#16A349;">💼</div>
+                <div class="tx"><b>משכורת</b><span>01/07 · הכנסה</span></div>
+                <div class="amt" style="color:#34C759">+9,200</div>
+              </div>
+              <div class="mock-row">
+                <div class="ic" style="background:#F3E8FF;color:#9333EA;">👕</div>
+                <div class="tx"><b>TFS</b><span>01/07 · ביגוד</span></div>
+                <div class="amt" style="color:var(--danger)">−560</div>
+              </div>
+            </div>
+            <div class="mock-nav">
+              <div class="tab"><div class="dot"></div>הגדרות</div>
+              <div class="tab"><div class="dot"></div>קניות</div>
+              <div class="tab"><div class="dot"></div>דוחות</div>
+              <div class="tab active"><div class="dot"></div>תקציב</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section id="features">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="section-eyebrow">מה בפנים</span>
+        <h2>כל מה שצריך לניהול תקציב אמיתי</h2>
+        <p>לא עוד עוד אפליקציית מחשבון. תקציב חכם בנוי סביב איך שאנשים באמת מנהלים כסף — ביחד, בטלפון, תוך כדי תנועה.</p>
+      </div>
+      <div class="features">
+        <div class="feature-card">
+          <div class="feature-icon" style="background:#DCFCE7;">💸</div>
+          <h3>מעקב הוצאות והכנסות</h3>
+          <p>כל עסקה נכנסת בכמה שניות, מסווגת אוטומטית לקטגוריה, ומצטרפת לתמונה החודשית המלאה — כולל הוצאות קבועות שחוזרות מדי חודש בלי שתזינו אותן שוב.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:#DBEAFE;">👫</div>
+          <h3>תקציב משותף אמיתי</h3>
+          <p>מזמינים בן/בת זוג בקוד חד-פעמי, ושניכם רואים בדיוק את אותם נתונים בזמן אמת. אין יותר "חשבתי שאת שילמת על זה".</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:#FEF3C7;">🛒</div>
+          <h3>רשימת קניות שנהיית חכמה</h3>
+          <p>המחיר והכמות של כל מוצר נשמרים אוטומטית לפעם הבאה. כל קניה בסופר גם נשמרת בהיסטוריה — אפשר לחזור אחורה ולראות בדיוק מה קניתם ומתי.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:#FCE7F3;">📊</div>
+          <h3>דוחות שמספרים סיפור</h3>
+          <p>גרף קטגוריות, מגמת 6 חודשים לחיצה-להרחבה, ואחוז חיסכון חי שמחושב אוטומטית מדי חודש — כדי לראות תבניות, לא רק מספרים.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:#FFEDD5;">🚨</div>
+          <h3>התראה על הוצאות גדולות</h3>
+          <p>קובעים סף אישי (ברירת מחדל ₪500) ורואים מיד כל הוצאה שחצתה אותו — בלי לחפש בין עשרות שורות בסוף החודש.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:#E0E7FF;">📱</div>
+          <h3>מתקינים כמו אפליקציה</h3>
+          <p>עובד כ-PWA — מוסיפים למסך הבית ומקבלים חוויית אפליקציה מלאה, במסך מלא, בלי חנות אפליקציות ובלי הורדה.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="section-head">
+        <span class="section-eyebrow">איך זה עובד</span>
+        <h2>שלושה צעדים, שתי דקות</h2>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <h3>נרשמים</h3>
+          <p>יוצרים חשבון עם אימייל וסיסמא — שלכם בלבד, פרטי לגמרי.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <h3>מזמינים (אופציונלי)</h3>
+          <p>יוצרים קוד הזמנה חד-פעמי מההגדרות ושולחים לבן/בת הזוג כדי לשתף תקציב.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <h3>מתחילים לתעד</h3>
+          <p>כל הוצאה, כל קניה — הכול נכנס למקום אחד, ברור ומסודר מהיום הראשון.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="band">
+        <div class="band-text">
+          <h2>איך זה עוזר לכם לחסוך יותר</h2>
+          <p>
+            רוב האנשים לא מוציאים יותר מדי בכוונה — הם פשוט לא רואים את התמונה המלאה.
+            ברגע שרואים בדיוק לאן הכסף זורם, ומקבלים התראה כשמשהו חורג, ההחלטות
+            נהיות טבעיות בהרבה.
+          </p>
+        </div>
+        <div class="band-stats">
+          <div class="band-stat"><b>100%</b><span>שקיפות בין בני זוג</span></div>
+          <div class="band-stat"><b>0</b><span>קבלות שהולכות לאיבוד</span></div>
+          <div class="band-stat"><b>1</b><span>מקום אחד לכל ההוצאות</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="section-head">
+        <span class="section-eyebrow">למי זה מיועד</span>
+        <h2>לא משנה איך נראה משק הבית שלכם</h2>
+      </div>
+      <div class="audience">
+        <div class="audience-card">
+          <div class="emoji">💑</div>
+          <h4>זוגות</h4>
+          <p>תקציב משותף בלי ויכוחים על "מי שילם על מה"</p>
+        </div>
+        <div class="audience-card">
+          <div class="emoji">🛍️</div>
+          <h4>קונים קבועים</h4>
+          <p>רשימת קניות שזוכרת מחירים וכמויות בשבילכם</p>
+        </div>
+        <div class="audience-card">
+          <div class="emoji">📈</div>
+          <h4>חוסכים</h4>
+          <p>רוצים לראות בדיוק לאן אפשר לצמצם</p>
+        </div>
+        <div class="audience-card">
+          <div class="emoji">🧾</div>
+          <h4>מסודרים</h4>
+          <p>נמאס מטבלת אקסל שאף אחד לא מעדכן</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="final-cta">
+    <div class="wrap">
+      <h2>מוכנים לדעת בדיוק לאן הכסף הולך?</h2>
+      <p>ההרשמה לוקחת פחות מדקה. אין כרטיס אשראי, אין עמלות.</p>
+      <a class="btn-primary" href="./">🚀 פתחו את תקציב חכם עכשיו</a>
+      <div class="final-note">עובד בדפדפן בכל מכשיר · ניתן להתקנה כאפליקציה במסך הבית</div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">תקציב חכם · Smart Budget © 2026</div>
+  </footer>
+
+</body>
+</html>
