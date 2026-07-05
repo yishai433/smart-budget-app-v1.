@@ -37,7 +37,9 @@ const CATEGORIES = {
 
 // Pro subscription allowlist — receipt scanning is gated to these accounts.
 // Household members of an allowlisted owner get Pro too (partner access).
-const PRO_EMAILS = ['yishai560@gmail.com']
+// Empty for now: receipts is shelved and shows as a locked Pro feature for
+// everyone. Add emails here to re-enable.
+const PRO_EMAILS = []
 
 export function AppProvider({ children }) {
   const [user, setUser] = useState(null)
