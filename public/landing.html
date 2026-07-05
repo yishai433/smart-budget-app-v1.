@@ -202,6 +202,42 @@
   .feature-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
   .feature-card p { font-size: 14px; color: var(--text2); line-height: 1.6; }
 
+  /* ===== Guide (per-screen walkthrough) ===== */
+  .guide { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .guide-card {
+    background: var(--card); border-radius: 22px; border: 1px solid var(--sep);
+    overflow: hidden;
+  }
+  .guide-top {
+    display: flex; align-items: center; gap: 14px;
+    padding: 22px 24px; color: white;
+  }
+  .guide-top .ic {
+    width: 46px; height: 46px; border-radius: 14px; flex-shrink: 0;
+    background: rgba(255,255,255,0.18);
+    display: flex; align-items: center; justify-content: center; font-size: 22px;
+  }
+  .guide-top h3 { font-size: 18px; font-weight: 800; margin-bottom: 2px; }
+  .guide-top span { font-size: 12.5px; opacity: 0.8; }
+  .guide-body { padding: 20px 24px 24px; }
+  .guide-list { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+  .guide-list li { display: flex; gap: 12px; align-items: flex-start; }
+  .guide-list .n {
+    width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+    background: var(--primary-light); color: var(--primary-dark);
+    font-size: 12px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 1px;
+  }
+  .guide-list b { display: block; font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+  .guide-list p { font-size: 13px; color: var(--text2); line-height: 1.55; }
+  .guide-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--primary-light); color: var(--primary-dark);
+    font-size: 12.5px; font-weight: 700; padding: 8px 14px; border-radius: 12px;
+    margin-top: 16px;
+  }
+
   /* ===== How it works ===== */
   .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
   .step { text-align: center; padding: 0 12px; }
@@ -253,6 +289,7 @@
 
   @media (max-width: 860px) {
     .features { grid-template-columns: repeat(2, 1fr); }
+    .guide { grid-template-columns: 1fr; }
     .steps { grid-template-columns: 1fr; }
     .audience { grid-template-columns: repeat(2, 1fr); }
     .hero-inner { justify-content: center; text-align: center; }
@@ -393,6 +430,79 @@
           <h3>מתקינים כמו אפליקציה</h3>
           <p>עובד כ-PWA — מוסיפים למסך הבית ומקבלים חוויית אפליקציה מלאה, במסך מלא, בלי חנות אפליקציות ובלי הורדה.</p>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="guide">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="section-eyebrow">מדריך שימוש</span>
+        <h2>סיור קצר בכל מסך באפליקציה</h2>
+        <p>ארבעה טאבים בתחתית המסך — הנה בדיוק מה יש בכל אחד מהם ואיך להשתמש בו.</p>
+      </div>
+      <div class="guide">
+
+        <div class="guide-card">
+          <div class="guide-top" style="background:linear-gradient(135deg,var(--header-start),var(--header-end));">
+            <div class="ic">💰</div>
+            <div><h3>תקציב</h3><span>המסך הראשי — כאן רואים את ההוצאות</span></div>
+          </div>
+          <div class="guide-body">
+            <ul class="guide-list">
+              <li><div class="n">1</div><div><b>כרטיס הסיכום העליון</b><p>מציג את סך ההוצאות של החודש הנוכחי, ומתחתיו פירוט הכנסות מול הוצאות ואחוז חיסכון.</p></div></li>
+              <li><div class="n">2</div><div><b>רשימת העסקאות</b><p>כל ההכנסות וההוצאות, מקובצות לפי חודש — העדכנית ביותר תמיד למעלה.</p></div></li>
+              <li><div class="n">3</div><div><b>לחיצה על עסקה</b><p>פותחת את הפרטים המלאים, עם אפשרות לערוך (סכום, תיאור, קטגוריה, תאריך) או למחוק.</p></div></li>
+              <li><div class="n">4</div><div><b>כפתור + הירוק</b><p>מוסיף הוצאה או הכנסה חדשה תוך שניות — כולל סימון "הוצאה קבועה" לתשלומים חוזרים.</p></div></li>
+            </ul>
+            <div class="guide-tag">📍 כאן בדיוק רואים את ההוצאות שלכם</div>
+          </div>
+        </div>
+
+        <div class="guide-card">
+          <div class="guide-top" style="background:linear-gradient(135deg,#1D4ED8,#1E3A8A);">
+            <div class="ic">📊</div>
+            <div><h3>דוחות</h3><span>לאן הכסף באמת זורם</span></div>
+          </div>
+          <div class="guide-body">
+            <ul class="guide-list">
+              <li><div class="n">1</div><div><b>בורר חודשים</b><p>בחצים למעלה עוברים בין חודשים ורואים הכנסות, הוצאות ויתרה של כל אחד.</p></div></li>
+              <li><div class="n">2</div><div><b>גרף עוגה לפי קטגוריה</b><p>בדיוק כמה הלך על אוכל, ביגוד, תחבורה וכו' — כדי לראות איפה אפשר לצמצם.</p></div></li>
+              <li><div class="n">3</div><div><b>מגמת 6 חודשים</b><p>לוחצים על כל עמודה בגרף ורואים פירוט מלא של אותו חודש.</p></div></li>
+              <li><div class="n">4</div><div><b>הוצאות גדולות</b><p>קובעים סף אישי (ברירת מחדל ₪500, לחיצה על העיפרון הקטן משנה אותו) ורואים מיד כל מה שחצה אותו.</p></div></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="guide-card">
+          <div class="guide-top" style="background:linear-gradient(135deg,#B45309,#78350F);">
+            <div class="ic">🛒</div>
+            <div><h3>קניות</h3><span>רשימה שזוכרת בשבילכם</span></div>
+          </div>
+          <div class="guide-body">
+            <ul class="guide-list">
+              <li><div class="n">1</div><div><b>הוספת פריט</b><p>שם, מחיר, כמות וקטגוריה — בפעם הבאה המחיר והכמות כבר ימולאו לבד.</p></div></li>
+              <li><div class="n">2</div><div><b>סימון V בזמן הקניה</b><p>מסמנים כל פריט שכבר בעגלה — הסכום למעלה מתעדכן בזמן אמת.</p></div></li>
+              <li><div class="n">3</div><div><b>לחיצה על פריט</b><p>פותחת עריכה מהירה של מחיר וכמות, אם משהו השתנה בקופה.</p></div></li>
+              <li><div class="n">4</div><div><b>סיום קניה</b><p>יוצר אוטומטית הוצאה בטאב "תקציב" ושומר את הקניה בהיסטוריה — נגישה מטאב "דוחות".</p></div></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="guide-card">
+          <div class="guide-top" style="background:linear-gradient(135deg,#4B5563,#1F2937);">
+            <div class="ic">⚙️</div>
+            <div><h3>הגדרות</h3><span>שיתוף עם בן/בת הזוג ואישי</span></div>
+          </div>
+          <div class="guide-body">
+            <ul class="guide-list">
+              <li><div class="n">1</div><div><b>הזמן בן/בת זוג</b><p>יוצרים קוד חד-פעמי (תקף 24 שעות) ושולחים — כל הנתונים משותפים ברגע שהם מזינים אותו.</p></div></li>
+              <li><div class="n">2</div><div><b>הצטרפות לחשבון</b><p>קיבלתם קוד? מזינים אותו כאן כדי להתחבר לתקציב של מישהו אחר.</p></div></li>
+              <li><div class="n">3</div><div><b>העדפות אישיות</b><p>שפה, מטבע, אווטאר, ותזכורות — הכול נשמר לכם אוטומטית.</p></div></li>
+            </ul>
+          </div>
+        </div>
+
       </div>
     </div>
   </section>
