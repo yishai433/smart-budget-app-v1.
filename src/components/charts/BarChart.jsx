@@ -8,6 +8,7 @@ import {
   Tooltip,
   Cell,
 } from 'recharts'
+import { formatAmount } from '../../utils/format'
 
 const INC = '#12B76A'
 const EXP = '#F04438'
@@ -35,7 +36,7 @@ function ChartTooltip({ active, payload, label, currency, lang }) {
             {lang === 'he' ? 'הכנסות' : 'Income'}
           </span>
           <span dir="ltr" style={{ fontSize: 13, fontWeight: 700, color: INC }}>
-            {currency}{income.value.toLocaleString()}
+            {formatAmount(income.value, currency)}
           </span>
         </div>
       )}
@@ -45,7 +46,7 @@ function ChartTooltip({ active, payload, label, currency, lang }) {
             {lang === 'he' ? 'הוצאות' : 'Expenses'}
           </span>
           <span dir="ltr" style={{ fontSize: 13, fontWeight: 700, color: EXP }}>
-            {currency}{expense.value.toLocaleString()}
+            {formatAmount(expense.value, currency)}
           </span>
         </div>
       )}

@@ -7,6 +7,7 @@ import UserAvatar from '../components/UserAvatar'
 import AvatarCreator from '../components/AvatarCreator'
 import { db } from '../firebase'
 import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, getDoc, setDoc, Timestamp } from 'firebase/firestore'
+import { Bell, Users, User, UserPlus, LogIn, Copy, Share2, Check } from 'lucide-react'
 
 function SettingRow({ icon, label, subtitle, right, onClick, danger }) {
   return (
@@ -206,13 +207,13 @@ export default function SettingsPage() {
                 className={`segment-btn ${settings.language === 'he' ? 'active' : ''}`}
                 onClick={() => changeLanguage('he')}
               >
-                🇮🇱 עברית
+                עברית
               </button>
               <button
                 className={`segment-btn ${settings.language === 'en' ? 'active' : ''}`}
                 onClick={() => changeLanguage('en')}
               >
-                🇺🇸 English
+                English
               </button>
             </div>
           </div>
@@ -246,7 +247,10 @@ export default function SettingsPage() {
           <div className="card-inner" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="toggle-wrap">
               <div>
-                <div style={{ fontWeight: 600, fontSize: 15 }}>🔔 {t('settings.notifications')}</div>
+                <div style={{ fontWeight: 600, fontSize: 15, display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <Bell size={16} strokeWidth={2} style={{ color: 'var(--c-text2)' }} />
+                  {t('settings.notifications')}
+                </div>
                 <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2 }}>{t('settings.notificationsDesc')}</div>
               </div>
               <Toggle
@@ -294,7 +298,7 @@ export default function SettingsPage() {
 
         {/* Shared Household */}
         <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text2)', padding: '0 4px 8px', letterSpacing: 0.5, textTransform: 'uppercase' }}>
-          👥 חשבון משותף
+          חשבון משותף
         </h3>
 
         {/* Status card */}
@@ -302,11 +306,12 @@ export default function SettingsPage() {
           <div className="card-inner" style={{ padding: '16px 16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{
-                width: 44, height: 44, borderRadius: 22,
-                background: members.length > 1 ? 'rgba(22,163,73,0.12)' : 'var(--c-bg)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0,
+                width: 40, height: 40, borderRadius: 'var(--r-md)',
+                background: members.length > 1 ? 'var(--c-primary-light)' : 'var(--c-bg)',
+                color: members.length > 1 ? 'var(--c-primary)' : 'var(--c-text3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               }}>
-                {members.length > 1 ? '👥' : '👤'}
+                {members.length > 1 ? <Users size={19} strokeWidth={2} /> : <User size={19} strokeWidth={2} />}
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700, fontSize: 15 }}>
@@ -331,10 +336,19 @@ export default function SettingsPage() {
         {/* Invite section */}
         <div className="card" style={{ marginBottom: 12 }}>
           <div className="card-inner" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>📤 הזמן בן/בת זוג</div>
-              <div style={{ fontSize: 13, color: 'var(--c-text2)' }}>
-                צור קוד חד-פעמי לשליחה — תקף 24 שעות, לא ניתן לשימוש חוזר
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{
+                width: 34, height: 34, borderRadius: 'var(--r-sm)', flexShrink: 0,
+                background: 'var(--c-primary-light)', color: 'var(--c-primary)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <UserPlus size={17} strokeWidth={2} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 14.5 }}>הזמן בן/בת זוג</div>
+                <div style={{ fontSize: 12.5, color: 'var(--c-text2)', marginTop: 1 }}>
+                  קוד חד-פעמי · תקף 24 שעות
+                </div>
               </div>
             </div>
 
@@ -343,27 +357,26 @@ export default function SettingsPage() {
                 className="btn btn-primary btn-full"
                 onClick={createInvite}
                 disabled={creatingInvite}
-                style={{ padding: 15, fontSize: 15, boxShadow: '0 4px 14px rgba(22,163,73,0.3)' }}
+                style={{ padding: 13, fontSize: 15 }}
               >
-                {creatingInvite ? '⏳ יוצר קוד...' : '🔑 צור קוד הזמנה'}
+                {creatingInvite ? 'יוצר קוד...' : 'צור קוד הזמנה'}
               </button>
             ) : (
               <>
-                <div style={{ background: 'var(--c-bg)', borderRadius: 'var(--r-lg)', padding: '18px 20px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 11, color: 'var(--c-text3)', marginBottom: 6, letterSpacing: 0.5 }}>
+                <div style={{ background: 'var(--c-bg)', border: '1px solid var(--c-border)', borderRadius: 'var(--r-md)', padding: '16px 20px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 11, color: 'var(--c-text3)', marginBottom: 8, letterSpacing: 0.3 }}>
                     קוד חד-פעמי · תוקף עד {currentInvite.expiresAt.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
                   </div>
-                  <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: 6, color: 'var(--c-primary)', fontFamily: 'monospace' }}>
+                  <div className="num" style={{ fontSize: 28, fontWeight: 700, letterSpacing: 6, color: 'var(--c-primary)', fontFamily: 'monospace' }}>
                     {currentInvite.code}
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <button className="btn btn-secondary btn-full" onClick={copyInviteCode} style={{ padding: '12px 8px', fontSize: 14 }}>
-                    📋 העתק קוד
+                  <button className="btn btn-secondary btn-full" onClick={copyInviteCode} style={{ padding: '11px 8px', fontSize: 14 }}>
+                    <Copy size={15} strokeWidth={2} /> העתק
                   </button>
-                  <button className="btn btn-primary btn-full" onClick={shareInvite}
-                    style={{ padding: '12px 8px', fontSize: 14, boxShadow: '0 4px 14px rgba(22,163,73,0.3)' }}>
-                    💬 שלח הזמנה
+                  <button className="btn btn-primary btn-full" onClick={shareInvite} style={{ padding: '11px 8px', fontSize: 14 }}>
+                    <Share2 size={15} strokeWidth={2} /> שלח
                   </button>
                 </div>
                 <button
@@ -380,9 +393,18 @@ export default function SettingsPage() {
         {/* Join section */}
         <div className="card" style={{ marginBottom: 20 }}>
           <div className="card-inner" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>📥 הצטרף לחשבון</div>
-              <div style={{ fontSize: 13, color: 'var(--c-text2)' }}>קיבלת קוד הזמנה? הזן אותו כאן</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{
+                width: 34, height: 34, borderRadius: 'var(--r-sm)', flexShrink: 0,
+                background: 'var(--c-bg)', color: 'var(--c-text2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <LogIn size={17} strokeWidth={2} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 14.5 }}>הצטרף לחשבון</div>
+                <div style={{ fontSize: 12.5, color: 'var(--c-text2)', marginTop: 1 }}>קיבלת קוד? הזן אותו כאן</div>
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: 8 }}>

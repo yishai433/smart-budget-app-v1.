@@ -6,6 +6,7 @@ import { useApp } from '../contexts/AppContext'
 import ReceiptScanner from '../components/ReceiptScanner'
 import { receiptName } from '../utils/receiptOCR'
 import { Lock, Plus } from 'lucide-react'
+import { formatAmount } from '../utils/format'
 
 const HEBREW_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const EN_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
@@ -125,11 +126,11 @@ function ReceiptCard({ receipt, onDelete }) {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <div style={{ fontSize: 12, color: 'var(--c-text2)' }}>
-              📅 {formatDay(receipt.date)}
+              {formatDay(receipt.date)}
             </div>
             {receipt.total != null && (
-              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--c-danger)' }}>
-                ₪{receipt.total.toLocaleString()}
+              <div className="num" style={{ fontSize: 14, fontWeight: 800, color: 'var(--c-danger)' }}>
+                {formatAmount(receipt.total)}
               </div>
             )}
           </div>

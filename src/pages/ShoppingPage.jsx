@@ -7,6 +7,7 @@ import { useApp } from '../contexts/AppContext'
 import UserAvatar from '../components/UserAvatar'
 import { ShoppingCart, Trash2 } from 'lucide-react'
 import useScrollLock from '../hooks/useScrollLock'
+import { formatAmount } from '../utils/format'
 
 function CheckoutToggle({ checked, onChange, label, sub }) {
   return (
@@ -52,8 +53,8 @@ function CheckoutModal({ total, onConfirm, onCancel }) {
             {/* Title + amount */}
             <div style={{ textAlign: 'center', paddingBottom: 4 }}>
               <h2 style={{ fontSize: 18, fontWeight: 800, marginBottom: 2 }}>סיים קניה</h2>
-              <div dir="ltr" style={{ fontSize: 32, fontWeight: 800, color: 'var(--c-danger)' }}>
-                {cur}−{total.toFixed(2)}
+              <div dir="ltr" className="num" style={{ fontSize: 32, fontWeight: 800, color: 'var(--c-danger)' }}>
+                −{formatAmount(total, cur)}
               </div>
             </div>
 
@@ -62,12 +63,12 @@ function CheckoutModal({ total, onConfirm, onCancel }) {
               checked={addExpense}
               onChange={setAddExpense}
               label="הוסף להוצאות"
-              sub={addExpense ? `תירשם הוצאה של ${cur}${total.toFixed(2)}${supermarket ? ` — ${supermarket}` : ''}` : 'לא תירשם הוצאה'}
+              sub={addExpense ? `תירשם הוצאה של ${formatAmount(total, cur)}${supermarket ? ` — ${supermarket}` : ''}` : 'לא תירשם הוצאה'}
             />
 
             {/* Supermarket input last — keyboard opens here, rest already visible above */}
             <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">🏪 באיזה סופר קנית?</label>
+              <label className="input-label">באיזה סופר קנית?</label>
               <input
                 className="input-field"
                 placeholder="שם הסופר..."
@@ -80,7 +81,7 @@ function CheckoutModal({ total, onConfirm, onCancel }) {
           <div className="sheet-footer">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <button className="btn btn-primary btn-full" onClick={() => onConfirm({ addExpense, supermarket })}>
-                ✓ סיים קניה
+                סיים קניה
               </button>
               <button className="btn btn-secondary btn-full" onClick={onCancel}>
                 ביטול

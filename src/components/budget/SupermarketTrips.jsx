@@ -5,6 +5,7 @@ import { ShoppingCart, ChevronLeft, X } from 'lucide-react'
 import { useApp } from '../../contexts/AppContext'
 import CategoryIcon from '../CategoryIcon'
 import useScrollLock from '../../hooks/useScrollLock'
+import { formatAmount } from '../../utils/format'
 
 function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -72,7 +73,7 @@ function TripDetailSheet({ tx, cur, onClose }) {
                       )}
                     </div>
                     <div dir="ltr" className="num" style={{ fontWeight: 600, fontSize: 14, color: 'var(--c-text)' }}>
-                      {cur}{((item.estimatedPrice || 0) * (item.quantity || 1)).toFixed(2)}
+                      {formatAmount((item.estimatedPrice || 0) * (item.quantity || 1), cur)}
                     </div>
                   </div>
                 ))}
@@ -84,7 +85,7 @@ function TripDetailSheet({ tx, cur, onClose }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 0' }}>
               <span style={{ fontWeight: 500, fontSize: 14, color: 'var(--c-text2)' }}>סה״כ</span>
               <div dir="ltr" className="num" style={{ fontWeight: 700, fontSize: 20, letterSpacing: -0.5 }}>
-                −{cur}{total.toFixed(2)}
+                −{formatAmount(total, cur)}
               </div>
             </div>
           </div>
@@ -139,7 +140,7 @@ export default function SupermarketTrips({ cur }) {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
                 <div dir="ltr" className="num" style={{ fontWeight: 600, fontSize: 14.5 }}>
-                  −{cur}{(tx.amount || 0).toFixed(2)}
+                  −{formatAmount(tx.amount || 0, cur)}
                 </div>
                 <ChevronLeft size={15} strokeWidth={2} style={{ color: 'var(--c-text3)' }} />
               </div>

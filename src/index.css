@@ -22,30 +22,63 @@
   --c-purple:        #6941C6;
 
   /* Neutrals — clean, cool grey scale */
-  --c-bg:            #F7F8FA;
+  --c-bg:            #F6F7F9;
   --c-card:          #FFFFFF;
   --c-text:          #0C111D;
   --c-text2:         #475467;
   --c-text3:         #98A2B3;
-  --c-border:        #EAECF0;
-  --c-sep:           #EAECF0;
+  --c-border:        #ECEEF1;
+  --c-sep:           #F0F1F4;
+
+  /* Ink — the signature dark hero surface (not green, deliberately) */
+  --c-ink:           #10151F;
+  --c-ink-2:         #1B2230;
+  --c-ink-text:      #FFFFFF;
+  --c-ink-text2:     #98A0AE;
+  --c-ink-line:      rgba(255,255,255,0.10);
 
   /* Shadows — barely there; structure comes from hairline borders */
   --shadow-xs:       0 1px 2px rgba(16,24,40,0.05);
   --shadow-sm:       0 1px 3px rgba(16,24,40,0.06), 0 1px 2px rgba(16,24,40,0.04);
   --shadow-md:       0 4px 8px -2px rgba(16,24,40,0.06), 0 2px 4px -2px rgba(16,24,40,0.04);
   --shadow-lg:       0 12px 16px -4px rgba(16,24,40,0.08), 0 4px 6px -2px rgba(16,24,40,0.03);
+  --shadow-ink:      0 12px 28px -8px rgba(16,21,31,0.40), 0 4px 10px -4px rgba(16,21,31,0.25);
 
-  /* Radii — restrained, no bubbles */
+  /* Radii */
   --r-sm:  8px;
   --r-md:  10px;
   --r-lg:  14px;
   --r-xl:  20px;
+  --r-2xl: 24px;
 
-  --nav-h: 66px;
+  /* Spacing scale — 4-based, one source of truth */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 40px;
+
+  --nav-h: 64px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top:    env(safe-area-inset-top, 0px);
 }
+
+/* ── Typography scale — named roles, used across every screen ── */
+.t-display  { font-size: 38px; font-weight: 700; letter-spacing: -1.6px; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.t-h1       { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.2; }
+.t-h2       { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; line-height: 1.25; }
+.t-body     { font-size: 15px; font-weight: 500; letter-spacing: -0.1px; }
+.t-label    { font-size: 13px; font-weight: 500; color: var(--c-text2); }
+.t-caption  { font-size: 12px; font-weight: 500; color: var(--c-text3); }
+.t-overline {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--c-text3);
+}
+.num { font-variant-numeric: tabular-nums; }
+.cur { opacity: 0.55; font-weight: 600; }
 
 html {
   -webkit-tap-highlight-color: transparent;
@@ -89,25 +122,26 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Header — light, compact, hairline separated. Green lives in accents only. */
+/* Header — light, airy, borderless. Green lives in accents only. */
 .page-header {
-  background: var(--c-card);
-  padding: calc(var(--safe-top) + 14px) 20px 14px;
+  background: var(--c-bg);
+  padding: calc(var(--safe-top) + 18px) 20px 8px;
   color: var(--c-text);
-  border-bottom: 1px solid var(--c-border);
   position: relative;
 }
 .page-title {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
-  letter-spacing: -0.4px;
+  letter-spacing: -0.7px;
   color: var(--c-text);
 }
 .page-eyebrow {
-  font-size: 12.5px;
-  font-weight: 500;
-  color: var(--c-text2);
-  margin-bottom: 1px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--c-text3);
+  margin-bottom: 3px;
 }
 
 /* Cards — hairline border carries the structure, shadow is a whisper */
@@ -120,6 +154,20 @@ body {
 }
 .card-inner { padding: 16px; }
 
+/* Section header row — overline title on the right, optional action on the left */
+.section-head-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0 4px 10px;
+}
+.section-head-row h2 { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; }
+.section-action {
+  font-size: 13px; font-weight: 500; color: var(--c-primary);
+  background: none; border: none; cursor: pointer; font-family: inherit;
+  display: inline-flex; align-items: center; gap: 2px;
+}
+
 /* Section label above a group of cards */
 .section-label {
   font-size: 12px;
@@ -128,6 +176,38 @@ body {
   letter-spacing: 0.02em;
   padding: 0 4px 8px;
 }
+
+/* ── Ink hero — the signature dark financial panel ── */
+.hero-ink {
+  position: relative;
+  background: var(--c-ink);
+  background-image: radial-gradient(120% 90% at 88% -10%, rgba(18,183,106,0.16) 0%, rgba(18,183,106,0) 55%);
+  color: var(--c-ink-text);
+  border-radius: var(--r-2xl);
+  padding: 20px 20px 18px;
+  box-shadow: var(--shadow-ink);
+  overflow: hidden;
+}
+
+/* ── KPI tile — compact stat card, used on Budget + Reports ── */
+.kpi-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.kpi {
+  background: var(--c-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  padding: 12px 12px 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  box-shadow: var(--shadow-xs);
+}
+.kpi-chip {
+  width: 26px; height: 26px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.kpi-label { font-size: 11.5px; font-weight: 500; color: var(--c-text2); }
+.kpi-value { font-size: 16px; font-weight: 600; letter-spacing: -0.4px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* Summary numbers — tabular so digits never jitter */
 .amount-xl { font-size: 36px; font-weight: 700; letter-spacing: -1.4px; line-height: 1.1; font-variant-numeric: tabular-nums; }
@@ -204,13 +284,13 @@ body {
 
 .btn-full { width: 100%; }
 
-/* FAB — compact, squircle, subdued */
+/* FAB — compact, precise squircle */
 .fab {
   position: fixed;
-  bottom: calc(var(--nav-h) + var(--safe-bottom) + 26px);
-  right: max(20px, calc(50vw - 240px + 20px));
-  width: 50px; height: 50px;
-  border-radius: 16px;
+  bottom: calc(var(--nav-h) + var(--safe-bottom) + 30px);
+  right: max(22px, calc(50vw - 240px + 22px));
+  width: 48px; height: 48px;
+  border-radius: 15px;
   background: var(--c-primary);
   color: white;
   border: none;
@@ -218,15 +298,16 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 16px -4px rgba(6,118,71,0.40), 0 2px 6px rgba(16,24,40,0.10);
+  box-shadow: 0 8px 18px -5px rgba(6,118,71,0.45), 0 2px 6px rgba(16,24,40,0.12);
   z-index: 120;
   -webkit-tap-highlight-color: transparent;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
-.fab:active { transform: scale(0.94); }
+.fab:active { transform: scale(0.92); }
 
 [dir="rtl"] .fab {
   right: auto;
-  left: max(20px, calc(50vw - 240px + 20px));
+  left: max(22px, calc(50vw - 240px + 22px));
 }
 
 /* List rows */

@@ -5,7 +5,7 @@ import { useApp } from '../contexts/AppContext'
 import DonutChart from '../components/charts/DonutChart'
 import BarChart from '../components/charts/BarChart'
 import UserAvatar from '../components/UserAvatar'
-import { formatMoney, formatAmount } from '../utils/format'
+import { formatMoney, formatAmount, formatNumber } from '../utils/format'
 import CategoryIcon from '../components/CategoryIcon'
 import SupermarketTrips from '../components/budget/SupermarketTrips'
 import { ChevronLeft, ChevronRight, Pencil, Check, PieChart } from 'lucide-react'
@@ -29,22 +29,6 @@ function getLastMonths(n) {
     })
   }
   return months
-}
-
-function StatCard({ label, value, color, currency, suffix }) {
-  return (
-    <div className="card" style={{ flex: 1, minWidth: 0 }}>
-      <div style={{ padding: '13px 14px' }}>
-        <div style={{ fontSize: 12, color: 'var(--c-text2)', marginBottom: 6, fontWeight: 500 }}>{label}</div>
-        <div dir={suffix ? undefined : 'ltr'} className="num" style={{
-          fontSize: 18, fontWeight: 600, color, letterSpacing: -0.4,
-          textAlign: 'start', whiteSpace: 'nowrap',
-        }}>
-          {suffix ? `${value}${suffix}` : formatAmount(value, currency)}
-        </div>
-      </div>
-    </div>
-  )
 }
 
 function SectionCard({ title, subtitle, action, children }) {
@@ -141,71 +125,79 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      <div style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-        {/* 1 — Month picker */}
-        <div className="card">
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '8px 8px',
-          }}>
+        {/* 1+2 — Ink hero: month selector + balance + inline income/expense */}
+        <motion.div
+          className="hero-ink"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 280, damping: 28 }}
+        >
+          {/* Month selector */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <button
               onClick={() => setSelectedIdx(i => Math.max(0, i - 1))}
               disabled={atStart}
-              className="btn-icon"
-              style={{ width: 34, height: 34, opacity: atStart ? 0.35 : 1, border: 'none', background: 'transparent' }}
+              style={{
+                width: 30, height: 30, borderRadius: 8, border: 'none', cursor: 'pointer',
+                background: 'rgba(255,255,255,0.08)', color: 'white',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                opacity: atStart ? 0.3 : 1,
+              }}
               aria-label="previous month"
             >
-              {lang === 'he' ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+              {lang === 'he' ? <ChevronRight size={17} /> : <ChevronLeft size={17} />}
             </button>
-            <span style={{ fontWeight: 600, fontSize: 15 }}>{monthTitle}</span>
+            <span style={{ fontWeight: 600, fontSize: 14, color: 'white' }}>{monthTitle}</span>
             <button
               onClick={() => setSelectedIdx(i => Math.min(months.length - 1, i + 1))}
               disabled={atEnd}
-              className="btn-icon"
-              style={{ width: 34, height: 34, opacity: atEnd ? 0.35 : 1, border: 'none', background: 'transparent' }}
+              style={{
+                width: 30, height: 30, borderRadius: 8, border: 'none', cursor: 'pointer',
+                background: 'rgba(255,255,255,0.08)', color: 'white',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                opacity: atEnd ? 0.3 : 1,
+              }}
               aria-label="next month"
             >
-              {lang === 'he' ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
+              {lang === 'he' ? <ChevronLeft size={17} /> : <ChevronRight size={17} />}
             </button>
           </div>
-        </div>
 
-        {/* 2 — Summary cards */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <StatCard label={lang==='he'?'הכנסות':'Income'}   value={income}   color="var(--c-success)" currency={cur} />
-            <StatCard label={lang==='he'?'הוצאות':'Expenses'} value={expenses} color="var(--c-danger)"  currency={cur} />
+          {/* Balance for the month */}
+          <div className="t-overline" style={{ color: 'var(--c-ink-text2)', textAlign: 'center' }}>
+            {lang==='he'?'יתרה':'Balance'}
           </div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <StatCard
-              label={lang==='he'?'יתרה':'Balance'}
-              value={balance}
-              color={balance >= 0 ? 'var(--c-text)' : 'var(--c-danger)'}
-              currency={cur}
-            />
-            <div className="card" style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ padding: '13px 14px' }}>
-                <div style={{ fontSize: 12, color: 'var(--c-text2)', marginBottom: 6, fontWeight: 500 }}>
-                  {lang==='he'?'אחוז חיסכון':'Savings rate'}
-                </div>
-                <div className="num" style={{
-                  fontSize: 18, fontWeight: 600, letterSpacing: -0.4,
-                  color: savingsRate >= 0 ? 'var(--c-primary)' : 'var(--c-danger)',
-                }}>
-                  {savingsRate}%
-                </div>
-                <div className="progress-bar" style={{ marginTop: 8, height: 4 }}>
-                  <motion.div
-                    className="progress-fill"
-                    animate={{ width: `${Math.max(0, Math.min(100, savingsRate))}%` }}
-                    transition={{ duration: 0.7, ease: 'easeOut' }}
-                  />
+          <div dir="ltr" className="t-display" style={{
+            color: balance >= 0 ? 'white' : '#FDA29B', textAlign: 'center', marginTop: 6,
+          }}>
+            <span className="cur" style={{ fontSize: 22 }}>{balance < 0 ? '−' : ''}{cur}</span>
+            {formatNumber(balance)}
+          </div>
+
+          {/* Inline income / expense / savings */}
+          <div style={{
+            display: 'flex', marginTop: 18, paddingTop: 16,
+            borderTop: '1px solid var(--c-ink-line)',
+          }}>
+            {[
+              { label: lang==='he'?'הכנסות':'Income',   val: formatAmount(income, cur),   c: '#32D583' },
+              { label: lang==='he'?'הוצאות':'Expenses', val: formatAmount(expenses, cur), c: '#FDA29B' },
+              { label: lang==='he'?'חיסכון':'Saved',    val: `${savingsRate}%`,           c: 'white' },
+            ].map((s, i) => (
+              <div key={s.label} style={{
+                flex: 1, textAlign: 'center',
+                borderInlineStart: i > 0 ? '1px solid var(--c-ink-line)' : 'none',
+              }}>
+                <div style={{ fontSize: 11, color: 'var(--c-ink-text2)', fontWeight: 500 }}>{s.label}</div>
+                <div dir="ltr" className="num" style={{ fontSize: 14, fontWeight: 600, color: s.c, marginTop: 4 }}>
+                  {s.val}
                 </div>
               </div>
-            </div>
+            ))}
           </div>
-        </div>
+        </motion.div>
 
         {/* 3 — Expenses by category */}
         {donutSegments.length > 0 ? (
@@ -326,7 +318,7 @@ export default function ReportsPage() {
                 </div>
               ) : (
                 <div dir="ltr" className="num" style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2, textAlign: 'start' }}>
-                  &gt; {cur}{bigExpenseThreshold.toLocaleString('he-IL')}
+                  &gt; {formatAmount(bigExpenseThreshold, cur)}
                 </div>
               )}
             </div>
@@ -380,8 +372,8 @@ export default function ReportsPage() {
             <div className="card">
               <div style={{ textAlign: 'center', color: 'var(--c-text2)', fontSize: 13, padding: '24px 16px' }}>
                 {lang==='he'
-                  ? `אין הוצאות מעל ${cur}${bigExpenseThreshold.toLocaleString('he-IL')} החודש`
-                  : `No expenses above ${cur}${bigExpenseThreshold} this month`}
+                  ? `אין הוצאות מעל ${formatAmount(bigExpenseThreshold, cur)} החודש`
+                  : `No expenses above ${formatAmount(bigExpenseThreshold, cur)} this month`}
               </div>
             </div>
           )}

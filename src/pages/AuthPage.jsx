@@ -289,7 +289,7 @@ export default function AuthPage() {
                 textAlign: 'center',
               }}
             >
-              ⚠️ {error}
+              {error}
             </motion.div>
           )}
         </AnimatePresence>
@@ -297,13 +297,14 @@ export default function AuthPage() {
         {/* Submit */}
         <motion.button
           className="btn btn-primary btn-full"
-          whileTap={{ scale: 0.97 }}
+          whileTap={{ scale: 0.98 }}
           onClick={handleSubmit}
           disabled={loading}
           style={{
-            fontSize: 17,
-            padding: '16px',
+            fontSize: 16,
+            padding: '15px',
             opacity: loading ? 0.7 : 1,
+            marginTop: 2,
           }}
         >
           {loading
@@ -319,7 +320,7 @@ export default function AuthPage() {
             onClick={() => switchMode(mode === 'login' ? 'register' : 'login')}
             style={{
               background: 'none', border: 'none',
-              color: 'var(--c-primary)', fontWeight: 700,
+              color: 'var(--c-primary)', fontWeight: 600,
               cursor: 'pointer', fontSize: 14, fontFamily: 'inherit',
             }}
           >

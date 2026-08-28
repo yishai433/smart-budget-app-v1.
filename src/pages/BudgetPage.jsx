@@ -42,9 +42,9 @@ export default function BudgetPage() {
       <CategoryBreakdown />
 
       {/* Transactions */}
-      <div style={{ padding: '22px 16px 10px' }}>
-        <div className="section-label" style={{ padding: '0 4px 8px' }}>
-          {t('budget.allTransactions')}
+      <div style={{ padding: '26px 16px 10px' }}>
+        <div className="section-head-row">
+          <h2>{t('budget.title')}</h2>
         </div>
         <div className="segment">
           {TABS.map(t2 => (

@@ -23,8 +23,11 @@ export default function CategoryBreakdown() {
   if (sorted.length === 0) return null
 
   return (
-    <div style={{ padding: '22px 16px 0' }}>
-      <div className="section-label">{t('budget.categories')}</div>
+    <div style={{ padding: '26px 16px 0' }}>
+      <div className="section-head-row">
+        <h2>{t('budget.categories')}</h2>
+        <span className="t-caption">{t('budget.thisMonth')}</span>
+      </div>
 
       <div className="card">
         <div style={{ padding: '4px 0' }}>

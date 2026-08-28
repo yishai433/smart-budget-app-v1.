@@ -31,20 +31,20 @@ export default function BottomNav() {
   return (
     <nav className="bottom-nav" style={{
       position: 'fixed',
-      bottom: `calc(var(--safe-bottom) + 10px)`,
-      width: 'calc(100% - 28px)',
-      maxWidth: '452px',
-      height: '58px',
-      borderRadius: '16px',
+      bottom: `calc(var(--safe-bottom) + 12px)`,
+      width: 'calc(100% - 32px)',
+      maxWidth: '448px',
+      height: '60px',
+      borderRadius: '18px',
       /* Solid background instead of backdrop-filter blur — a fixed blurred
          element forces iOS to recompute the blur on every scroll frame, which
          was the main cause of scroll lag. */
       background: '#FFFFFF',
       border: '1px solid var(--c-border)',
-      boxShadow: '0 8px 20px -6px rgba(16,24,40,0.12), 0 2px 6px rgba(16,24,40,0.05)',
+      boxShadow: '0 10px 28px -8px rgba(16,24,40,0.16), 0 2px 6px rgba(16,24,40,0.05)',
       display: 'flex',
-      alignItems: 'stretch',
-      padding: '0 4px',
+      alignItems: 'center',
+      padding: '0 6px',
       zIndex: 150,
     }}>
       {tabs.map(tab => {
@@ -57,40 +57,47 @@ export default function BottomNav() {
             style={{
               flex: 1,
               display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center', gap: '4px',
+              alignItems: 'center', justifyContent: 'center', gap: '3px',
               border: 'none', background: 'transparent',
               cursor: 'pointer', padding: 0,
               position: 'relative',
+              height: '100%',
               WebkitTapHighlightColor: 'transparent',
             }}
           >
-            {/* Thin top rule marks the active tab — no heavy pill */}
+            {/* Soft rounded chip highlights the active tab, gliding between tabs */}
             {active && (
               <motion.div
-                layoutId="nav-indicator"
+                layoutId="nav-chip"
                 style={{
                   position: 'absolute',
-                  top: 0,
-                  width: '22px', height: '2px',
-                  borderRadius: '0 0 2px 2px',
-                  background: 'var(--c-primary)',
+                  inset: '8px 6px',
+                  background: 'var(--c-primary-light)',
+                  borderRadius: '13px',
+                  zIndex: 0,
                 }}
-                transition={{ type: 'spring', stiffness: 460, damping: 38 }}
+                transition={{ type: 'spring', stiffness: 440, damping: 36 }}
               />
             )}
-            <Icon
-              size={20}
-              strokeWidth={active ? 2.2 : 1.7}
-              color={active ? 'var(--c-primary)' : 'var(--c-text3)'}
-            />
-            <span style={{
-              fontSize: '10px',
-              fontWeight: active ? 600 : 500,
-              color: active ? 'var(--c-primary)' : 'var(--c-text3)',
-              letterSpacing: '0.1px',
+            <div style={{
+              position: 'relative', zIndex: 1,
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', gap: '3px',
             }}>
-              {LABELS[lang][tab.key]}
-            </span>
+              <Icon
+                size={20}
+                strokeWidth={active ? 2.3 : 1.8}
+                color={active ? 'var(--c-primary)' : 'var(--c-text3)'}
+              />
+              <span style={{
+                fontSize: '10px',
+                fontWeight: active ? 600 : 500,
+                color: active ? 'var(--c-primary)' : 'var(--c-text3)',
+                letterSpacing: '0.1px',
+              }}>
+                {LABELS[lang][tab.key]}
+              </span>
+            </div>
           </button>
         )
       })}
