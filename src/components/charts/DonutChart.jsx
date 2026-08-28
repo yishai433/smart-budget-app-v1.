@@ -1,13 +1,14 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { formatAmount } from '../../utils/format'
+import CategoryIcon from '../CategoryIcon'
 
-const SIZE = 200
+const SIZE = 180
 const CX = SIZE / 2
 const CY = SIZE / 2
-const RADIUS = 72
-const STROKE = 22
+const RADIUS = 68
+const STROKE = 16
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS
-const GAP = 3
+const GAP = 2
 
 export default function DonutChart({ segments, currency = '₪', centerLabel = '' }) {
   const [animated, setAnimated] = useState(false)
@@ -28,22 +29,22 @@ export default function DonutChart({ segments, currency = '₪', centerLabel = '
   })
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
       <div style={{ position: 'relative', width: SIZE, height: SIZE }}>
         <svg width={SIZE} height={SIZE} style={{ transform: 'rotate(-90deg)' }}>
           {/* Background track */}
           <circle cx={CX} cy={CY} r={RADIUS}
-            fill="none" stroke="var(--c-sep)" strokeWidth={STROKE} />
+            fill="none" stroke="var(--c-bg)" strokeWidth={STROKE} />
           {/* Segments */}
           {drawn.map((seg, i) => (
             <circle key={i} cx={CX} cy={CY} r={RADIUS}
               fill="none"
               stroke={seg.color}
               strokeWidth={STROKE}
-              strokeLinecap="round"
+              strokeLinecap="butt"
               strokeDasharray={seg.dash}
               strokeDashoffset={seg.dashOffset}
-              style={{ transition: `stroke-dasharray 0.7s cubic-bezier(0.4,0,0.2,1) ${i * 0.08}s` }}
+              style={{ transition: `stroke-dasharray 0.7s cubic-bezier(0.4,0,0.2,1) ${i * 0.06}s` }}
             />
           ))}
         </svg>
@@ -53,25 +54,39 @@ export default function DonutChart({ segments, currency = '₪', centerLabel = '
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
         }}>
-          <div style={{ fontSize: 11, color: 'var(--c-text2)', fontWeight: 500, marginBottom: 2 }}>
+          <div style={{ fontSize: 11.5, color: 'var(--c-text2)', fontWeight: 500, marginBottom: 3 }}>
             {centerLabel}
           </div>
-          <div dir="ltr" style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.5 }}>
+          <div dir="ltr" className="num" style={{ fontSize: 21, fontWeight: 700, letterSpacing: -0.6 }}>
             {formatAmount(total, currency)}
           </div>
         </div>
       </div>
 
       {/* Legend */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
         {drawn.map((seg, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 10, height: 10, borderRadius: '50%', background: seg.color, flexShrink: 0 }} />
-            <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>
-              {seg.emoji} {seg.label}
+          <div key={i} style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '10px 0',
+            borderTop: '1px solid var(--c-sep)',
+          }}>
+            <div style={{
+              width: 26, height: 26, borderRadius: 7, flexShrink: 0,
+              background: seg.color + '14', color: seg.color,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <CategoryIcon id={seg.id} size={14} strokeWidth={2} />
+            </div>
+            <span style={{ flex: 1, fontSize: 13.5, fontWeight: 500 }}>
+              {seg.label}
             </span>
-            <span style={{ fontSize: 13, color: 'var(--c-text2)' }}>{seg.pct}%</span>
-            <span dir="ltr" style={{ fontSize: 13, fontWeight: 700 }}>{formatAmount(seg.value, currency)}</span>
+            <span className="num" style={{ fontSize: 12.5, color: 'var(--c-text3)', minWidth: 32, textAlign: 'end' }}>
+              {seg.pct}%
+            </span>
+            <span dir="ltr" className="num" style={{ fontSize: 13.5, fontWeight: 600, minWidth: 68, textAlign: 'end' }}>
+              {formatAmount(seg.value, currency)}
+            </span>
           </div>
         ))}
       </div>

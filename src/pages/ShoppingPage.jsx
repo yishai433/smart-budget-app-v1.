@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import ShoppingList from '../components/shopping/ShoppingList'
 import { useApp } from '../contexts/AppContext'
 import UserAvatar from '../components/UserAvatar'
-import { ShoppingCart } from 'lucide-react'
+import { ShoppingCart, Trash2 } from 'lucide-react'
 import useScrollLock from '../hooks/useScrollLock'
 
 function CheckoutToggle({ checked, onChange, label, sub }) {
@@ -128,28 +128,28 @@ export default function ShoppingPage() {
 
   return (
     <div className="page">
-      <div className="page-header" style={{ paddingBottom: 20 }}>
+      <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h1 style={{ fontSize: 28, fontWeight: 800 }}>{t('shopping.title')}</h1>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+          <div>
+            <p className="page-eyebrow">
+              {shoppingItems.length} {t('shopping.myList').toLowerCase()}
+            </p>
+            <h1 className="page-title">{t('shopping.title')}</h1>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {shoppingItems.length > 0 && (
               <button
                 onClick={handleClear}
-                style={{
-                  background: 'rgba(255,255,255,0.15)', border: 'none',
-                  borderRadius: 20, padding: '8px 14px',
-                  color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                }}
+                className="btn-icon"
+                style={{ width: 34, height: 34 }}
+                aria-label={t('shopping.clearList')}
               >
-                🗑 {t('shopping.clearList')}
+                <Trash2 size={16} strokeWidth={2} />
               </button>
             )}
             <UserAvatar />
           </div>
         </div>
-        <p style={{ opacity: 0.7, fontSize: 13, marginTop: 4 }}>
-          {shoppingItems.length} {t('shopping.myList').toLowerCase()}
-        </p>
 
         {/* Load template button — inside header, below title */}
         {shoppingItems.length === 0 && hasTemplate && (
@@ -159,17 +159,18 @@ export default function ShoppingPage() {
             onClick={handleLoadTemplate}
             style={{
               marginTop: 12,
-              display: 'flex', alignItems: 'center', gap: 8,
-              background: 'rgba(255,255,255,0.18)',
-              border: '1.5px solid rgba(255,255,255,0.35)',
-              borderRadius: 14, padding: '10px 16px',
-              color: 'white', cursor: 'pointer', width: '100%',
+              display: 'flex', alignItems: 'center', gap: 10,
+              background: 'var(--c-primary-light)',
+              border: 'none',
+              borderRadius: 'var(--r-md)', padding: '11px 14px',
+              color: 'var(--c-primary)', cursor: 'pointer', width: '100%',
+              fontFamily: 'inherit',
             }}
           >
-            <ShoppingCart size={18} strokeWidth={2} />
+            <ShoppingCart size={17} strokeWidth={2} />
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontWeight: 700, fontSize: 14 }}>טען רשימה שמורה</div>
-              <div style={{ fontSize: 12, opacity: 0.75, marginTop: 1 }}>הרשימה האחרונה שלך מוכנה לטעינה</div>
+              <div style={{ fontWeight: 600, fontSize: 13.5 }}>טען רשימה שמורה</div>
+              <div style={{ fontSize: 12, opacity: 0.8, marginTop: 1 }}>הרשימה האחרונה שלך מוכנה לטעינה</div>
             </div>
           </motion.button>
         )}

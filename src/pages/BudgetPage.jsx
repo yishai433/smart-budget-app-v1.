@@ -24,31 +24,28 @@ export default function BudgetPage() {
 
   return (
     <div className="page">
-      {/* Header */}
-      <div className="page-header" style={{ paddingBottom: 52 }}>
+      {/* Header — compact, light */}
+      <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <p style={{ fontSize: 13, opacity: 0.7, marginBottom: 2 }}>
-              {monthLabel}
-            </p>
-            <h1 style={{ fontSize: 26, fontWeight: 800 }}>
-              {t('budget.title')}
-            </h1>
+            <p className="page-eyebrow">{monthLabel}</p>
+            <h1 className="page-title">{t('budget.title')}</h1>
           </div>
-
-          {/* User avatar replaces the diamond */}
           <UserAvatar />
         </div>
       </div>
 
-      {/* Summary card (overlaps header) */}
+      {/* Summary — balance, income, expenses */}
       <SummaryCard />
 
       {/* Category breakdown */}
       <CategoryBreakdown />
 
-      {/* Filter tabs */}
-      <div style={{ padding: '20px 16px 8px' }}>
+      {/* Transactions */}
+      <div style={{ padding: '22px 16px 10px' }}>
+        <div className="section-label" style={{ padding: '0 4px 8px' }}>
+          {t('budget.allTransactions')}
+        </div>
         <div className="segment">
           {TABS.map(t2 => (
             <button
@@ -62,7 +59,6 @@ export default function BudgetPage() {
         </div>
       </div>
 
-      {/* Transaction list */}
       <TransactionList filter={tab} />
     </div>
   )

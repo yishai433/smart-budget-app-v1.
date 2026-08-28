@@ -5,6 +5,7 @@ import { useApp } from '../../contexts/AppContext'
 import ReceiptScanner from '../ReceiptScanner'
 import CategoryIcon from '../CategoryIcon'
 import useScrollLock from '../../hooks/useScrollLock'
+import { X } from 'lucide-react'
 
 const FREQUENCIES = ['daily', 'weekly', 'monthly', 'yearly']
 
@@ -185,23 +186,25 @@ export default function AddTransaction({ onClose }) {
           <h2 className="sheet-title">
             {type === 'income' ? t('transaction.addIncome') : t('transaction.addExpense')}
           </h2>
-          <button
-            onClick={onClose}
-            style={{ background: 'var(--c-bg)', border: 'none', borderRadius: 20,
-              width: 32, height: 32, cursor: 'pointer', fontSize: 18, color: 'var(--c-text2)' }}
-          >✕</button>
+          <button onClick={onClose} className="btn-icon" style={{ width: 32, height: 32 }}>
+            <X size={17} strokeWidth={2} />
+          </button>
         </div>
 
         <div className="sheet-body" style={{ gap: 12 }}>
           {/* Type toggle */}
           <div className="segment">
             <button className={`segment-btn ${type === 'expense' ? 'active' : ''}`}
-              onClick={() => { setType('expense'); setCategory('') }}>
-              🔴 {t('transaction.expense')}
+              onClick={() => { setType('expense'); setCategory('') }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--c-danger)' }} />
+              {t('transaction.expense')}
             </button>
             <button className={`segment-btn ${type === 'income' ? 'active' : ''}`}
-              onClick={() => { setType('income'); setCategory('') }}>
-              🟢 {t('transaction.income')}
+              onClick={() => { setType('income'); setCategory('') }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--c-success)' }} />
+              {t('transaction.income')}
             </button>
           </div>
 
@@ -252,7 +255,7 @@ export default function AddTransaction({ onClose }) {
 
           {/* Date */}
           <div className="input-group" style={{ marginBottom: 0 }}>
-            <label className="input-label">📅 {t('transaction.date')}</label>
+            <label className="input-label">{t('transaction.date')}</label>
             <input className="input-field" type="date" value={date} onChange={e => setDate(e.target.value)} />
           </div>
 

@@ -8,6 +8,7 @@ import { he } from 'date-fns/locale'
 import { formatMoney } from '../../utils/format'
 import CategoryIcon from '../CategoryIcon'
 import useScrollLock from '../../hooks/useScrollLock'
+import { Trash2, Repeat, Pencil, X, CalendarDays, Tag, Receipt } from 'lucide-react'
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 
@@ -56,7 +57,7 @@ function SwipeableRow({ tx, onDelete, onOpenDetail, t, catDef, cur }) {
   }
 
   return (
-    <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 'var(--r-lg)', marginBottom: 8 }}>
+    <div style={{ position: 'relative', overflow: 'hidden' }}>
       {/* Delete strip — always present but only visible when swiped out */}
       <div style={{
         position: 'absolute', top: 0, bottom: 0, right: 0, width: 90,
@@ -67,12 +68,12 @@ function SwipeableRow({ tx, onDelete, onOpenDetail, t, catDef, cur }) {
           onClick={() => onDelete(tx.id)}
           style={{
             background: 'none', border: 'none',
-            color: 'white', fontWeight: 700, fontSize: 13,
+            color: 'white', fontWeight: 600, fontSize: 12,
             cursor: 'pointer', display: 'flex', flexDirection: 'column',
-            alignItems: 'center', gap: 3,
+            alignItems: 'center', gap: 4,
           }}
         >
-          <span style={{ fontSize: 20 }}>🗑</span>
+          <Trash2 size={17} strokeWidth={2} />
           <span>{t('common.delete')}</span>
         </button>
       </div>
@@ -91,31 +92,33 @@ function SwipeableRow({ tx, onDelete, onOpenDetail, t, catDef, cur }) {
           position: 'relative',
           zIndex: 1,
           margin: 0,
-          borderRadius: 'var(--r-lg)',
         }}
         onDragEnd={handleDragEnd}
         onClick={handleClick}
       >
-        <div className="list-icon" style={{ background: catDef.color + '20', color: catDef.color }}>
-          <CategoryIcon id={tx.category} size={20} />
+        <div className="list-icon" style={{ background: catDef.color + '14', color: catDef.color }}>
+          <CategoryIcon id={tx.category} size={17} strokeWidth={2} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, fontSize: 15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontWeight: 500, fontSize: 14.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {tx.description || t(`categories.${tx.category}`)}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2, display: 'flex', gap: 6 }}>
+          <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2, display: 'flex', gap: 5, alignItems: 'center' }}>
             <span>{t(`categories.${tx.category}`)}</span>
-            {tx.date && <span>· {tx.date.slice(8, 10)}/{tx.date.slice(5, 7)}</span>}
+            {tx.date && <span className="num">· {tx.date.slice(8, 10)}/{tx.date.slice(5, 7)}</span>}
             {tx.isRecurring && (
-              <span style={{ color: 'var(--c-blue)' }}>↻ {t(`transaction.${tx.frequency}`)}</span>
+              <span style={{ color: 'var(--c-text3)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                <Repeat size={11} strokeWidth={2} />
+                {t(`transaction.${tx.frequency}`)}
+              </span>
             )}
           </div>
         </div>
-        <div dir="ltr" style={{
-          fontWeight: 700,
-          fontSize: 16,
-          color: tx.type === 'income' ? 'var(--c-success)' : 'var(--c-danger)',
-          letterSpacing: -0.3,
+        <div dir="ltr" className="num" style={{
+          fontWeight: 600,
+          fontSize: 15,
+          color: tx.type === 'income' ? 'var(--c-success)' : 'var(--c-text)',
+          letterSpacing: -0.2,
           flexShrink: 0,
         }}>
           {formatMoney(tx.amount, tx.type, cur)}
@@ -130,11 +133,14 @@ function formatFullDate(dateStr) {
   catch { return dateStr }
 }
 
-function DetailRow({ label, children }) {
+function DetailRow({ label, icon: Icon, children }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
-      <span style={{ fontSize: 13, color: 'var(--c-text2)' }}>{label}</span>
-      <span style={{ fontSize: 14, fontWeight: 600 }}>{children}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', gap: 12 }}>
+      <span style={{ fontSize: 13, color: 'var(--c-text2)', display: 'flex', alignItems: 'center', gap: 7 }}>
+        {Icon && <Icon size={15} strokeWidth={2} style={{ color: 'var(--c-text3)' }} />}
+        {label}
+      </span>
+      <span style={{ fontSize: 14, fontWeight: 500, textAlign: 'end' }}>{children}</span>
     </div>
   )
 }
@@ -175,11 +181,10 @@ function EditTransactionSheet({ tx, cats, cur, t, onSave, onClose }) {
         >
           <div className="sheet-handle" />
           <div className="sheet-header">
-            <h2 className="sheet-title">✏️ עריכת עסקה</h2>
-            <button onClick={onClose} style={{
-              background: 'var(--c-bg)', border: 'none', borderRadius: 20,
-              width: 32, height: 32, cursor: 'pointer', fontSize: 18, color: 'var(--c-text2)',
-            }}>✕</button>
+            <h2 className="sheet-title">עריכת עסקה</h2>
+            <button onClick={onClose} className="btn-icon" style={{ width: 32, height: 32 }}>
+              <X size={17} strokeWidth={2} />
+            </button>
           </div>
 
           <div className="sheet-body" style={{ gap: 12 }}>
@@ -230,7 +235,7 @@ function EditTransactionSheet({ tx, cats, cur, t, onSave, onClose }) {
             </div>
 
             <div className="input-group" style={{ marginBottom: 0 }}>
-              <label className="input-label">📅 {t('transaction.date')}</label>
+              <label className="input-label">{t('transaction.date')}</label>
               <input className="input-field" type="date" value={date} onChange={e => setDate(e.target.value)} />
             </div>
           </div>
@@ -242,7 +247,7 @@ function EditTransactionSheet({ tx, cats, cur, t, onSave, onClose }) {
               disabled={!canSave}
               style={{ opacity: canSave ? 1 : 0.45, transition: 'opacity 0.2s' }}
             >
-              💾 שמור שינויים
+              שמור שינויים
             </button>
           </div>
         </motion.div>
@@ -273,44 +278,54 @@ function TransactionDetailSheet({ tx, catDef, cur, t, onDelete, onEdit, onClose 
         >
           <div className="sheet-handle" />
           <div className="sheet-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div className="list-icon" style={{ background: catDef.color + '20', color: catDef.color, width: 44, height: 44 }}>
-                <CategoryIcon id={tx.category} size={22} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+              <div className="list-icon" style={{ background: catDef.color + '14', color: catDef.color, width: 40, height: 40 }}>
+                <CategoryIcon id={tx.category} size={19} strokeWidth={2} />
               </div>
-              <div>
-                <h2 className="sheet-title" style={{ fontSize: 17 }}>
+              <div style={{ minWidth: 0 }}>
+                <h2 className="sheet-title" style={{ fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {tx.description || t(`categories.${tx.category}`)}
                 </h2>
-                <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2 }}>
+                <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 1 }}>
                   {t(`categories.${tx.category}`)}
                 </div>
               </div>
             </div>
-            <button onClick={onClose} style={{
-              background: 'var(--c-bg)', border: 'none', borderRadius: 20,
-              width: 32, height: 32, cursor: 'pointer', fontSize: 18, color: 'var(--c-text2)', flexShrink: 0,
-            }}>✕</button>
+            <button onClick={onClose} className="btn-icon" style={{ width: 32, height: 32, flexShrink: 0 }}>
+              <X size={17} strokeWidth={2} />
+            </button>
           </div>
 
           <div className="sheet-body">
-            <div style={{ textAlign: 'center', padding: '8px 0 4px' }}>
-              <div dir="ltr" style={{
-                fontSize: 34, fontWeight: 800, letterSpacing: -0.8,
-                color: isIncome ? 'var(--c-success)' : 'var(--c-danger)',
+            <div style={{
+              textAlign: 'center', padding: '18px 0',
+              background: 'var(--c-bg)', borderRadius: 'var(--r-md)',
+              border: '1px solid var(--c-border)',
+            }}>
+              <div dir="ltr" className="num" style={{
+                fontSize: 30, fontWeight: 700, letterSpacing: -1,
+                color: isIncome ? 'var(--c-success)' : 'var(--c-text)',
               }}>
                 {formatMoney(tx.amount, tx.type, cur)}
               </div>
             </div>
 
-            <div style={{ borderTop: '1px solid var(--c-sep)' }}>
-              <DetailRow label={t('transaction.date')}>{formatFullDate(tx.date)}</DetailRow>
+            <div style={{
+              border: '1px solid var(--c-border)', borderRadius: 'var(--r-md)',
+              padding: '2px 14px',
+            }}>
+              <DetailRow label={t('transaction.date')} icon={CalendarDays}>
+                {formatFullDate(tx.date)}
+              </DetailRow>
               <div style={{ borderTop: '1px solid var(--c-sep)' }} />
-              <DetailRow label={t('transaction.category')}>{t(`categories.${tx.category}`)}</DetailRow>
+              <DetailRow label={t('transaction.category')} icon={Tag}>
+                {t(`categories.${tx.category}`)}
+              </DetailRow>
               {tx.isRecurring && (
                 <>
                   <div style={{ borderTop: '1px solid var(--c-sep)' }} />
-                  <DetailRow label={t('transaction.isRecurring')}>
-                    <span style={{ color: 'var(--c-blue)' }}>↻ {t(`transaction.${tx.frequency}`)}</span>
+                  <DetailRow label={t('transaction.isRecurring')} icon={Repeat}>
+                    {t(`transaction.${tx.frequency}`)}
                   </DetailRow>
                 </>
               )}
@@ -318,18 +333,22 @@ function TransactionDetailSheet({ tx, catDef, cur, t, onDelete, onEdit, onClose 
           </div>
 
           <div className="sheet-footer">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
               <button
-                className="btn btn-primary btn-full"
-                onClick={() => onEdit(tx)}
+                className="btn btn-danger"
+                onClick={() => { onDelete(tx.id); onClose() }}
+                style={{ flex: 1 }}
               >
-                ✏️ עריכה
+                <Trash2 size={16} strokeWidth={2} />
+                {t('common.delete')}
               </button>
               <button
-                className="btn btn-danger btn-full"
-                onClick={() => { onDelete(tx.id); onClose() }}
+                className="btn btn-primary"
+                onClick={() => onEdit(tx)}
+                style={{ flex: 2 }}
               >
-                🗑 {t('common.delete')}
+                <Pencil size={16} strokeWidth={2} />
+                עריכה
               </button>
             </div>
           </div>
@@ -356,7 +375,7 @@ export default function TransactionList({ filter = 'all' }) {
   if (filtered.length === 0) {
     return (
       <div className="empty-state">
-        <div className="empty-icon">📊</div>
+        <div className="empty-icon"><Receipt size={22} strokeWidth={1.8} /></div>
         <h3>{t('budget.noTransactions')}</h3>
         <p>{t('budget.noTransactionsHint')}</p>
       </div>
@@ -369,17 +388,11 @@ export default function TransactionList({ filter = 'all' }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
       {Object.entries(groups).map(([monthKey, txs]) => (
-        <div key={monthKey} style={{ marginBottom: 16 }}>
-          <div style={{
-            padding: '8px 20px 6px',
-            fontSize: 13,
-            fontWeight: 700,
-            color: 'var(--c-text2)',
-            letterSpacing: 0.3,
-          }}>
+        <div key={monthKey} style={{ marginBottom: 18 }}>
+          <div className="section-label" style={{ padding: '6px 20px 8px' }}>
             {formatMonthKey(monthKey, lang)}
           </div>
-          <div style={{ margin: '0 16px' }}>
+          <div style={{ margin: '0 16px' }} className="card-list">
             <AnimatePresence initial={false}>
               {txs.map((tx, i) => {
                 const catDef = getCatDef(tx)
@@ -387,10 +400,11 @@ export default function TransactionList({ filter = 'all' }) {
                 return (
                   <motion.div
                     key={tx.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                    transition={{ delay: i * 0.04, type: 'spring', stiffness: 340, damping: 30 }}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ delay: Math.min(i, 8) * 0.03, duration: 0.22 }}
+                    style={{ borderBottom: i < txs.length - 1 ? '1px solid var(--c-sep)' : 'none' }}
                   >
                     <SwipeableRow
                       tx={tx}

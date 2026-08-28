@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useApp } from '../../contexts/AppContext'
 import { useEffect, useRef, useState } from 'react'
+import { ArrowDownLeft, ArrowUpRight, PiggyBank } from 'lucide-react'
 
 function AnimatedNumber({ value }) {
   const [display, setDisplay] = useState(0)
@@ -28,66 +29,117 @@ function AnimatedNumber({ value }) {
   return <>{display.toLocaleString()}</>
 }
 
+function Stat({ icon: Icon, label, value, cur, tone, raw }) {
+  const color =
+    tone === 'income' ? 'var(--c-success)' :
+    tone === 'expense' ? 'var(--c-danger)' :
+    'var(--c-primary)'
+  const tint =
+    tone === 'income' ? 'var(--c-success-light)' :
+    tone === 'expense' ? 'var(--c-danger-light)' :
+    'var(--c-primary-light)'
+
+  return (
+    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{
+          width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+          background: tint, color,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon size={13} strokeWidth={2.2} />
+        </div>
+        <span style={{ fontSize: 12, color: 'var(--c-text2)', fontWeight: 500 }}>{label}</span>
+      </div>
+      <div dir={raw ? undefined : 'ltr'} className="num" style={{
+        fontSize: 16, fontWeight: 600, color, letterSpacing: -0.3,
+        textAlign: 'start', whiteSpace: 'nowrap',
+      }}>
+        {raw ? raw : <>{value < 0 ? '−' : ''}{cur}{Math.abs(value).toLocaleString()}</>}
+      </div>
+    </div>
+  )
+}
+
 export default function SummaryCard() {
   const { t } = useTranslation()
   const { totalIncome, totalExpenses, balance, settings } = useApp()
   const cur = settings.currency
+  const lang = settings.language || 'he'
+
+  const positive = balance >= 0
+  // Share of income already spent — drives the meter under the hero number
+  const spentPct = totalIncome > 0
+    ? Math.min(100, Math.round((totalExpenses / totalIncome) * 100))
+    : (totalExpenses > 0 ? 100 : 0)
+  const savingsRate = totalIncome > 0 ? Math.round((balance / totalIncome) * 100) : 0
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ type: 'spring', stiffness: 280, damping: 26 }}
-      style={{ padding: '0 16px', marginTop: '-28px', position: 'relative', zIndex: 10 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+      style={{ padding: '16px 16px 0' }}
     >
       <div className="card">
+        <div style={{ padding: '18px 16px 16px' }}>
 
-        {/* ── TOP: הוצאות גדול ── */}
-        <div style={{
-          background: 'linear-gradient(135deg, #0A2E1A 0%, #1B5E38 100%)',
-          padding: '22px 20px 26px',
-          borderRadius: 'var(--r-lg) var(--r-lg) 0 0',
-          color: 'white',
-          textAlign: 'center',
-        }}>
-          <p style={{ fontSize: 13, opacity: 0.65, marginBottom: 6, fontWeight: 500, letterSpacing: 0.5 }}>
-            {t('budget.expenses')} — {t('budget.thisMonth')}
-          </p>
-          <div style={{
-            fontSize: 52,
-            fontWeight: 800,
-            letterSpacing: -2,
-            lineHeight: 1,
-            color: totalExpenses > 0 ? '#FFFFFF' : 'rgba(255,255,255,0.4)',
+          {/* Hero — balance for the month */}
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
+            <span style={{ fontSize: 13, color: 'var(--c-text2)', fontWeight: 500 }}>
+              {lang === 'he' ? 'נשאר החודש' : 'Left this month'}
+            </span>
+            <span className="badge badge-neutral" style={{ fontSize: 11 }}>
+              {lang === 'he' ? `${spentPct}% נוצל` : `${spentPct}% used`}
+            </span>
+          </div>
+
+          <div dir="ltr" className="amount-xl" style={{
+            color: positive ? 'var(--c-text)' : 'var(--c-danger)',
+            marginTop: 4,
+            textAlign: 'start',
           }}>
-            {cur}<AnimatedNumber value={totalExpenses} />
-          </div>
-        </div>
-
-        {/* ── BOTTOM: הוצאות | הכנסות ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr' }}>
-
-          {/* הוצאות */}
-          <div style={{ padding: '16px 12px', textAlign: 'center' }}>
-            <p style={{ fontSize: 12, color: 'var(--c-text2)', fontWeight: 500, marginBottom: 6 }}>
-              {t('budget.expenses')}
-            </p>
-            <div dir="ltr" style={{ fontSize: 22, fontWeight: 800, color: '#B83030', letterSpacing: -0.5 }}>
-              {cur}−<AnimatedNumber value={totalExpenses} />
-            </div>
+            {positive ? '' : '−'}{cur}<AnimatedNumber value={Math.abs(balance)} />
           </div>
 
-          {/* Separator */}
-          <div style={{ background: 'var(--c-sep)' }} />
+          {/* Spend meter */}
+          <div className="progress-bar" style={{ marginTop: 14, height: 5 }}>
+            <motion.div
+              className="progress-fill"
+              initial={{ width: 0 }}
+              animate={{ width: `${spentPct}%` }}
+              transition={{ duration: 0.7, ease: 'easeOut' }}
+              style={{ background: spentPct >= 100 ? 'var(--c-danger)' : 'var(--c-primary)' }}
+            />
+          </div>
 
-          {/* הכנסות */}
-          <div style={{ padding: '16px 12px', textAlign: 'center' }}>
-            <p style={{ fontSize: 12, color: 'var(--c-text2)', fontWeight: 500, marginBottom: 6 }}>
-              {t('budget.income')}
-            </p>
-            <div dir="ltr" style={{ fontSize: 22, fontWeight: 800, color: 'var(--c-success)', letterSpacing: -0.5 }}>
-              {cur}+<AnimatedNumber value={totalIncome} />
-            </div>
+          {/* Income / expenses / saved */}
+          <div style={{
+            display: 'flex', gap: 12, marginTop: 16,
+            paddingTop: 16, borderTop: '1px solid var(--c-sep)',
+          }}>
+            <Stat
+              icon={ArrowDownLeft}
+              label={t('budget.income')}
+              value={totalIncome}
+              cur={cur}
+              tone="income"
+            />
+            <div style={{ width: 1, background: 'var(--c-sep)', alignSelf: 'stretch' }} />
+            <Stat
+              icon={ArrowUpRight}
+              label={t('budget.expenses')}
+              value={totalExpenses}
+              cur={cur}
+              tone="expense"
+            />
+            <div style={{ width: 1, background: 'var(--c-sep)', alignSelf: 'stretch' }} />
+            <Stat
+              icon={PiggyBank}
+              label={lang === 'he' ? 'חיסכון' : 'Saved'}
+              raw={`${savingsRate}%`}
+              tone="neutral"
+            />
           </div>
 
         </div>

@@ -23,44 +23,64 @@ export default function CategoryBreakdown() {
   if (sorted.length === 0) return null
 
   return (
-    <div style={{ padding: '0 16px', marginTop: 16 }}>
-      <h2 className="section-title on-bg" style={{ padding: '0 4px 10px' }}>
-        {t('budget.categories')}
-      </h2>
+    <div style={{ padding: '22px 16px 0' }}>
+      <div className="section-label">{t('budget.categories')}</div>
+
       <div className="card">
-        <div className="card-inner" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ padding: '4px 0' }}>
           {sorted.map(([catId, amount], i) => {
-            const catDef = CATEGORIES.expense.find(c => c.id === catId) || { emoji: '📦', color: '#636366' }
+            const catDef = CATEGORIES.expense.find(c => c.id === catId) || { color: '#667085' }
             const pct = totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0
             return (
               <motion.div
                 key={catId}
-                initial={{ opacity: 0, x: -12 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.06 }}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05, duration: 0.25 }}
+                style={{
+                  padding: '12px 16px',
+                  borderBottom: i < sorted.length - 1 ? '1px solid var(--c-sep)' : 'none',
+                }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                  <div style={{ color: catDef.color, display: 'flex' }}>
-                    <CategoryIcon id={catId} size={22} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+                  {/* Tinted icon tile */}
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 'var(--r-sm)', flexShrink: 0,
+                    background: catDef.color + '14',
+                    color: catDef.color,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <CategoryIcon id={catId} size={17} strokeWidth={2} />
                   </div>
-                  <span style={{ flex: 1, fontSize: 14, fontWeight: 500 }}>
-                    {t(`categories.${catId}`)}
-                  </span>
-                  <span dir="ltr" style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-danger)' }}>
-                    {formatAmount(amount, cur)}
-                  </span>
-                  <span style={{ fontSize: 12, color: 'var(--c-text2)', minWidth: 36, textAlign: 'end' }}>
-                    {Math.round(pct)}%
-                  </span>
-                </div>
-                <div className="progress-bar">
-                  <motion.div
-                    className="progress-fill"
-                    style={{ background: catDef.color }}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${pct}%` }}
-                    transition={{ duration: 0.7, delay: i * 0.06, ease: 'easeOut' }}
-                  />
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+                      <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--c-text)' }}>
+                        {t(`categories.${catId}`)}
+                      </span>
+                      <span dir="ltr" className="num" style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-text)' }}>
+                        {formatAmount(amount, cur)}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7 }}>
+                      <div className="progress-bar" style={{ flex: 1, height: 4 }}>
+                        <motion.div
+                          className="progress-fill"
+                          style={{ background: catDef.color }}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${pct}%` }}
+                          transition={{ duration: 0.65, delay: i * 0.05, ease: 'easeOut' }}
+                        />
+                      </div>
+                      <span className="num" style={{
+                        fontSize: 11.5, color: 'var(--c-text3)', fontWeight: 500,
+                        minWidth: 30, textAlign: 'end',
+                      }}>
+                        {Math.round(pct)}%
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             )

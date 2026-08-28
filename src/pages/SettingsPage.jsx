@@ -179,9 +179,9 @@ export default function SettingsPage() {
 
   return (
     <div className="page">
-      <div className="page-header" style={{ paddingBottom: 28 }}>
+      <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h1 style={{ fontSize: 28, fontWeight: 800 }}>{t('settings.title')}</h1>
+          <h1 className="page-title">{t('settings.title')}</h1>
           <UserAvatar />
         </div>
       </div>

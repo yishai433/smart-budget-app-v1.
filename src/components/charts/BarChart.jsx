@@ -9,8 +9,8 @@ import {
   Cell,
 } from 'recharts'
 
-const INC = '#34C759'
-const EXP = '#FF3B30'
+const INC = '#12B76A'
+const EXP = '#F04438'
 
 function ChartTooltip({ active, payload, label, currency, lang }) {
   if (!active || !payload?.length) return null
@@ -19,10 +19,10 @@ function ChartTooltip({ active, payload, label, currency, lang }) {
   return (
     <div style={{
       background: 'var(--c-card)',
-      border: '1px solid var(--c-sep)',
-      borderRadius: 12,
-      padding: '10px 14px',
-      boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+      border: '1px solid var(--c-border)',
+      borderRadius: 'var(--r-md)',
+      padding: '10px 13px',
+      boxShadow: 'var(--shadow-lg)',
       direction: 'rtl',
       minWidth: 145,
     }}>
@@ -59,14 +59,14 @@ export default function BarChart({ data, currency = '₪', lang = 'he', onBarCli
   return (
     <div>
       {/* Legend */}
-      <div style={{ display: 'flex', gap: 14, marginBottom: 14, justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', gap: 14, marginBottom: 12, justifyContent: 'flex-end' }}>
         {[
           { color: INC, label: lang === 'he' ? 'הכנסות' : 'Income' },
           { color: EXP, label: lang === 'he' ? 'הוצאות' : 'Expenses' },
         ].map(({ color, label }) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <div style={{ width: 10, height: 10, borderRadius: 3, background: color }} />
-            <span style={{ fontSize: 11, color: 'var(--c-text2)', fontWeight: 500 }}>{label}</span>
+          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 8, height: 8, borderRadius: 2, background: color }} />
+            <span style={{ fontSize: 11.5, color: 'var(--c-text2)', fontWeight: 500 }}>{label}</span>
           </div>
         ))}
       </div>
@@ -79,25 +79,25 @@ export default function BarChart({ data, currency = '₪', lang = 'he', onBarCli
           margin={{ top: 4, right: 4, left: 4, bottom: 0 }}
         >
           <CartesianGrid
-            strokeDasharray="3 3"
+            strokeDasharray="2 4"
             vertical={false}
-            stroke="var(--c-sep)"
-            opacity={0.55}
+            stroke="var(--c-border)"
           />
           <XAxis
             dataKey="label"
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 11, fill: 'var(--c-text2)', fontFamily: 'inherit' }}
+            tick={{ fontSize: 11, fill: 'var(--c-text3)', fontFamily: 'inherit' }}
+            dy={4}
           />
           <YAxis hide />
           <Tooltip
             content={(props) => <ChartTooltip {...props} currency={currency} lang={lang} />}
-            cursor={{ fill: 'var(--c-primary)', opacity: 0.06 }}
+            cursor={{ fill: 'var(--c-text)', opacity: 0.04 }}
           />
           <Bar
             dataKey="income"
-            radius={[5, 5, 0, 0]}
+            radius={[3, 3, 0, 0]}
             onClick={(_, index) => onBarClick?.(index)}
             style={{ cursor: 'pointer' }}
             animationDuration={550}
@@ -112,7 +112,7 @@ export default function BarChart({ data, currency = '₪', lang = 'he', onBarCli
           </Bar>
           <Bar
             dataKey="expense"
-            radius={[5, 5, 0, 0]}
+            radius={[3, 3, 0, 0]}
             onClick={(_, index) => onBarClick?.(index)}
             style={{ cursor: 'pointer' }}
             animationDuration={550}

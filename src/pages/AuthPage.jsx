@@ -6,6 +6,7 @@ import {
   updateProfile,
 } from 'firebase/auth'
 import { auth } from '../firebase'
+import { Wallet, Mail, Lock, Eye, EyeOff, User, Home } from 'lucide-react'
 
 // Read invite code from URL hash: #/?invite=XXXXXX
 function getInviteFromURL() {
@@ -28,7 +29,7 @@ const ERRORS = {
   'auth/internal-error':          'שגיאה פנימית, נסה שוב',
 }
 
-function InputField({ label, type = 'text', value, onChange, placeholder, icon }) {
+function InputField({ label, type = 'text', value, onChange, placeholder, icon: Icon }) {
   const [show, setShow] = useState(false)
   const isPassword = type === 'password'
 
@@ -37,16 +38,19 @@ function InputField({ label, type = 'text', value, onChange, placeholder, icon }
       <label className="input-label">{label}</label>
       <div style={{ position: 'relative' }}>
         <div style={{
-          position: 'absolute', insetInlineStart: 14, top: '50%',
-          transform: 'translateY(-50%)', fontSize: 18, pointerEvents: 'none',
-        }}>{icon}</div>
+          position: 'absolute', insetInlineStart: 13, top: '50%',
+          transform: 'translateY(-50%)', pointerEvents: 'none',
+          color: 'var(--c-text3)', display: 'flex',
+        }}>
+          <Icon size={17} strokeWidth={2} />
+        </div>
         <input
           className="input-field"
           type={isPassword && show ? 'text' : type}
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          style={{ paddingInlineStart: 44, paddingInlineEnd: isPassword ? 48 : 14 }}
+          style={{ paddingInlineStart: 42, paddingInlineEnd: isPassword ? 44 : 14 }}
           autoComplete={isPassword ? 'current-password' : type === 'email' ? 'email' : 'name'}
         />
         {isPassword && (
@@ -54,13 +58,13 @@ function InputField({ label, type = 'text', value, onChange, placeholder, icon }
             type="button"
             onClick={() => setShow(s => !s)}
             style={{
-              position: 'absolute', insetInlineEnd: 14, top: '50%',
+              position: 'absolute', insetInlineEnd: 13, top: '50%',
               transform: 'translateY(-50%)',
               background: 'none', border: 'none', cursor: 'pointer',
-              fontSize: 18, color: 'var(--c-text2)',
+              color: 'var(--c-text3)', display: 'flex', padding: 0,
             }}
           >
-            {show ? '🙈' : '👁️'}
+            {show ? <EyeOff size={17} strokeWidth={2} /> : <Eye size={17} strokeWidth={2} />}
           </button>
         )}
       </div>
@@ -122,55 +126,53 @@ export default function AuthPage() {
       flexDirection: 'column',
       background: 'var(--c-bg)',
     }}>
-      {/* Top gradient */}
+      {/* Brand mark */}
       <div style={{
-        background: 'linear-gradient(160deg, #0A2E1A 0%, #1B5E38 100%)',
-        padding: 'calc(var(--safe-top) + 48px) 24px 40px',
+        padding: 'calc(var(--safe-top) + 56px) 24px 32px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 12,
+        gap: 14,
       }}>
         <motion.div
-          initial={{ scale: 0.7, opacity: 0 }}
+          initial={{ scale: 0.85, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-          style={{ fontSize: 64 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+          style={{
+            width: 56, height: 56, borderRadius: 16,
+            background: 'var(--c-primary)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 8px 20px -6px rgba(6,118,71,0.45)',
+          }}
         >
-          💰
+          <Wallet size={27} color="white" strokeWidth={2} />
         </motion.div>
-        <motion.h1
-          initial={{ opacity: 0, y: 10 }}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          style={{ fontSize: 30, fontWeight: 800, color: 'white', letterSpacing: -0.5 }}
+          transition={{ delay: 0.12 }}
+          style={{ textAlign: 'center' }}
         >
-          תקציב חכם
-        </motion.h1>
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.65 }}
-          transition={{ delay: 0.25 }}
-          style={{ color: 'white', fontSize: 14 }}
-        >
-          Smart Budget
-        </motion.p>
+          <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.6 }}>תקציב חכם</h1>
+          <p style={{ color: 'var(--c-text2)', fontSize: 13.5, marginTop: 3 }}>
+            ניהול תקציב משותף, פשוט וברור
+          </p>
+        </motion.div>
       </div>
 
       {/* Card */}
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ type: 'spring', stiffness: 280, damping: 26, delay: 0.1 }}
+        transition={{ type: 'spring', stiffness: 280, damping: 28, delay: 0.08 }}
         style={{
           flex: 1,
           background: 'var(--c-card)',
-          borderRadius: 'var(--r-xl) var(--r-xl) 0 0',
-          marginTop: -20,
-          padding: '28px 24px',
+          borderTop: '1px solid var(--c-border)',
+          padding: '26px 20px',
           display: 'flex',
           flexDirection: 'column',
-          gap: 20,
+          gap: 18,
         }}
       >
         {/* Invite banner */}
@@ -179,22 +181,28 @@ export default function AuthPage() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             style={{
-              background: 'linear-gradient(135deg, #DCFCE7, #BBF7D0)',
-              border: '1.5px solid #86EFAC',
-              borderRadius: 'var(--r-lg)',
-              padding: '14px 16px',
+              background: 'var(--c-primary-light)',
+              border: '1px solid #A6F4C5',
+              borderRadius: 'var(--r-md)',
+              padding: '13px 14px',
               display: 'flex',
               alignItems: 'center',
-              gap: 12,
+              gap: 11,
             }}
           >
-            <span style={{ fontSize: 28 }}>🏠</span>
+            <div style={{
+              width: 34, height: 34, borderRadius: 9, flexShrink: 0,
+              background: 'white', color: 'var(--c-primary)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Home size={17} strokeWidth={2} />
+            </div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: '#14532D' }}>
-                הוזמנת להצטרף למשק בית!
+              <div style={{ fontWeight: 600, fontSize: 13.5, color: '#054F31' }}>
+                הוזמנת להצטרף למשק בית
               </div>
-              <div style={{ fontSize: 12, color: '#166534', marginTop: 2 }}>
-                קוד: <strong style={{ letterSpacing: 2 }}>{inviteFromURL}</strong> — הירשם/י כדי להצטרף
+              <div style={{ fontSize: 12, color: '#067647', marginTop: 2 }}>
+                קוד: <strong style={{ letterSpacing: 1.5 }}>{inviteFromURL}</strong> — הירשם/י כדי להצטרף
               </div>
             </div>
           </motion.div>
@@ -232,7 +240,7 @@ export default function AuthPage() {
                 value={name}
                 onChange={setName}
                 placeholder="ישראל ישראלי"
-                icon="👤"
+                icon={User}
               />
             )}
             <InputField
@@ -241,7 +249,7 @@ export default function AuthPage() {
               value={email}
               onChange={setEmail}
               placeholder="you@example.com"
-              icon="✉️"
+              icon={Mail}
             />
             <InputField
               label="סיסמא"
@@ -249,7 +257,7 @@ export default function AuthPage() {
               value={password}
               onChange={setPassword}
               placeholder="לפחות 6 תווים"
-              icon="🔒"
+              icon={Lock}
             />
             {mode === 'register' && (
               <InputField
@@ -258,7 +266,7 @@ export default function AuthPage() {
                 value={confirm}
                 onChange={setConfirm}
                 placeholder="הכנס שוב את הסיסמא"
-                icon="🔒"
+                icon={Lock}
               />
             )}
           </motion.div>
@@ -300,7 +308,7 @@ export default function AuthPage() {
         >
           {loading
             ? '...'
-            : mode === 'login' ? '🔑 כניסה' : '✨ יצירת חשבון'
+            : mode === 'login' ? 'כניסה' : 'יצירת חשבון'
           }
         </motion.button>
 

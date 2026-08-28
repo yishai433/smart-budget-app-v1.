@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '../contexts/AppContext'
 import ReceiptScanner from '../components/ReceiptScanner'
 import { receiptName } from '../utils/receiptOCR'
+import { Lock, Plus } from 'lucide-react'
 
 const HEBREW_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const EN_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
@@ -260,7 +261,7 @@ export default function ReceiptsPage() {
     return (
       <div className="page">
         <div className="empty-state" style={{ paddingTop: 120 }}>
-          <div className="empty-icon">🔒</div>
+          <div className="empty-icon"><Lock size={22} strokeWidth={1.8} /></div>
           <h3>מנוי פרו</h3>
           <p>סריקת חשבוניות זמינה למנויי פרו בלבד — בקרוב!</p>
         </div>
@@ -280,24 +281,22 @@ export default function ReceiptsPage() {
     <div className="page">
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h1 style={{ fontSize: 28, fontWeight: 800 }}>🧾 {t('receipts.title')}</h1>
+          <div>
+            <p className="page-eyebrow">
+              {receipts.length > 0
+                ? `${receipts.length} חשבוניות שמורות`
+                : t('receipts.noReceiptsHint')}
+            </p>
+            <h1 className="page-title">{t('receipts.title')}</h1>
+          </div>
           <button
             onClick={() => setShowScanner(true)}
-            style={{
-              background: 'rgba(255,255,255,0.2)',
-              border: 'none', borderRadius: 20,
-              padding: '8px 16px',
-              color: 'white', fontSize: 14, fontWeight: 600,
-              cursor: 'pointer',
-            }}
+            className="btn btn-primary"
+            style={{ padding: '9px 16px', fontSize: 13.5 }}
           >
-            + {t('receipts.scan')}
+            <Plus size={16} strokeWidth={2.4} />
+            {t('receipts.scan')}
           </button>
-        </div>
-        <div style={{ marginTop: 6, fontSize: 13, opacity: 0.7 }}>
-          {receipts.length > 0
-            ? `${receipts.length} חשבוניות שמורות`
-            : t('receipts.noReceiptsHint')}
         </div>
       </div>
 
