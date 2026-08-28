@@ -117,7 +117,7 @@ function SwipeableRow({ tx, onDelete, onOpenDetail, t, catDef, cur }) {
         <div dir="ltr" className="num" style={{
           fontWeight: 600,
           fontSize: 15,
-          color: tx.type === 'income' ? 'var(--c-success)' : 'var(--c-text)',
+          color: tx.type === 'income' ? 'var(--c-success)' : 'var(--c-danger)',
           letterSpacing: -0.2,
           flexShrink: 0,
         }}>
@@ -304,7 +304,7 @@ function TransactionDetailSheet({ tx, catDef, cur, t, onDelete, onEdit, onClose 
             }}>
               <div dir="ltr" className="num" style={{
                 fontSize: 30, fontWeight: 700, letterSpacing: -1,
-                color: isIncome ? 'var(--c-success)' : 'var(--c-text)',
+                color: isIncome ? 'var(--c-success)' : 'var(--c-danger)',
               }}>
                 {formatMoney(tx.amount, tx.type, cur)}
               </div>

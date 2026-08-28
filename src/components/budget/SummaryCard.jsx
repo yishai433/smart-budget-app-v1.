@@ -61,7 +61,7 @@ function StateRing({ pct }) {
   )
 }
 
-function Kpi({ icon: Icon, label, children, tint, color }) {
+function Kpi({ icon: Icon, label, children, tint, color, valueColor }) {
   return (
     <div className="kpi">
       <div className="kpi-chip" style={{ background: tint, color }}>
@@ -69,7 +69,7 @@ function Kpi({ icon: Icon, label, children, tint, color }) {
       </div>
       <div>
         <div className="kpi-label">{label}</div>
-        <div className="kpi-value" dir="ltr" style={{ color: 'var(--c-text)', textAlign: 'start', marginTop: 2 }}>
+        <div className="kpi-value" dir="ltr" style={{ color: valueColor || 'var(--c-text)', textAlign: 'start', marginTop: 2 }}>
           {children}
         </div>
       </div>
@@ -139,14 +139,14 @@ export default function SummaryCard() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.08, type: 'spring', stiffness: 280, damping: 28 }}
       >
-        <Kpi icon={ArrowDownLeft} label={t('budget.income')} tint="var(--c-success-light)" color="var(--c-success)">
+        <Kpi icon={ArrowDownLeft} label={t('budget.income')} tint="var(--c-success-light)" color="var(--c-success)" valueColor="var(--c-success)">
           {money(totalIncome)}
         </Kpi>
-        <Kpi icon={ArrowUpRight} label={t('budget.expenses')} tint="var(--c-danger-light)" color="var(--c-danger)">
+        <Kpi icon={ArrowUpRight} label={t('budget.expenses')} tint="var(--c-danger-light)" color="var(--c-danger)" valueColor="var(--c-danger)">
           {money(totalExpenses)}
         </Kpi>
-        <Kpi icon={Wallet} label={lang === 'he' ? 'חיסכון' : 'Saved'} tint="var(--c-primary-light)" color="var(--c-primary)">
-          <span style={{ color: savingsRate >= 0 ? 'var(--c-primary)' : 'var(--c-danger)' }}>{savingsRate}%</span>
+        <Kpi icon={Wallet} label={lang === 'he' ? 'חיסכון' : 'Saved'} tint="var(--c-primary-light)" color="var(--c-primary)" valueColor={savingsRate >= 0 ? 'var(--c-primary)' : 'var(--c-danger)'}>
+          {savingsRate}%
         </Kpi>
       </motion.div>
 

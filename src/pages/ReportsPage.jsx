@@ -184,7 +184,7 @@ export default function ReportsPage() {
             {[
               { label: lang==='he'?'הכנסות':'Income',   val: formatAmount(income, cur),   c: '#32D583' },
               { label: lang==='he'?'הוצאות':'Expenses', val: formatAmount(expenses, cur), c: '#FDA29B' },
-              { label: lang==='he'?'חיסכון':'Saved',    val: `${savingsRate}%`,           c: 'white' },
+              { label: lang==='he'?'חיסכון':'Saved',    val: `${savingsRate}%`,           c: '#32D583' },
             ].map((s, i) => (
               <div key={s.label} style={{
                 flex: 1, textAlign: 'center',
@@ -361,7 +361,7 @@ export default function ReportsPage() {
                         {tx.date}
                       </div>
                     </div>
-                    <div dir="ltr" className="num" style={{ fontWeight:600, fontSize: 14.5 }}>
+                    <div dir="ltr" className="num" style={{ fontWeight:600, fontSize: 14.5, color: 'var(--c-danger)' }}>
                       {formatMoney(tx.amount, 'expense', cur)}
                     </div>
                   </motion.div>
