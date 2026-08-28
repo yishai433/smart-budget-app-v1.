@@ -249,11 +249,11 @@ export default function ShoppingList({ onCheckout }) {
               {checkedCount}/{shoppingItems.length} {t('shopping.myList')}
             </div>
           </div>
-          <div style={{ marginTop: 14, height: 5, background: 'rgba(255,255,255,0.12)', borderRadius: 999, overflow: 'hidden' }}>
+          <div style={{ marginTop: 14, height: 5, background: 'rgba(34,31,15,0.14)', borderRadius: 999, overflow: 'hidden' }}>
             <motion.div
               animate={{ width: shoppingItems.length ? `${(checkedCount / shoppingItems.length) * 100}%` : '0%' }}
               transition={{ type: 'spring', stiffness: 200, damping: 26 }}
-              style={{ height: '100%', background: 'var(--c-primary-mid)', borderRadius: 999 }}
+              style={{ height: '100%', background: 'var(--c-ink-text)', borderRadius: 999 }}
             />
           </div>
         </div>

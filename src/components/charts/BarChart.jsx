@@ -10,8 +10,8 @@ import {
 } from 'recharts'
 import { formatAmount } from '../../utils/format'
 
-const INC = '#12B76A'
-const EXP = '#F04438'
+const INC = '#7a8a5e'
+const EXP = '#c67139'
 
 function ChartTooltip({ active, payload, label, currency, lang }) {
   if (!active || !payload?.length) return null

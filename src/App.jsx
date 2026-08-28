@@ -22,19 +22,19 @@ class ErrorBoundary extends Component {
         <div style={{
           minHeight: '100dvh', display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
-          padding: 24, background: '#F2F2F7', gap: 16, textAlign: 'center',
+          padding: 24, background: '#f5ead8', gap: 16, textAlign: 'center',
         }}>
           <div style={{ fontSize: 48 }}>⚠️</div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1C1C1E' }}>משהו השתבש</h2>
-          <p style={{ fontSize: 13, color: '#6C6C70', maxWidth: 280 }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#201e1d' }}>משהו השתבש</h2>
+          <p style={{ fontSize: 13, color: '#6b6255', maxWidth: 280 }}>
             {this.state.error?.message || 'שגיאה לא ידועה'}
           </p>
           <button
             onClick={() => { this.setState({ error: null }); window.location.hash = '/' }}
             style={{
-              background: '#16A349', color: 'white', border: 'none',
-              borderRadius: 32, padding: '12px 28px', fontSize: 15,
-              fontWeight: 600, cursor: 'pointer',
+              background: '#c67139', color: '#fff8f0', border: 'none',
+              borderRadius: 999, padding: '12px 28px', fontSize: 15,
+              fontWeight: 700, cursor: 'pointer',
             }}
           >חזור לדף הבית</button>
         </div>
@@ -44,8 +44,8 @@ class ErrorBoundary extends Component {
   }
 }
 
-// Tab order matches BottomNav visual order (RTL: settings→receipts→shopping→reports→budget)
-const TAB_ORDER = ['/', '/reports', '/shopping', '/receipts', '/settings']
+// Tab order matches BottomNav visual order (RTL, rightmost→leftmost: settings→shopping→receipts→reports→budget)
+const TAB_ORDER = ['/settings', '/shopping', '/receipts', '/reports', '/']
 const SLIDE_X = 28
 
 function AnimatedRoutes() {
@@ -94,8 +94,8 @@ function LoadingScreen() {
       minHeight: '100dvh',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      background: 'radial-gradient(circle at 50% 34%, #1B5E38 0%, #0A2E1A 72%)',
-      color: 'white',
+      background: 'radial-gradient(circle at 50% 34%, #8fa073 0%, #56633f 72%)',
+      color: '#fff8f0',
       position: 'relative', overflow: 'hidden',
     }}>
       {/* Soft glow behind the logo */}
@@ -106,7 +106,7 @@ function LoadingScreen() {
         style={{
           position: 'absolute',
           width: 300, height: 300, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(52,199,89,0.35) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(198,113,57,0.35) 0%, transparent 70%)',
           filter: 'blur(24px)',
         }}
       />
@@ -117,10 +117,10 @@ function LoadingScreen() {
         animate={{ scale: 1, opacity: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 260, damping: 20 }}
         style={{
-          width: 96, height: 96, borderRadius: 26,
-          background: 'linear-gradient(145deg, #22C55E 0%, #16A349 100%)',
+          width: 96, height: 96, borderRadius: 32,
+          background: 'linear-gradient(145deg, #c67139 0%, #8c491a 100%)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 12px 40px rgba(22,163,73,0.45)',
+          boxShadow: '0 12px 40px rgba(140,73,26,0.45)',
           position: 'relative', zIndex: 1,
         }}
       >
@@ -128,7 +128,7 @@ function LoadingScreen() {
           animate={{ scale: [1, 1.08, 1] }}
           transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
         >
-          <Wallet size={46} color="white" strokeWidth={2} />
+          <Wallet size={46} color="#fff8f0" strokeWidth={2} />
         </motion.div>
       </motion.div>
 
@@ -136,11 +136,11 @@ function LoadingScreen() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
-        style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.5, marginTop: 26, zIndex: 1 }}
+        style={{ fontFamily: "'Caprasimo', 'Figtree', sans-serif", fontSize: 30, fontWeight: 400, letterSpacing: 0, marginTop: 26, zIndex: 1 }}
       >תקציב חכם</motion.h1>
       <motion.div
         initial={{ opacity: 0 }}
-        animate={{ opacity: 0.6 }}
+        animate={{ opacity: 0.75 }}
         transition={{ delay: 0.4 }}
         style={{ fontSize: 13, letterSpacing: 3, marginTop: 5, zIndex: 1 }}
       >SMART BUDGET</motion.div>
@@ -152,7 +152,7 @@ function LoadingScreen() {
             key={i}
             animate={{ opacity: [0.3, 1, 0.3], y: [0, -5, 0] }}
             transition={{ duration: 1, repeat: Infinity, delay: i * 0.18, ease: 'easeInOut' }}
-            style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(255,255,255,0.9)' }}
+            style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(255,248,240,0.9)' }}
           />
         ))}
       </div>

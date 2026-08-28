@@ -97,7 +97,7 @@ export default function UserAvatar() {
             </div>
           </div>
           <span style={{
-            fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.85)',
+            fontSize: 10, fontWeight: 600, color: 'var(--c-text2)',
             maxWidth: 72, textAlign: 'center',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
@@ -111,7 +111,7 @@ export default function UserAvatar() {
           </div>
           {myName && (
             <span style={{
-              fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.85)',
+              fontSize: 11, fontWeight: 600, color: 'var(--c-text2)',
               maxWidth: 64, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
               {myName}

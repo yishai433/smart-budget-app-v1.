@@ -325,8 +325,8 @@ export default function SettingsPage() {
               </div>
               {members.length > 1 && (
                 <div style={{
-                  background: 'rgba(22,163,73,0.12)', color: 'var(--c-primary)',
-                  fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20,
+                  background: 'var(--c-accent2-light)', color: 'var(--c-accent2-dark)',
+                  fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 999,
                 }}>פעיל</div>
               )}
             </div>
@@ -429,32 +429,32 @@ export default function SettingsPage() {
             <AnimatePresence>
               {joinResult === 'ok' && (
                 <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                  style={{ background: 'rgba(22,163,73,0.1)', borderRadius: 'var(--r-md)', padding: '10px 14px',
-                    fontSize: 13, color: 'var(--c-primary)', fontWeight: 600 }}>
+                  style={{ background: 'var(--c-accent2-light)', borderRadius: 'var(--r-md)', padding: '10px 14px',
+                    fontSize: 13, color: 'var(--c-accent2-dark)', fontWeight: 600 }}>
                   ✅ הצטרפת בהצלחה! כל הנתונים משותפים כעת
                 </motion.div>
               )}
               {joinResult === 'error' && (
                 <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                  style={{ background: 'rgba(217,107,107,0.1)', borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 13, color: 'var(--c-danger)', fontWeight: 600 }}>
+                  style={{ background: 'var(--c-danger-light)', borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 13, color: 'var(--c-danger)', fontWeight: 600 }}>
                   ❌ קוד לא נמצא — בדוק שוב
                 </motion.div>
               )}
               {joinResult === 'used' && (
                 <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                  style={{ background: 'rgba(217,107,107,0.1)', borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 13, color: 'var(--c-danger)', fontWeight: 600 }}>
+                  style={{ background: 'var(--c-danger-light)', borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 13, color: 'var(--c-danger)', fontWeight: 600 }}>
                   ❌ קוד זה כבר נוצל — בקש קוד חדש
                 </motion.div>
               )}
               {joinResult === 'expired' && (
                 <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                  style={{ background: 'rgba(255,149,0,0.1)', borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 13, color: 'var(--c-warning)', fontWeight: 600 }}>
+                  style={{ background: 'rgba(178,98,45,0.12)', borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 13, color: 'var(--c-warning)', fontWeight: 600 }}>
                   ⏰ הקוד פג תוקף — בקש קוד חדש
                 </motion.div>
               )}
               {joinResult === 'self' && (
                 <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                  style={{ background: 'rgba(255,149,0,0.1)', borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 13, color: 'var(--c-warning)', fontWeight: 600 }}>
+                  style={{ background: 'rgba(178,98,45,0.12)', borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 13, color: 'var(--c-warning)', fontWeight: 600 }}>
                   זה הקוד שלך — הזן את הקוד שקיבלת מבן/בת הזוג
                 </motion.div>
               )}

@@ -291,7 +291,7 @@ export default function AddTransaction({ onClose }) {
           </AnimatePresence>
 
           {error && (
-            <div style={{ background: 'rgba(217,107,107,0.12)', color: 'var(--c-danger)',
+            <div style={{ background: 'var(--c-danger-light)', color: 'var(--c-danger)',
               borderRadius: 'var(--r-md)', padding: '12px 16px', fontSize: 13, fontWeight: 500, textAlign: 'center' }}>
               {error}
             </div>

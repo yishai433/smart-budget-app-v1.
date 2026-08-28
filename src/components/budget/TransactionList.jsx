@@ -115,9 +115,9 @@ function SwipeableRow({ tx, onDelete, onOpenDetail, t, catDef, cur }) {
           </div>
         </div>
         <div dir="ltr" className="num" style={{
-          fontWeight: 600,
+          fontWeight: 700,
           fontSize: 15,
-          color: tx.type === 'income' ? 'var(--c-success)' : 'var(--c-danger)',
+          color: tx.type === 'income' ? 'var(--c-success)' : 'var(--c-text)',
           letterSpacing: -0.2,
           flexShrink: 0,
         }}>
@@ -392,7 +392,7 @@ export default function TransactionList({ filter = 'all' }) {
           <div className="section-label" style={{ padding: '6px 20px 8px' }}>
             {formatMonthKey(monthKey, lang)}
           </div>
-          <div style={{ margin: '0 16px' }} className="card-list">
+          <div style={{ margin: '0 16px' }}>
             <AnimatePresence initial={false}>
               {txs.map((tx, i) => {
                 const catDef = getCatDef(tx)
@@ -404,7 +404,7 @@ export default function TransactionList({ filter = 'all' }) {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ delay: Math.min(i, 8) * 0.03, duration: 0.22 }}
-                    style={{ borderBottom: i < txs.length - 1 ? '1px solid var(--c-sep)' : 'none' }}
+                    style={{ borderBottom: i < txs.length - 1 ? '1px solid var(--c-sep)' : 'none', background: 'transparent' }}
                   >
                     <SwipeableRow
                       tx={tx}

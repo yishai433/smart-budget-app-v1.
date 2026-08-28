@@ -37,11 +37,11 @@ function StateRing({ pct }) {
   const C = 2 * Math.PI * R
   const clamped = Math.max(0, Math.min(100, pct))
   const over = pct > 100
-  const stroke = over ? '#F97066' : '#32D583'
+  const stroke = over ? '#a8461f' : '#221f0f'
   return (
     <div style={{ position: 'relative', width: 64, height: 64, flexShrink: 0 }}>
       <svg width="64" height="64" style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx="32" cy="32" r={R} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="6" />
+        <circle cx="32" cy="32" r={R} fill="none" stroke="rgba(34,31,15,0.15)" strokeWidth="6" />
         <motion.circle
           cx="32" cy="32" r={R} fill="none" stroke={stroke} strokeWidth="6" strokeLinecap="round"
           strokeDasharray={C}
@@ -53,7 +53,7 @@ function StateRing({ pct }) {
       <div style={{
         position: 'absolute', inset: 0, display: 'flex',
         alignItems: 'center', justifyContent: 'center',
-        fontSize: 13, fontWeight: 700, color: 'white',
+        fontSize: 13, fontWeight: 700, color: 'var(--c-ink-text)',
       }} className="num">
         {clamped}%
       </div>
@@ -107,7 +107,7 @@ export default function SummaryCard() {
               {lang === 'he' ? 'נשאר החודש' : 'Left this month'}
             </div>
             <div dir="ltr" className="t-display" style={{
-              color: positive ? 'var(--c-ink-text)' : '#FDA29B',
+              color: positive ? 'var(--c-ink-text)' : '#a8461f',
               marginTop: 8, textAlign: 'start',
             }}>
               <span className="cur" style={{ fontSize: 24 }}>{positive ? '' : '−'}{cur}</span>
@@ -124,10 +124,10 @@ export default function SummaryCard() {
           fontSize: 13, color: 'var(--c-ink-text2)',
         }}>
           <span className="num" style={{ direction: 'rtl' }}>
-            {lang === 'he' ? 'הוצאת' : 'Spent'} <b style={{ color: '#FDA29B', fontWeight: 600 }}>{money(totalExpenses)}</b>
+            {lang === 'he' ? 'הוצאת' : 'Spent'} <b style={{ color: 'var(--c-ink-text)', fontWeight: 700 }}>{money(totalExpenses)}</b>
           </span>
           <span className="num" style={{ direction: 'rtl' }}>
-            {lang === 'he' ? 'מתוך' : 'of'} <b style={{ color: 'white', fontWeight: 600 }}>{money(totalIncome)}</b>
+            {lang === 'he' ? 'מתוך' : 'of'} <b style={{ color: 'var(--c-ink-text)', fontWeight: 700 }}>{money(totalIncome)}</b>
           </span>
         </div>
       </motion.div>
@@ -139,14 +139,14 @@ export default function SummaryCard() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.08, type: 'spring', stiffness: 280, damping: 28 }}
       >
-        <Kpi icon={ArrowDownLeft} label={t('budget.income')} tint="var(--c-success-light)" color="var(--c-success)" valueColor="var(--c-success)">
-          {money(totalIncome)}
+        <Kpi icon={Wallet} label={lang === 'he' ? 'חיסכון' : 'Saved'} tint="var(--c-accent2-light)" color="var(--c-accent2-dark)" valueColor={savingsRate >= 0 ? 'var(--c-accent2-dark)' : 'var(--c-danger)'}>
+          {savingsRate}%
         </Kpi>
-        <Kpi icon={ArrowUpRight} label={t('budget.expenses')} tint="var(--c-danger-light)" color="var(--c-danger)" valueColor="var(--c-danger)">
+        <Kpi icon={ArrowUpRight} label={t('budget.expenses')} tint="var(--c-bg)" color="var(--c-text2)" valueColor="var(--c-text)">
           {money(totalExpenses)}
         </Kpi>
-        <Kpi icon={Wallet} label={lang === 'he' ? 'חיסכון' : 'Saved'} tint="var(--c-primary-light)" color="var(--c-primary)" valueColor={savingsRate >= 0 ? 'var(--c-primary)' : 'var(--c-danger)'}>
-          {savingsRate}%
+        <Kpi icon={ArrowDownLeft} label={t('budget.income')} tint="var(--c-accent2-light)" color="var(--c-accent2-dark)" valueColor="var(--c-accent2-dark)">
+          {money(totalIncome)}
         </Kpi>
       </motion.div>
 

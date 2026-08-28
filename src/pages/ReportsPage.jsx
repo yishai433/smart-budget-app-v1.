@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { useApp } from '../contexts/AppContext'
-import DonutChart from '../components/charts/DonutChart'
 import BarChart from '../components/charts/BarChart'
 import UserAvatar from '../components/UserAvatar'
 import { formatMoney, formatAmount, formatNumber } from '../utils/format'
@@ -140,8 +139,8 @@ export default function ReportsPage() {
               onClick={() => setSelectedIdx(i => Math.max(0, i - 1))}
               disabled={atStart}
               style={{
-                width: 30, height: 30, borderRadius: 8, border: 'none', cursor: 'pointer',
-                background: 'rgba(255,255,255,0.08)', color: 'white',
+                width: 30, height: 30, borderRadius: 999, border: 'none', cursor: 'pointer',
+                background: 'rgba(34,31,15,0.10)', color: 'var(--c-ink-text)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 opacity: atStart ? 0.3 : 1,
               }}
@@ -149,13 +148,13 @@ export default function ReportsPage() {
             >
               {lang === 'he' ? <ChevronRight size={17} /> : <ChevronLeft size={17} />}
             </button>
-            <span style={{ fontWeight: 600, fontSize: 14, color: 'white' }}>{monthTitle}</span>
+            <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--c-ink-text)' }}>{monthTitle}</span>
             <button
               onClick={() => setSelectedIdx(i => Math.min(months.length - 1, i + 1))}
               disabled={atEnd}
               style={{
-                width: 30, height: 30, borderRadius: 8, border: 'none', cursor: 'pointer',
-                background: 'rgba(255,255,255,0.08)', color: 'white',
+                width: 30, height: 30, borderRadius: 999, border: 'none', cursor: 'pointer',
+                background: 'rgba(34,31,15,0.10)', color: 'var(--c-ink-text)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 opacity: atEnd ? 0.3 : 1,
               }}
@@ -170,7 +169,7 @@ export default function ReportsPage() {
             {lang==='he'?'יתרה':'Balance'}
           </div>
           <div dir="ltr" className="t-display" style={{
-            color: balance >= 0 ? 'white' : '#FDA29B', textAlign: 'center', marginTop: 6,
+            color: balance >= 0 ? 'var(--c-ink-text)' : '#a8461f', textAlign: 'center', marginTop: 6,
           }}>
             <span className="cur" style={{ fontSize: 22 }}>{balance < 0 ? '−' : ''}{cur}</span>
             {formatNumber(balance)}
@@ -182,9 +181,9 @@ export default function ReportsPage() {
             borderTop: '1px solid var(--c-ink-line)',
           }}>
             {[
-              { label: lang==='he'?'הכנסות':'Income',   val: formatAmount(income, cur),   c: '#32D583' },
-              { label: lang==='he'?'הוצאות':'Expenses', val: formatAmount(expenses, cur), c: '#FDA29B' },
-              { label: lang==='he'?'חיסכון':'Saved',    val: `${savingsRate}%`,           c: '#32D583' },
+              { label: lang==='he'?'הכנסות':'Income',   val: formatAmount(income, cur),   c: 'var(--c-ink-text)' },
+              { label: lang==='he'?'הוצאות':'Expenses', val: formatAmount(expenses, cur), c: 'var(--c-ink-text)' },
+              { label: lang==='he'?'חיסכון':'Saved',    val: `${savingsRate}%`,           c: 'var(--c-ink-text)' },
             ].map((s, i) => (
               <div key={s.label} style={{
                 flex: 1, textAlign: 'center',
@@ -199,14 +198,54 @@ export default function ReportsPage() {
           </div>
         </motion.div>
 
-        {/* 3 — Expenses by category */}
+        {/* 3 — Expenses by category — bar list, per approved design */}
         {donutSegments.length > 0 ? (
           <SectionCard title={lang==='he'?'הוצאות לפי קטגוריה':'Expenses by category'}>
-            <DonutChart
-              segments={donutSegments}
-              currency={cur}
-              centerLabel={lang==='he'?'סה״כ':'Total'}
-            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {donutSegments.map((seg, i) => {
+                const pct = expenses > 0 ? (seg.value / expenses) * 100 : 0
+                return (
+                  <motion.div
+                    key={seg.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05, duration: 0.25 }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+                      <div style={{
+                        width: 30, height: 30, borderRadius: 999, flexShrink: 0,
+                        background: seg.color + '14', color: seg.color,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <CategoryIcon id={seg.id} size={16} strokeWidth={2} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+                          <span style={{ fontSize: 14, fontWeight: 500 }}>{seg.label}</span>
+                          <span dir="ltr" className="num" style={{ fontSize: 14, fontWeight: 700 }}>
+                            {formatAmount(seg.value, cur)}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7 }}>
+                          <div className="progress-bar" style={{ flex: 1, height: 4 }}>
+                            <motion.div
+                              className="progress-fill"
+                              style={{ background: seg.color }}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${pct}%` }}
+                              transition={{ duration: 0.65, delay: i * 0.05, ease: 'easeOut' }}
+                            />
+                          </div>
+                          <span className="num" style={{ fontSize: 11.5, color: 'var(--c-text3)', fontWeight: 500, minWidth: 30, textAlign: 'end' }}>
+                            {Math.round(pct)}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </div>
           </SectionCard>
         ) : (
           <div className="card">

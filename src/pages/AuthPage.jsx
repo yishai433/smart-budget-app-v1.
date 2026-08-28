@@ -198,10 +198,10 @@ export default function AuthPage() {
               <Home size={17} strokeWidth={2} />
             </div>
             <div>
-              <div style={{ fontWeight: 600, fontSize: 13.5, color: '#054F31' }}>
+              <div style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--c-primary-dark)' }}>
                 הוזמנת להצטרף למשק בית
               </div>
-              <div style={{ fontSize: 12, color: '#067647', marginTop: 2 }}>
+              <div style={{ fontSize: 12, color: 'var(--c-primary)', marginTop: 2 }}>
                 קוד: <strong style={{ letterSpacing: 1.5 }}>{inviteFromURL}</strong> — הירשם/י כדי להצטרף
               </div>
             </div>
