@@ -40,7 +40,7 @@ function StateRing({ pct }) {
   const C = 2 * Math.PI * R
   const clamped = Math.max(0, Math.min(100, pct))
   const over = pct > 100
-  const stroke = over ? '#a8461f' : '#221f0f'
+  const stroke = over ? 'var(--c-danger)' : '#221f0f'
   return (
     <div style={{ position: 'relative', width: 64, height: 64, flexShrink: 0 }}>
       <svg width="64" height="64" style={{ transform: 'rotate(-90deg)' }}>
@@ -285,7 +285,7 @@ export default function SummaryCard() {
                 : (lang === 'he' ? 'הוצאנו החודש' : 'Spent this month')}
             </div>
             <div dir="ltr" className="t-display" style={{
-              color: overBudget ? '#a8461f' : 'var(--c-ink-text)',
+              color: overBudget ? 'var(--c-danger)' : 'var(--c-ink-text)',
               marginTop: 8, textAlign: 'start',
             }}>
               <span className="cur" style={{ fontSize: 24 }}>{overBudget ? '−' : ''}{cur}</span>

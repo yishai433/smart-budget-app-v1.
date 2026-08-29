@@ -18,8 +18,8 @@
   --c-header-end:    #7a8a5e;
 
   /* Semantic — the Organic design has no true red; income = accent-2, expense = neutral text, delete = deep rust */
-  --c-danger:        #a8461f;
-  --c-danger-light:  #f7e0d3;
+  --c-danger:        #D94949;
+  --c-danger-light:  #fbe5e5;
   --c-success:       #56633f;
   --c-success-light: #eaf0e0;
   --c-warning:       #b2622d;

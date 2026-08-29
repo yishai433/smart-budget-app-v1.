@@ -117,7 +117,7 @@ function SwipeableRow({ tx, onDelete, onOpenDetail, t, catDef, cur }) {
         <div dir="ltr" className="num" style={{
           fontWeight: 700,
           fontSize: 15,
-          color: tx.type === 'income' ? 'var(--c-success)' : 'var(--c-text)',
+          color: tx.type === 'income' ? 'var(--c-success)' : '#D94949',
           letterSpacing: -0.2,
           flexShrink: 0,
         }}>
