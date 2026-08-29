@@ -8,6 +8,7 @@ import ShoppingPage from './pages/ShoppingPage'
 import SettingsPage from './pages/SettingsPage'
 import AddTransaction from './components/budget/AddTransaction'
 import AuthPage from './pages/AuthPage'
+import OnboardingIntro from './pages/OnboardingIntro'
 import ReportsPage from './pages/ReportsPage'
 import ReceiptsPage from './pages/ReceiptsPage'
 import AvatarCreator from './components/AvatarCreator'
@@ -187,6 +188,7 @@ function AppInner() {
   const { loading, user } = useApp()
   const [showAdd, setShowAdd] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [showIntro, setShowIntro] = useState(() => !localStorage.getItem('sb_intro_seen'))
   const [globalToast, setGlobalToast] = useState('')
 
   useEffect(() => {
@@ -249,8 +251,18 @@ function AppInner() {
 
   if (loading) return <LoadingScreen />
 
-  // Not logged in → show auth screen
-  if (!user) return <AuthPage />
+  // Not logged in → feature walkthrough first (once), then auth screen
+  if (!user) {
+    if (showIntro) {
+      return (
+        <OnboardingIntro onFinish={() => {
+          localStorage.setItem('sb_intro_seen', '1')
+          setShowIntro(false)
+        }} />
+      )
+    }
+    return <AuthPage />
+  }
 
   // New user → avatar onboarding
   if (showOnboarding) {
