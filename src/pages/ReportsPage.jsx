@@ -117,7 +117,7 @@ export default function ReportsPage() {
 
         {/* 1 — Income vs expenses trend, now the first thing on the page */}
         <SectionCard
-          title={lang==='he'?'טרנד 6 חודשים':'6-month trend'}
+          title={lang==='he'?'גרפים':'Graphs'}
           subtitle={lang==='he'?'לחץ על חודש לפירוט':'Tap a month for details'}
         >
           <BarChart
