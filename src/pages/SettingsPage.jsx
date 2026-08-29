@@ -42,8 +42,10 @@ function Toggle({ checked, onChange }) {
 export default function SettingsPage() {
   const { t } = useTranslation()
   const { settings, changeLanguage, updateSettings, household, user, activeHouseholdId, logout, isPro } = useApp()
-  const { avatarConfig } = useApp()
+  const { avatarConfig, monthlyBudget, setMonthlyBudget } = useApp()
   const [editingAvatar, setEditingAvatar] = useState(false)
+  const [budgetInput, setBudgetInput] = useState(monthlyBudget != null ? String(monthlyBudget) : '')
+  const [savingBudget, setSavingBudget] = useState(false)
   const [joinCode, setJoinCode] = useState('')
   const [joining, setJoining] = useState(false)
   const [joinResult, setJoinResult] = useState(null)
@@ -51,6 +53,20 @@ export default function SettingsPage() {
   const [currentInvite, setCurrentInvite] = useState(null) // { code, expiresAt }
   const [creatingInvite, setCreatingInvite] = useState(false)
   const [notifPerm, setNotifPerm] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'default')
+
+  // Household loads asynchronously — sync the input once the budget arrives
+  useEffect(() => {
+    setBudgetInput(monthlyBudget != null ? String(monthlyBudget) : '')
+  }, [monthlyBudget])
+
+  const handleSaveBudget = async () => {
+    const val = parseFloat(budgetInput)
+    if (!(val > 0)) return
+    setSavingBudget(true)
+    await setMonthlyBudget(val)
+    setSavingBudget(false)
+    window.dispatchEvent(new CustomEvent('sb-toast', { detail: '✅ התקציב עודכן' }))
+  }
 
   // Load member profiles whenever household changes
   useEffect(() => {
@@ -235,6 +251,38 @@ export default function SettingsPage() {
                   {c}
                 </button>
               ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Monthly budget — shared household-wide */}
+        <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text2)', padding: '0 4px 8px', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+          תקציב חודשי
+        </h3>
+        <div className="card" style={{ marginBottom: 20 }}>
+          <div className="card-inner" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ fontSize: 12.5, color: 'var(--c-text2)' }}>
+              משותף למשק הבית — כמה מתכננים להוציא החודש הנוכחי
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                className="input-field"
+                type="text"
+                inputMode="decimal"
+                placeholder="0"
+                value={budgetInput}
+                onChange={e => setBudgetInput(e.target.value.replace(/[^0-9.]/g, ''))}
+                onKeyDown={e => e.key === 'Enter' && handleSaveBudget()}
+                style={{ textAlign: 'center', fontWeight: 700, fontSize: 16, flex: 1 }}
+              />
+              <button
+                className="btn btn-primary"
+                onClick={handleSaveBudget}
+                disabled={!(parseFloat(budgetInput) > 0) || savingBudget}
+                style={{ padding: '0 20px', flexShrink: 0, opacity: parseFloat(budgetInput) > 0 ? 1 : 0.45 }}
+              >
+                {savingBudget ? '⏳' : 'שמור'}
+              </button>
             </div>
           </div>
         </div>

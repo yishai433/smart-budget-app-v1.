@@ -467,11 +467,27 @@ export function AppProvider({ children }) {
   const totalExpenses = monthTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0)
   const balance = totalIncome - totalExpenses
 
+  // Shared household monthly budget — keyed by "YYYY-MM", editable from the
+  // Budget tab prompt or Settings. Stored on the household doc so both
+  // members see/set the same number.
+  const monthlyBudget = household?.monthlyBudgets?.[monthKey] ?? null
+
+  const setMonthlyBudget = useCallback(async (amount, key = monthKey) => {
+    if (!activeHouseholdId) return
+    setHousehold(h => h && ({ ...h, monthlyBudgets: { ...(h.monthlyBudgets || {}), [key]: amount } }))
+    try {
+      await updateDoc(doc(db, 'households', activeHouseholdId), { [`monthlyBudgets.${key}`]: amount })
+    } catch {
+      await setDoc(doc(db, 'households', activeHouseholdId), { monthlyBudgets: { [key]: amount } }, { merge: true })
+    }
+  }, [activeHouseholdId, monthKey])
+
   const value = {
     user, household, activeHouseholdId, loading, settings, isPro,
     avatarConfig, avatarUrl, saveAvatar, partnerProfile,
     transactions, monthTransactions,
-    totalIncome, totalExpenses, balance,
+    totalIncome, totalExpenses, balance, monthKey,
+    monthlyBudget, setMonthlyBudget,
     shoppingItems, CATEGORIES,
     receipts, addReceipt, deleteReceipt,
     addTransaction, deleteTransaction, updateTransaction,

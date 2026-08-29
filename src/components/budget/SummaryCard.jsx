@@ -182,25 +182,92 @@ function FilteredTransactionsSheet({ type, transactions, CATEGORIES, cur, total,
   ), document.body)
 }
 
+// Prompt asking for this month's budget — shown automatically when the
+// current month has no budget set yet.
+function BudgetPromptSheet({ lang, cur, onSave, onClose }) {
+  useScrollLock()
+  const [amountStr, setAmountStr] = useState('')
+  const actualAmount = parseFloat(amountStr) || 0
+
+  const handleSave = () => {
+    if (actualAmount <= 0) return
+    onSave(actualAmount)
+  }
+
+  return createPortal((
+    <>
+      <motion.div className="sheet-overlay"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      />
+      <div className="sheet-viewport">
+        <motion.div className="sheet"
+          initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+          transition={{ type: 'spring', stiffness: 380, damping: 36 }}
+        >
+          <div className="sheet-handle" />
+          <div className="sheet-header">
+            <h2 className="sheet-title">{lang === 'he' ? 'מה התקציב לחודש?' : "What's this month's budget?"}</h2>
+            {onClose && (
+              <button onClick={onClose} className="btn-icon" style={{ width: 32, height: 32 }}>
+                <X size={17} strokeWidth={2} />
+              </button>
+            )}
+          </div>
+          <div className="sheet-body" style={{ alignItems: 'center', textAlign: 'center' }}>
+            <p style={{ fontSize: 13.5, color: 'var(--c-text2)', lineHeight: 1.5 }}>
+              {lang === 'he'
+                ? 'קבעו כמה אתם מתכננים להוציא החודש — אפשר לשנות בכל רגע מההגדרות'
+                : "Set how much you plan to spend this month — you can change it anytime from Settings"}
+            </p>
+            <input
+              className="input-field"
+              type="text"
+              inputMode="decimal"
+              placeholder="0"
+              autoFocus
+              value={amountStr}
+              onChange={e => setAmountStr(e.target.value.replace(/[^0-9.]/g, ''))}
+              onKeyDown={e => e.key === 'Enter' && handleSave()}
+              style={{ textAlign: 'center', fontWeight: 800, fontSize: 26, width: '60%' }}
+            />
+          </div>
+          <div className="sheet-footer">
+            <button
+              className="btn btn-primary btn-full"
+              onClick={handleSave}
+              disabled={actualAmount <= 0}
+              style={{ opacity: actualAmount > 0 ? 1 : 0.45 }}
+            >
+              {lang === 'he' ? 'שמור תקציב' : 'Save budget'}
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    </>
+  ), document.body)
+}
+
 export default function SummaryCard() {
   const { t } = useTranslation()
-  const { totalIncome, totalExpenses, balance, settings, monthTransactions, CATEGORIES } = useApp()
+  const { totalIncome, totalExpenses, settings, monthTransactions, CATEGORIES, monthlyBudget, setMonthlyBudget } = useApp()
   const cur = settings.currency
   const lang = settings.language || 'he'
   const [filterOpen, setFilterOpen] = useState(null) // 'income' | 'expense' | null
+  const [budgetPromptDismissed, setBudgetPromptDismissed] = useState(false)
 
-  const positive = balance >= 0
-  const spentPct = totalIncome > 0
-    ? Math.round((totalExpenses / totalIncome) * 100)
+  const hasBudget = monthlyBudget != null
+  const spentPct = hasBudget && monthlyBudget > 0
+    ? Math.round((totalExpenses / monthlyBudget) * 100)
     : (totalExpenses > 0 ? 100 : 0)
-  const savingsRate = totalIncome > 0 ? Math.round((balance / totalIncome) * 100) : 0
+  const savingsRate = totalIncome > 0 ? Math.round(((totalIncome - totalExpenses) / totalIncome) * 100) : 0
+  const overBudget = hasBudget && totalExpenses > monthlyBudget
 
   const money = (v) => `${v < 0 ? '−' : ''}${formatAmount(v, cur)}`
 
   return (
     <div style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-      {/* Ink hero — balance is unmistakable in one second */}
+      {/* Ink hero — how much we've spent this month, unmistakable in one second */}
       <motion.div
         className="hero-ink"
         initial={{ opacity: 0, y: 14 }}
@@ -210,30 +277,29 @@ export default function SummaryCard() {
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
           <div style={{ minWidth: 0 }}>
             <div className="t-overline" style={{ color: 'var(--c-ink-text2)' }}>
-              {lang === 'he' ? 'נשאר החודש' : 'Left this month'}
+              {lang === 'he' ? 'הוצאנו החודש' : 'Spent this month'}
             </div>
             <div dir="ltr" className="t-display" style={{
-              color: positive ? 'var(--c-ink-text)' : '#a8461f',
+              color: overBudget ? '#a8461f' : 'var(--c-ink-text)',
               marginTop: 8, textAlign: 'start',
             }}>
-              <span className="cur" style={{ fontSize: 24 }}>{positive ? '' : '−'}{cur}</span>
-              <AnimatedNumber value={Math.abs(balance)} />
+              <span className="cur" style={{ fontSize: 24 }}>{cur}</span>
+              <AnimatedNumber value={totalExpenses} />
             </div>
           </div>
           <StateRing pct={spentPct} />
         </div>
 
-        {/* Status line: spent X of Y */}
+        {/* Small budget line, bottom-left as requested */}
         <div dir="ltr" style={{
           marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--c-ink-line)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           fontSize: 13, color: 'var(--c-ink-text2)',
         }}>
           <span className="num" style={{ direction: 'rtl' }}>
-            {lang === 'he' ? 'הוצאת' : 'Spent'} <b style={{ color: 'var(--c-ink-text)', fontWeight: 700 }}>{money(totalExpenses)}</b>
-          </span>
-          <span className="num" style={{ direction: 'rtl' }}>
-            {lang === 'he' ? 'מתוך' : 'of'} <b style={{ color: 'var(--c-ink-text)', fontWeight: 700 }}>{money(totalIncome)}</b>
+            {hasBudget
+              ? <>{lang === 'he' ? 'מתוך תקציב של' : 'of a budget of'} <b style={{ color: 'var(--c-ink-text)', fontWeight: 700 }}>{money(monthlyBudget)}</b></>
+              : (lang === 'he' ? 'לא הוגדר תקציב לחודש' : 'No budget set for this month')}
           </span>
         </div>
       </motion.div>
@@ -265,6 +331,19 @@ export default function SummaryCard() {
             cur={cur}
             total={filterOpen === 'income' ? totalIncome : totalExpenses}
             onClose={() => setFilterOpen(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Ask for this month's budget once, if none is set yet — can be
+          dismissed and set later from Settings. */}
+      <AnimatePresence>
+        {!hasBudget && !budgetPromptDismissed && (
+          <BudgetPromptSheet
+            lang={lang}
+            cur={cur}
+            onSave={(amount) => { setMonthlyBudget(amount); setBudgetPromptDismissed(true) }}
+            onClose={() => setBudgetPromptDismissed(true)}
           />
         )}
       </AnimatePresence>
