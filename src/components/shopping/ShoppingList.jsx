@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '../../contexts/AppContext'
 import CategoryIcon from '../CategoryIcon'
 import useScrollLock from '../../hooks/useScrollLock'
+import useDelayedFocus from '../../hooks/useDelayedFocus'
 import { X, Pencil, Check, Plus, ShoppingCart } from 'lucide-react'
 import { formatAmount, formatNumber } from '../../utils/format'
 
@@ -41,6 +42,7 @@ function SheetWrap({ onClose, children }) {
 function AddItemSheet({ onClose }) {
   const { t } = useTranslation()
   const { addShoppingItem } = useApp()
+  const nameRef = useDelayedFocus()
   const [name, setName] = useState('')
   const [qty, setQty] = useState('')
   const [price, setPrice] = useState('')
@@ -74,8 +76,8 @@ function AddItemSheet({ onClose }) {
       <div className="sheet-body" style={{ gap: 14 }}>
         <div className="input-group" style={{ marginBottom: 0 }}>
           <label className="input-label">{t('shopping.itemName')}</label>
-          <input className="input-field" placeholder={t('shopping.itemName')}
-            value={name} onChange={e => setName(e.target.value)} autoFocus />
+          <input ref={nameRef} className="input-field" placeholder={t('shopping.itemName')}
+            value={name} onChange={e => setName(e.target.value)} />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -135,6 +137,7 @@ function AddItemSheet({ onClose }) {
 }
 
 function EditItemSheet({ item, cur, onSave, onClose }) {
+  const priceRef = useDelayedFocus()
   const [qty, setQty] = useState(String(item.quantity || ''))
   const [price, setPrice] = useState(String(item.estimatedPrice || ''))
 
@@ -163,8 +166,8 @@ function EditItemSheet({ item, cur, onSave, onClose }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div className="input-group" style={{ marginBottom: 0 }}>
             <label className="input-label">מחיר ({cur}) *</label>
-            <input className="input-field" type="number" inputMode="decimal" placeholder="0.00"
-              value={price} onChange={e => setPrice(e.target.value)} autoFocus
+            <input ref={priceRef} className="input-field" type="number" inputMode="decimal" placeholder="0.00"
+              value={price} onChange={e => setPrice(e.target.value)}
               style={{ textAlign: 'center', fontWeight: 700, fontSize: 20 }} />
           </div>
           <div className="input-group" style={{ marginBottom: 0 }}>

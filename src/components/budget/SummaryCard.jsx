@@ -7,6 +7,7 @@ import { ArrowDownLeft, ArrowUpRight, Wallet, X, Receipt } from 'lucide-react'
 import { formatNumber, formatAmount, formatMoney } from '../../utils/format'
 import CategoryIcon from '../CategoryIcon'
 import useScrollLock from '../../hooks/useScrollLock'
+import useDelayedFocus from '../../hooks/useDelayedFocus'
 
 function AnimatedNumber({ value }) {
   const [display, setDisplay] = useState(0)
@@ -186,6 +187,7 @@ function FilteredTransactionsSheet({ type, transactions, CATEGORIES, cur, total,
 // current month has no budget set yet.
 function BudgetPromptSheet({ lang, cur, onSave, onClose }) {
   useScrollLock()
+  const amountRef = useDelayedFocus()
   const [amountStr, setAmountStr] = useState('')
   const actualAmount = parseFloat(amountStr) || 0
 
@@ -220,11 +222,11 @@ function BudgetPromptSheet({ lang, cur, onSave, onClose }) {
                 : "Set how much you plan to spend this month — you can change it anytime from Settings"}
             </p>
             <input
+              ref={amountRef}
               className="input-field"
               type="text"
               inputMode="decimal"
               placeholder="0"
-              autoFocus
               value={amountStr}
               onChange={e => setAmountStr(e.target.value.replace(/[^0-9.]/g, ''))}
               onKeyDown={e => e.key === 'Enter' && handleSave()}
