@@ -321,7 +321,7 @@ export default function SummaryCard() {
         <Kpi icon={Wallet} label={lang === 'he' ? 'חיסכון' : 'Saved'} tint="var(--c-accent2-light)" color="var(--c-accent2-dark)" valueColor={savingsAmount >= 0 ? 'var(--c-accent2-dark)' : 'var(--c-danger)'}>
           {money(savingsAmount)}
         </Kpi>
-        <Kpi icon={ArrowUpRight} label={t('budget.expenses')} tint="var(--c-bg)" color="var(--c-text2)" valueColor="var(--c-text)" onClick={() => setFilterOpen('expense')}>
+        <Kpi icon={ArrowUpRight} label={t('budget.expenses')} tint="var(--c-bg)" color="var(--c-text2)" valueColor="var(--c-danger)" onClick={() => setFilterOpen('expense')}>
           {money(totalExpenses)}
         </Kpi>
         <Kpi icon={ArrowDownLeft} label={t('budget.income')} tint="var(--c-accent2-light)" color="var(--c-accent2-dark)" valueColor="var(--c-accent2-dark)" onClick={() => setFilterOpen('income')}>

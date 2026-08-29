@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Wallet, ArrowLeft, ArrowRight, Plus, Home, Utensils, Car, Shirt, Check,
-  ArrowUpRight, ArrowDownLeft,
+  ArrowUpRight, ArrowDownLeft, Share, MoreVertical,
 } from 'lucide-react'
 
 // Pulsing highlight ring — draws the eye to the exact element being explained,
@@ -257,6 +257,43 @@ const SLIDES = [
         <Spotlight shape="rect" style={{ width: '100%', justifyContent: 'center', display: 'flex' }}>
           <div className="code-display" style={{ width: '100%' }}>ABC123</div>
         </Spotlight>
+      </PhoneMock>
+    ),
+  },
+  {
+    title: 'התקינו על מסך הבית',
+    body: 'קבלו את האפליקציה כמו אפליקציה אמיתית — בלי חנות אפליקציות. פשוט מוסיפים אותה למסך הבית מהדפדפן.',
+    mock: (
+      <PhoneMock>
+        <div style={{ display: 'flex', gap: 16 }}>
+          <div style={{ flex: 1, textAlign: 'center' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--c-text2)', marginBottom: 10 }}>iPhone</div>
+            <div style={{
+              width: 52, height: 52, borderRadius: '50%', margin: '0 auto',
+              background: 'var(--c-primary-light)', color: 'var(--c-primary)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Share size={22} strokeWidth={1.8} />
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--c-text2)', marginTop: 10, lineHeight: 1.5 }}>
+              כפתור <b style={{ color: 'var(--c-text)' }}>שיתוף</b><br />← "הוסף למסך הבית"
+            </div>
+          </div>
+          <div style={{ width: 1, background: 'var(--c-border)' }} />
+          <div style={{ flex: 1, textAlign: 'center' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--c-text2)', marginBottom: 10 }}>Android</div>
+            <div style={{
+              width: 52, height: 52, borderRadius: '50%', margin: '0 auto',
+              background: 'var(--c-accent2-light)', color: 'var(--c-accent2-dark)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <MoreVertical size={22} strokeWidth={1.8} />
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--c-text2)', marginTop: 10, lineHeight: 1.5 }}>
+              תפריט <b style={{ color: 'var(--c-text)' }}>⋮</b> בדפדפן<br />← "התקן אפליקציה"
+            </div>
+          </div>
+        </div>
       </PhoneMock>
     ),
   },
