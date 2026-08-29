@@ -153,7 +153,7 @@ function FilteredTransactionsSheet({ type, transactions, CATEGORIES, cur, total,
                       </div>
                       <div dir="ltr" className="num" style={{
                         fontWeight: 700, fontSize: 15,
-                        color: type === 'income' ? 'var(--c-success)' : 'var(--c-text)',
+                        color: type === 'income' ? 'var(--c-success)' : 'var(--c-danger)',
                         flexShrink: 0,
                       }}>
                         {formatMoney(tx.amount, tx.type, cur)}
