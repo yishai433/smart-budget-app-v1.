@@ -1,9 +1,12 @@
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useApp } from '../../contexts/AppContext'
 import { useEffect, useRef, useState } from 'react'
-import { ArrowDownLeft, ArrowUpRight, Wallet } from 'lucide-react'
-import { formatNumber, formatAmount } from '../../utils/format'
+import { createPortal } from 'react-dom'
+import { ArrowDownLeft, ArrowUpRight, Wallet, X, Receipt } from 'lucide-react'
+import { formatNumber, formatAmount, formatMoney } from '../../utils/format'
+import CategoryIcon from '../CategoryIcon'
+import useScrollLock from '../../hooks/useScrollLock'
 
 function AnimatedNumber({ value }) {
   const [display, setDisplay] = useState(0)
@@ -61,9 +64,13 @@ function StateRing({ pct }) {
   )
 }
 
-function Kpi({ icon: Icon, label, children, tint, color, valueColor }) {
+function Kpi({ icon: Icon, label, children, tint, color, valueColor, onClick }) {
   return (
-    <div className="kpi">
+    <div
+      className="kpi"
+      onClick={onClick}
+      style={onClick ? { cursor: 'pointer' } : undefined}
+    >
       <div className="kpi-chip" style={{ background: tint, color }}>
         <Icon size={15} strokeWidth={2.2} />
       </div>
@@ -77,11 +84,110 @@ function Kpi({ icon: Icon, label, children, tint, color, valueColor }) {
   )
 }
 
+function formatShort(dateStr) {
+  try { return new Date(dateStr).toLocaleDateString('he-IL', { day: 'numeric', month: 'short' }) }
+  catch { return dateStr }
+}
+
+// Sheet listing every income/expense transaction for the current month —
+// opened by tapping the corresponding KPI tile.
+function FilteredTransactionsSheet({ type, transactions, CATEGORIES, cur, total, onClose }) {
+  useScrollLock()
+  const { t } = useTranslation()
+  const title = type === 'income' ? t('budget.income') : t('budget.expenses')
+  const sorted = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date))
+
+  const getCatDef = (tx) => CATEGORIES[tx.type]?.find(c => c.id === tx.category)
+    || { color: '#667085' }
+
+  return createPortal((
+    <>
+      <motion.div className="sheet-overlay"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={onClose}
+      />
+      <div className="sheet-viewport">
+        <motion.div className="sheet"
+          initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+          transition={{ type: 'spring', stiffness: 380, damping: 36 }}
+        >
+          <div className="sheet-handle" />
+          <div className="sheet-header">
+            <div>
+              <h2 className="sheet-title" style={{ fontSize: 17 }}>{title}</h2>
+              <div style={{ fontSize: 12.5, color: 'var(--c-text2)', marginTop: 2 }}>
+                {sorted.length} {t('budget.thisMonth')}
+              </div>
+            </div>
+            <button onClick={onClose} className="btn-icon" style={{ width: 32, height: 32 }}>
+              <X size={17} strokeWidth={2} />
+            </button>
+          </div>
+
+          <div className="sheet-body" style={{ padding: '12px 0 20px', gap: 0 }}>
+            {sorted.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon"><Receipt size={22} strokeWidth={1.8} /></div>
+                <p>{t('budget.noTransactions')}</p>
+              </div>
+            ) : (
+              <div style={{ margin: '0 20px' }}>
+                {sorted.map((tx, i) => {
+                  const catDef = getCatDef(tx)
+                  return (
+                    <div key={tx.id} className="list-item" style={{
+                      cursor: 'default', background: 'transparent',
+                      borderBottom: i < sorted.length - 1 ? '1px solid var(--c-sep)' : 'none',
+                    }}>
+                      <div className="list-icon" style={{ background: catDef.color + '14', color: catDef.color }}>
+                        <CategoryIcon id={tx.category} size={17} strokeWidth={2} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 500, fontSize: 14.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {tx.description || t(`categories.${tx.category}`)}
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2 }}>
+                          {t(`categories.${tx.category}`)}
+                          {tx.date && <span className="num"> · {formatShort(tx.date)}</span>}
+                        </div>
+                      </div>
+                      <div dir="ltr" className="num" style={{
+                        fontWeight: 700, fontSize: 15,
+                        color: type === 'income' ? 'var(--c-success)' : 'var(--c-text)',
+                        flexShrink: 0,
+                      }}>
+                        {formatMoney(tx.amount, tx.type, cur)}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="sheet-footer">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 0' }}>
+              <span style={{ fontWeight: 500, fontSize: 14, color: 'var(--c-text2)' }}>{t('budget.thisMonth')}</span>
+              <div dir="ltr" className="num" style={{
+                fontWeight: 700, fontSize: 20, letterSpacing: -0.5,
+                color: type === 'income' ? 'var(--c-success)' : 'var(--c-text)',
+              }}>
+                {formatAmount(total, cur)}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </>
+  ), document.body)
+}
+
 export default function SummaryCard() {
   const { t } = useTranslation()
-  const { totalIncome, totalExpenses, balance, settings } = useApp()
+  const { totalIncome, totalExpenses, balance, settings, monthTransactions, CATEGORIES } = useApp()
   const cur = settings.currency
   const lang = settings.language || 'he'
+  const [filterOpen, setFilterOpen] = useState(null) // 'income' | 'expense' | null
 
   const positive = balance >= 0
   const spentPct = totalIncome > 0
@@ -142,13 +248,26 @@ export default function SummaryCard() {
         <Kpi icon={Wallet} label={lang === 'he' ? 'חיסכון' : 'Saved'} tint="var(--c-accent2-light)" color="var(--c-accent2-dark)" valueColor={savingsRate >= 0 ? 'var(--c-accent2-dark)' : 'var(--c-danger)'}>
           {savingsRate}%
         </Kpi>
-        <Kpi icon={ArrowUpRight} label={t('budget.expenses')} tint="var(--c-bg)" color="var(--c-text2)" valueColor="var(--c-text)">
+        <Kpi icon={ArrowUpRight} label={t('budget.expenses')} tint="var(--c-bg)" color="var(--c-text2)" valueColor="var(--c-text)" onClick={() => setFilterOpen('expense')}>
           {money(totalExpenses)}
         </Kpi>
-        <Kpi icon={ArrowDownLeft} label={t('budget.income')} tint="var(--c-accent2-light)" color="var(--c-accent2-dark)" valueColor="var(--c-accent2-dark)">
+        <Kpi icon={ArrowDownLeft} label={t('budget.income')} tint="var(--c-accent2-light)" color="var(--c-accent2-dark)" valueColor="var(--c-accent2-dark)" onClick={() => setFilterOpen('income')}>
           {money(totalIncome)}
         </Kpi>
       </motion.div>
+
+      <AnimatePresence>
+        {filterOpen && (
+          <FilteredTransactionsSheet
+            type={filterOpen}
+            transactions={monthTransactions.filter(tx => tx.type === filterOpen)}
+            CATEGORIES={CATEGORIES}
+            cur={cur}
+            total={filterOpen === 'income' ? totalIncome : totalExpenses}
+            onClose={() => setFilterOpen(null)}
+          />
+        )}
+      </AnimatePresence>
 
     </div>
   )
