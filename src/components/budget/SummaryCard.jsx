@@ -259,7 +259,7 @@ export default function SummaryCard() {
   const spentPct = hasBudget && monthlyBudget > 0
     ? Math.round((totalExpenses / monthlyBudget) * 100)
     : (totalExpenses > 0 ? 100 : 0)
-  const savingsRate = totalIncome > 0 ? Math.round(((totalIncome - totalExpenses) / totalIncome) * 100) : 0
+  const savingsAmount = totalIncome - totalExpenses
   const overAmount = hasBudget ? totalExpenses - monthlyBudget : 0
   const overBudget = overAmount > 0
   // Under/at budget → show how much was used. Over budget → show the overage as a negative number.
@@ -316,8 +316,8 @@ export default function SummaryCard() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.08, type: 'spring', stiffness: 280, damping: 28 }}
       >
-        <Kpi icon={Wallet} label={lang === 'he' ? 'חיסכון' : 'Saved'} tint="var(--c-accent2-light)" color="var(--c-accent2-dark)" valueColor={savingsRate >= 0 ? 'var(--c-accent2-dark)' : 'var(--c-danger)'}>
-          {savingsRate}%
+        <Kpi icon={Wallet} label={lang === 'he' ? 'חיסכון' : 'Saved'} tint="var(--c-accent2-light)" color="var(--c-accent2-dark)" valueColor={savingsAmount >= 0 ? 'var(--c-accent2-dark)' : 'var(--c-danger)'}>
+          {money(savingsAmount)}
         </Kpi>
         <Kpi icon={ArrowUpRight} label={t('budget.expenses')} tint="var(--c-bg)" color="var(--c-text2)" valueColor="var(--c-text)" onClick={() => setFilterOpen('expense')}>
           {money(totalExpenses)}
