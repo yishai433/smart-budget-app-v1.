@@ -260,7 +260,10 @@ export default function SummaryCard() {
     ? Math.round((totalExpenses / monthlyBudget) * 100)
     : (totalExpenses > 0 ? 100 : 0)
   const savingsRate = totalIncome > 0 ? Math.round(((totalIncome - totalExpenses) / totalIncome) * 100) : 0
-  const overBudget = hasBudget && totalExpenses > monthlyBudget
+  const overAmount = hasBudget ? totalExpenses - monthlyBudget : 0
+  const overBudget = overAmount > 0
+  // Under/at budget → show how much was used. Over budget → show the overage as a negative number.
+  const heroValue = overBudget ? overAmount : totalExpenses
 
   const money = (v) => `${v < 0 ? '−' : ''}${formatAmount(v, cur)}`
 
@@ -277,14 +280,16 @@ export default function SummaryCard() {
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
           <div style={{ minWidth: 0 }}>
             <div className="t-overline" style={{ color: 'var(--c-ink-text2)' }}>
-              {lang === 'he' ? 'הוצאנו החודש' : 'Spent this month'}
+              {overBudget
+                ? (lang === 'he' ? 'חרגנו מהתקציב ב' : 'Over budget by')
+                : (lang === 'he' ? 'הוצאנו החודש' : 'Spent this month')}
             </div>
             <div dir="ltr" className="t-display" style={{
               color: overBudget ? '#a8461f' : 'var(--c-ink-text)',
               marginTop: 8, textAlign: 'start',
             }}>
-              <span className="cur" style={{ fontSize: 24 }}>{cur}</span>
-              <AnimatedNumber value={totalExpenses} />
+              <span className="cur" style={{ fontSize: 24 }}>{overBudget ? '−' : ''}{cur}</span>
+              <AnimatedNumber value={heroValue} />
             </div>
           </div>
           <StateRing pct={spentPct} />
