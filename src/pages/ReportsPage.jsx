@@ -4,10 +4,10 @@ import { motion } from 'framer-motion'
 import { useApp } from '../contexts/AppContext'
 import BarChart from '../components/charts/BarChart'
 import UserAvatar from '../components/UserAvatar'
-import { formatMoney, formatAmount, formatNumber } from '../utils/format'
+import { formatMoney, formatAmount } from '../utils/format'
 import CategoryIcon from '../components/CategoryIcon'
 import SupermarketTrips from '../components/budget/SupermarketTrips'
-import { ChevronLeft, ChevronRight, Pencil, Check, PieChart } from 'lucide-react'
+import { Pencil, Check, PieChart } from 'lucide-react'
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני',
                    'יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
@@ -56,8 +56,7 @@ export default function ReportsPage() {
   const lang = settings.language || 'he'
 
   const months = useMemo(() => getLastMonths(6), [])
-  const [selectedIdx, setSelectedIdx] = useState(months.length - 1)
-  const selected = months[selectedIdx]
+  const selected = months[months.length - 1] // current month
   const [barSelectedIdx, setBarSelectedIdx] = useState(null)
 
   const [bigExpenseThreshold, setBigExpenseThreshold] = useState(() => {
@@ -74,12 +73,9 @@ export default function ReportsPage() {
     setEditingThreshold(false)
   }
 
-  // Stats for selected month
+  // Stats for the current month
   const monthTxs = transactions.filter(t => t.date?.startsWith(selected.key))
-  const income   = monthTxs.filter(t => t.type === 'income').reduce((s,t) => s + (t.amount||0), 0)
   const expenses = monthTxs.filter(t => t.type === 'expense').reduce((s,t) => s + (t.amount||0), 0)
-  const balance  = income - expenses
-  const savingsRate = income > 0 ? Math.round((balance / income) * 100) : 0
 
   // Donut segments from expense categories
   const expByCat = monthTxs
@@ -103,16 +99,9 @@ export default function ReportsPage() {
     }
   })
 
-  const monthTitle = lang === 'he'
-    ? `${HE_MONTHS[selected.monthIdx]} ${selected.year}`
-    : `${EN_MONTHS[selected.monthIdx]} ${selected.year}`
-
   const bigExpenses = monthTxs
     .filter(t => t.type === 'expense' && t.amount >= bigExpenseThreshold)
     .sort((a,b) => b.amount - a.amount)
-
-  const atStart = selectedIdx === 0
-  const atEnd = selectedIdx === months.length - 1
 
   return (
     <div className="page">
@@ -126,137 +115,7 @@ export default function ReportsPage() {
 
       <div style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-        {/* 1+2 — Ink hero: month selector + balance + inline income/expense */}
-        <motion.div
-          className="hero-ink"
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 280, damping: 28 }}
-        >
-          {/* Month selector */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <button
-              onClick={() => setSelectedIdx(i => Math.max(0, i - 1))}
-              disabled={atStart}
-              style={{
-                width: 30, height: 30, borderRadius: 999, border: 'none', cursor: 'pointer',
-                background: 'rgba(34,31,15,0.10)', color: 'var(--c-ink-text)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                opacity: atStart ? 0.3 : 1,
-              }}
-              aria-label="previous month"
-            >
-              {lang === 'he' ? <ChevronRight size={17} /> : <ChevronLeft size={17} />}
-            </button>
-            <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--c-ink-text)' }}>{monthTitle}</span>
-            <button
-              onClick={() => setSelectedIdx(i => Math.min(months.length - 1, i + 1))}
-              disabled={atEnd}
-              style={{
-                width: 30, height: 30, borderRadius: 999, border: 'none', cursor: 'pointer',
-                background: 'rgba(34,31,15,0.10)', color: 'var(--c-ink-text)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                opacity: atEnd ? 0.3 : 1,
-              }}
-              aria-label="next month"
-            >
-              {lang === 'he' ? <ChevronLeft size={17} /> : <ChevronRight size={17} />}
-            </button>
-          </div>
-
-          {/* Balance for the month */}
-          <div className="t-overline" style={{ color: 'var(--c-ink-text2)', textAlign: 'center' }}>
-            {lang==='he'?'יתרה':'Balance'}
-          </div>
-          <div dir="ltr" className="t-display" style={{
-            color: balance >= 0 ? 'var(--c-ink-text)' : '#a8461f', textAlign: 'center', marginTop: 6,
-          }}>
-            <span className="cur" style={{ fontSize: 22 }}>{balance < 0 ? '−' : ''}{cur}</span>
-            {formatNumber(balance)}
-          </div>
-
-          {/* Inline income / expense / savings */}
-          <div style={{
-            display: 'flex', marginTop: 18, paddingTop: 16,
-            borderTop: '1px solid var(--c-ink-line)',
-          }}>
-            {[
-              { label: lang==='he'?'הכנסות':'Income',   val: formatAmount(income, cur),   c: 'var(--c-ink-text)' },
-              { label: lang==='he'?'הוצאות':'Expenses', val: formatAmount(expenses, cur), c: 'var(--c-ink-text)' },
-              { label: lang==='he'?'חיסכון':'Saved',    val: `${savingsRate}%`,           c: 'var(--c-ink-text)' },
-            ].map((s, i) => (
-              <div key={s.label} style={{
-                flex: 1, textAlign: 'center',
-                borderInlineStart: i > 0 ? '1px solid var(--c-ink-line)' : 'none',
-              }}>
-                <div style={{ fontSize: 11, color: 'var(--c-ink-text2)', fontWeight: 500 }}>{s.label}</div>
-                <div dir="ltr" className="num" style={{ fontSize: 14, fontWeight: 600, color: s.c, marginTop: 4 }}>
-                  {s.val}
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* 3 — Expenses by category — bar list, per approved design */}
-        {donutSegments.length > 0 ? (
-          <SectionCard title={lang==='he'?'הוצאות לפי קטגוריה':'Expenses by category'}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {donutSegments.map((seg, i) => {
-                const pct = expenses > 0 ? (seg.value / expenses) * 100 : 0
-                return (
-                  <motion.div
-                    key={seg.id}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05, duration: 0.25 }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-                      <div style={{
-                        width: 30, height: 30, borderRadius: 999, flexShrink: 0,
-                        background: seg.color + '14', color: seg.color,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <CategoryIcon id={seg.id} size={16} strokeWidth={2} />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-                          <span style={{ fontSize: 14, fontWeight: 500 }}>{seg.label}</span>
-                          <span dir="ltr" className="num" style={{ fontSize: 14, fontWeight: 700 }}>
-                            {formatAmount(seg.value, cur)}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7 }}>
-                          <div className="progress-bar" style={{ flex: 1, height: 4 }}>
-                            <motion.div
-                              className="progress-fill"
-                              style={{ background: seg.color }}
-                              initial={{ width: 0 }}
-                              animate={{ width: `${pct}%` }}
-                              transition={{ duration: 0.65, delay: i * 0.05, ease: 'easeOut' }}
-                            />
-                          </div>
-                          <span className="num" style={{ fontSize: 11.5, color: 'var(--c-text3)', fontWeight: 500, minWidth: 30, textAlign: 'end' }}>
-                            {Math.round(pct)}%
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                )
-              })}
-            </div>
-          </SectionCard>
-        ) : (
-          <div className="card">
-            <div className="empty-state" style={{ padding: '40px 24px' }}>
-              <div className="empty-icon"><PieChart size={22} strokeWidth={1.8} /></div>
-              <h3>{lang==='he'?'אין נתונים לחודש זה':'No data for this month'}</h3>
-            </div>
-          </div>
-        )}
-
-        {/* 4 — Income vs expenses trend */}
+        {/* 1 — Income vs expenses trend, now the first thing on the page */}
         <SectionCard
           title={lang==='he'?'טרנד 6 חודשים':'6-month trend'}
           subtitle={lang==='he'?'לחץ על חודש לפירוט':'Tap a month for details'}
@@ -325,7 +184,65 @@ export default function ReportsPage() {
           })()}
         </SectionCard>
 
-        {/* 5 — Insights: big expenses */}
+        {/* 2 — Expenses by category — bar list, per approved design */}
+        {donutSegments.length > 0 ? (
+          <SectionCard title={lang==='he'?'הוצאות לפי קטגוריה':'Expenses by category'}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {donutSegments.map((seg, i) => {
+                const pct = expenses > 0 ? (seg.value / expenses) * 100 : 0
+                return (
+                  <motion.div
+                    key={seg.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05, duration: 0.25 }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+                      <div style={{
+                        width: 30, height: 30, borderRadius: 999, flexShrink: 0,
+                        background: seg.color + '14', color: seg.color,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <CategoryIcon id={seg.id} size={16} strokeWidth={2} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+                          <span style={{ fontSize: 14, fontWeight: 500 }}>{seg.label}</span>
+                          <span dir="ltr" className="num" style={{ fontSize: 14, fontWeight: 700 }}>
+                            {formatAmount(seg.value, cur)}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7 }}>
+                          <div className="progress-bar" style={{ flex: 1, height: 4 }}>
+                            <motion.div
+                              className="progress-fill"
+                              style={{ background: seg.color }}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${pct}%` }}
+                              transition={{ duration: 0.65, delay: i * 0.05, ease: 'easeOut' }}
+                            />
+                          </div>
+                          <span className="num" style={{ fontSize: 11.5, color: 'var(--c-text3)', fontWeight: 500, minWidth: 30, textAlign: 'end' }}>
+                            {Math.round(pct)}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </div>
+          </SectionCard>
+        ) : (
+          <div className="card">
+            <div className="empty-state" style={{ padding: '40px 24px' }}>
+              <div className="empty-icon"><PieChart size={22} strokeWidth={1.8} /></div>
+              <h3>{lang==='he'?'אין נתונים לחודש זה':'No data for this month'}</h3>
+            </div>
+          </div>
+        )}
+
+        {/* 3 — Insights: big expenses */}
         <div>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8, padding: '0 4px' }}>
             <div>
@@ -418,7 +335,7 @@ export default function ReportsPage() {
           )}
         </div>
 
-        {/* 6 — Supermarket trips */}
+        {/* 4 — Supermarket trips */}
         <SupermarketTrips cur={cur} />
 
         <div style={{ height: 4 }} />
