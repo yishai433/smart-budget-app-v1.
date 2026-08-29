@@ -208,7 +208,7 @@ export default function ReportsPage() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
                           <span style={{ fontSize: 14, fontWeight: 500 }}>{seg.label}</span>
-                          <span dir="ltr" className="num" style={{ fontSize: 14, fontWeight: 700 }}>
+                          <span dir="ltr" className="num" style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-danger)' }}>
                             {formatAmount(seg.value, cur)}
                           </span>
                         </div>

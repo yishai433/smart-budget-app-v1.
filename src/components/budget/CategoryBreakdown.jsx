@@ -61,7 +61,7 @@ export default function CategoryBreakdown() {
                       <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--c-text)' }}>
                         {t(`categories.${catId}`)}
                       </span>
-                      <span dir="ltr" className="num" style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-text)' }}>
+                      <span dir="ltr" className="num" style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-danger)' }}>
                         {formatAmount(amount, cur)}
                       </span>
                     </div>
