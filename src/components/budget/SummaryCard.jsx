@@ -251,7 +251,7 @@ function BudgetPromptSheet({ lang, cur, onSave, onClose }) {
 
 export default function SummaryCard() {
   const { t } = useTranslation()
-  const { totalIncome, totalExpenses, settings, monthTransactions, CATEGORIES, monthlyBudget, setMonthlyBudget } = useApp()
+  const { totalIncome, totalExpenses, settings, monthTransactions, CATEGORIES, monthlyBudget, setMonthlyBudget, household } = useApp()
   const cur = settings.currency
   const lang = settings.language || 'he'
   const [filterOpen, setFilterOpen] = useState(null) // 'income' | 'expense' | null
@@ -345,7 +345,7 @@ export default function SummaryCard() {
       {/* Ask for this month's budget once, if none is set yet — can be
           dismissed and set later from Settings. */}
       <AnimatePresence>
-        {!hasBudget && !budgetPromptDismissed && (
+        {household != null && !hasBudget && !budgetPromptDismissed && (
           <BudgetPromptSheet
             lang={lang}
             cur={cur}

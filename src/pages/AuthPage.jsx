@@ -7,7 +7,7 @@ import {
   updateProfile,
 } from 'firebase/auth'
 import { auth } from '../firebase'
-import { Wallet, Mail, Lock, Eye, EyeOff, User, Home } from 'lucide-react'
+import { Wallet, Mail, Lock, Eye, EyeOff, User, Home, ArrowRight } from 'lucide-react'
 
 // Read invite code from URL hash: #/?invite=XXXXXX
 function getInviteFromURL() {
@@ -241,6 +241,21 @@ export default function AuthPage() {
           </div>
         )}
 
+        {mode === 'reset' && (
+          <button
+            onClick={() => switchMode('login')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: 'var(--c-text2)', fontSize: 13.5, fontWeight: 600,
+              fontFamily: 'inherit', padding: 0, alignSelf: 'flex-start', marginTop: -8,
+            }}
+          >
+            <ArrowRight size={16} strokeWidth={2} />
+            חזרה לכניסה
+          </button>
+        )}
+
         {mode === 'reset' && !resetSent && (
           <div style={{ textAlign: 'center', marginTop: -6 }}>
             <h2 style={{ fontSize: 17, fontWeight: 700 }}>איפוס סיסמא</h2>
@@ -261,6 +276,9 @@ export default function AuthPage() {
             <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 6 }}>הקישור נשלח!</h2>
             <p style={{ fontSize: 13.5, color: 'var(--c-text2)', lineHeight: 1.6 }}>
               בדקו את תיבת הדואר שלכם ({email}) ולחצו על הקישור לאיפוס הסיסמא.
+            </p>
+            <p style={{ fontSize: 12.5, color: 'var(--c-text3)', marginTop: 10 }}>
+              לא מוצאים את המייל? בדקו גם בתיקיית הספאם / קידומים.
             </p>
           </motion.div>
         ) : (
