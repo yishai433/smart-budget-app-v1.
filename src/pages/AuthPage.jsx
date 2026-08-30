@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
   updateProfile,
 } from 'firebase/auth'
 import { auth } from '../firebase'
@@ -81,6 +82,7 @@ export default function AuthPage() {
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
 
   // Save invite code so AppContext applies it after login
   useEffect(() => {
@@ -90,13 +92,26 @@ export default function AuthPage() {
   }, [inviteFromURL])
 
   const reset = () => {
-    setName(''); setEmail(''); setPassword(''); setConfirm(''); setError('')
+    setName(''); setEmail(''); setPassword(''); setConfirm(''); setError(''); setResetSent(false)
   }
 
   const switchMode = (m) => { reset(); setMode(m) }
 
   const handleSubmit = async () => {
     setError('')
+    if (mode === 'reset') {
+      if (!email) { setError('נא להזין אימייל'); return }
+      setLoading(true)
+      try {
+        await sendPasswordResetEmail(auth, email)
+        setResetSent(true)
+      } catch (e) {
+        console.error('Firebase auth error:', e.code, e.message)
+        setError(ERRORS[e.code] || `שגיאה: ${e.code || 'לא ידועה'}`)
+      }
+      setLoading(false)
+      return
+    }
     if (!email || !password) { setError('נא למלא את כל השדות'); return }
     if (mode === 'register') {
       if (!name.trim()) { setError('נא להזין שם'); return }
@@ -208,69 +223,108 @@ export default function AuthPage() {
           </motion.div>
         )}
 
-        {/* Mode toggle */}
-        <div className="segment">
-          <button
-            className={`segment-btn ${mode === 'login' ? 'active' : ''}`}
-            onClick={() => switchMode('login')}
-          >
-            כניסה
-          </button>
-          <button
-            className={`segment-btn ${mode === 'register' ? 'active' : ''}`}
-            onClick={() => switchMode('register')}
-          >
-            הרשמה
-          </button>
-        </div>
+        {/* Mode toggle — hidden on the password-reset screen */}
+        {mode !== 'reset' && (
+          <div className="segment">
+            <button
+              className={`segment-btn ${mode === 'login' ? 'active' : ''}`}
+              onClick={() => switchMode('login')}
+            >
+              כניסה
+            </button>
+            <button
+              className={`segment-btn ${mode === 'register' ? 'active' : ''}`}
+              onClick={() => switchMode('register')}
+            >
+              הרשמה
+            </button>
+          </div>
+        )}
+
+        {mode === 'reset' && !resetSent && (
+          <div style={{ textAlign: 'center', marginTop: -6 }}>
+            <h2 style={{ fontSize: 17, fontWeight: 700 }}>איפוס סיסמא</h2>
+            <p style={{ fontSize: 13.5, color: 'var(--c-text2)', marginTop: 4 }}>
+              הזינו את האימייל שלכם ונשלח קישור לאיפוס הסיסמא
+            </p>
+          </div>
+        )}
 
         {/* Fields */}
-        <AnimatePresence mode="wait">
+        {mode === 'reset' && resetSent ? (
           <motion.div
-            key={mode}
-            initial={{ opacity: 0, x: mode === 'register' ? 20 : -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{ textAlign: 'center', padding: '12px 0' }}
           >
-            {mode === 'register' && (
-              <InputField
-                label="שם מלא"
-                value={name}
-                onChange={setName}
-                placeholder="ישראל ישראלי"
-                icon={User}
-              />
-            )}
-            <InputField
-              label="אימייל"
-              type="email"
-              value={email}
-              onChange={setEmail}
-              placeholder="you@example.com"
-              icon={Mail}
-            />
-            <InputField
-              label="סיסמא"
-              type="password"
-              value={password}
-              onChange={setPassword}
-              placeholder="לפחות 6 תווים"
-              icon={Lock}
-            />
-            {mode === 'register' && (
-              <InputField
-                label="אימות סיסמא"
-                type="password"
-                value={confirm}
-                onChange={setConfirm}
-                placeholder="הכנס שוב את הסיסמא"
-                icon={Lock}
-              />
-            )}
+            <div style={{ fontSize: 40, marginBottom: 10 }}>📬</div>
+            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 6 }}>הקישור נשלח!</h2>
+            <p style={{ fontSize: 13.5, color: 'var(--c-text2)', lineHeight: 1.6 }}>
+              בדקו את תיבת הדואר שלכם ({email}) ולחצו על הקישור לאיפוס הסיסמא.
+            </p>
           </motion.div>
-        </AnimatePresence>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={mode}
+              initial={{ opacity: 0, x: mode === 'register' ? 20 : -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+            >
+              {mode === 'register' && (
+                <InputField
+                  label="שם מלא"
+                  value={name}
+                  onChange={setName}
+                  placeholder="ישראל ישראלי"
+                  icon={User}
+                />
+              )}
+              <InputField
+                label="אימייל"
+                type="email"
+                value={email}
+                onChange={setEmail}
+                placeholder="you@example.com"
+                icon={Mail}
+              />
+              {mode !== 'reset' && (
+                <InputField
+                  label="סיסמא"
+                  type="password"
+                  value={password}
+                  onChange={setPassword}
+                  placeholder="לפחות 6 תווים"
+                  icon={Lock}
+                />
+              )}
+              {mode === 'login' && (
+                <button
+                  onClick={() => switchMode('reset')}
+                  style={{
+                    alignSelf: 'flex-end', background: 'none', border: 'none',
+                    color: 'var(--c-primary)', fontWeight: 600, fontSize: 13,
+                    cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginTop: -6,
+                  }}
+                >
+                  שכחתם סיסמא?
+                </button>
+              )}
+              {mode === 'register' && (
+                <InputField
+                  label="אימות סיסמא"
+                  type="password"
+                  value={confirm}
+                  onChange={setConfirm}
+                  placeholder="הכנס שוב את הסיסמא"
+                  icon={Lock}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
+        )}
 
         {/* Error */}
         <AnimatePresence>
@@ -298,7 +352,7 @@ export default function AuthPage() {
         <motion.button
           className="btn btn-primary btn-full"
           whileTap={{ scale: 0.98 }}
-          onClick={handleSubmit}
+          onClick={mode === 'reset' && resetSent ? () => switchMode('login') : handleSubmit}
           disabled={loading}
           style={{
             fontSize: 16,
@@ -309,24 +363,27 @@ export default function AuthPage() {
         >
           {loading
             ? '...'
+            : mode === 'reset' ? (resetSent ? 'חזרה לכניסה' : 'שליחת קישור לאיפוס')
             : mode === 'login' ? 'כניסה' : 'יצירת חשבון'
           }
         </motion.button>
 
         {/* Switch hint */}
-        <p style={{ textAlign: 'center', color: 'var(--c-text2)', fontSize: 14 }}>
-          {mode === 'login' ? 'אין לך חשבון עדיין? ' : 'כבר יש לך חשבון? '}
-          <button
-            onClick={() => switchMode(mode === 'login' ? 'register' : 'login')}
-            style={{
-              background: 'none', border: 'none',
-              color: 'var(--c-primary)', fontWeight: 600,
-              cursor: 'pointer', fontSize: 14, fontFamily: 'inherit',
-            }}
-          >
-            {mode === 'login' ? 'הרשמה' : 'כניסה'}
-          </button>
-        </p>
+        {mode !== 'reset' && (
+          <p style={{ textAlign: 'center', color: 'var(--c-text2)', fontSize: 14 }}>
+            {mode === 'login' ? 'אין לך חשבון עדיין? ' : 'כבר יש לך חשבון? '}
+            <button
+              onClick={() => switchMode(mode === 'login' ? 'register' : 'login')}
+              style={{
+                background: 'none', border: 'none',
+                color: 'var(--c-primary)', fontWeight: 600,
+                cursor: 'pointer', fontSize: 14, fontFamily: 'inherit',
+              }}
+            >
+              {mode === 'login' ? 'הרשמה' : 'כניסה'}
+            </button>
+          </p>
+        )}
       </motion.div>
     </div>
   )
