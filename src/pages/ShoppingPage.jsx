@@ -3,9 +3,10 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import ShoppingList from '../components/shopping/ShoppingList'
+import LaterListSheet from '../components/shopping/LaterListSheet'
 import { useApp } from '../contexts/AppContext'
 import UserAvatar from '../components/UserAvatar'
-import { ShoppingCart, Trash2 } from 'lucide-react'
+import { ShoppingCart, Trash2, Clock } from 'lucide-react'
 import useScrollLock from '../hooks/useScrollLock'
 import { formatAmount } from '../utils/format'
 
@@ -98,6 +99,7 @@ export default function ShoppingPage() {
   const { t } = useTranslation()
   const { checkoutShopping, clearShoppingList, loadShoppingTemplate, shoppingItems, household } = useApp()
   const [checkoutTotal, setCheckoutTotal] = useState(null)
+  const [showLaterList, setShowLaterList] = useState(false)
   const hasTemplate = !!(household?.shoppingTemplate?.length > 0 || localStorage.getItem('sb_shopping_template'))
 
   const showToast = (msg) => {
@@ -138,6 +140,14 @@ export default function ShoppingPage() {
             <h1 className="page-title">{t('shopping.title')}</h1>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button
+              onClick={() => setShowLaterList(true)}
+              className="btn-icon"
+              style={{ width: 34, height: 34 }}
+              aria-label="רשימה מאוחרת"
+            >
+              <Clock size={16} strokeWidth={2} />
+            </button>
             {shoppingItems.length > 0 && (
               <button
                 onClick={handleClear}
@@ -188,6 +198,12 @@ export default function ShoppingPage() {
             onConfirm={handleConfirmCheckout}
             onCancel={() => setCheckoutTotal(null)}
           />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showLaterList && (
+          <LaterListSheet onClose={() => setShowLaterList(false)} />
         )}
       </AnimatePresence>
     </div>

@@ -8,6 +8,7 @@ import { ref, deleteObject } from 'firebase/storage'
 import { onAuthStateChanged, signOut, updateProfile } from 'firebase/auth'
 import i18n from '../i18n'
 import { buildAvatarUrl } from '../utils/avatar'
+import { guessShoppingCategory } from '../utils/guessCategory'
 
 const AppContext = createContext(null)
 
@@ -48,6 +49,7 @@ export function AppProvider({ children }) {
   const [isPro, setIsPro] = useState(false)
   const [transactions, setTransactions] = useState([])
   const [shoppingItems, setShoppingItems] = useState([])
+  const [laterItems, setLaterItems] = useState([])
   const [receipts, setReceipts] = useState([])
   const [settings, setSettings] = useState(() => {
     let saved = {}
@@ -82,6 +84,7 @@ export function AppProvider({ children }) {
         setPartnerProfile(null)
         setTransactions([])
         setShoppingItems([])
+        setLaterItems([])
         setReceipts([])
         setAvatarConfig(null)
         setAvatarUrl(null)
@@ -303,6 +306,56 @@ export function AppProvider({ children }) {
     return unsub
   }, [user, activeHouseholdId])
 
+  // Real-time "later list" listener — a lightweight wishlist separate from
+  // the active shopping cart, so users can jot down items to buy eventually.
+  useEffect(() => {
+    if (!user || !activeHouseholdId) return
+    const q = query(
+      collection(db, 'laterListItems'),
+      where('householdId', '==', activeHouseholdId)
+    )
+    const unsub = onSnapshot(q, (snap) => {
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      items.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0))
+      setLaterItems(items)
+    }, (err) => {
+      console.error('Firestore later-list error:', err.code, err.message)
+    })
+    return unsub
+  }, [user, activeHouseholdId])
+
+  const addLaterItem = useCallback(async (name) => {
+    if (!user || !activeHouseholdId || !name.trim()) return
+    await addDoc(collection(db, 'laterListItems'), {
+      name: name.trim(),
+      category: guessShoppingCategory(name),
+      householdId: activeHouseholdId,
+      createdAt: serverTimestamp(),
+    })
+  }, [user, activeHouseholdId])
+
+  const deleteLaterItem = useCallback(async (id) => {
+    await deleteDoc(doc(db, 'laterListItems', id))
+  }, [])
+
+  // Moves a later-list item into the active shopping cart, then removes it
+  // from the later list. An optional per-category price can be passed in
+  // (e.g. "5 ₪ for everything in produce") instead of leaving it at 0.
+  const moveLaterItemToShopping = useCallback(async (item, price = 0) => {
+    if (!user || !activeHouseholdId) return
+    await addDoc(collection(db, 'shoppingItems'), {
+      name: item.name,
+      category: item.category,
+      quantity: 1,
+      estimatedPrice: price || 0,
+      otherLabel: '',
+      householdId: activeHouseholdId,
+      checked: false,
+      createdAt: serverTimestamp(),
+    })
+    await deleteDoc(doc(db, 'laterListItems', item.id))
+  }, [user, activeHouseholdId])
+
   const addTransaction = useCallback(async (data) => {
     if (!user || !activeHouseholdId) return
     try {
@@ -489,6 +542,7 @@ export function AppProvider({ children }) {
     totalIncome, totalExpenses, balance, monthKey,
     monthlyBudget, setMonthlyBudget,
     shoppingItems, CATEGORIES,
+    laterItems, addLaterItem, deleteLaterItem, moveLaterItemToShopping,
     receipts, addReceipt, deleteReceipt,
     addTransaction, deleteTransaction, updateTransaction,
     addShoppingItem, updateShoppingItem, deleteShoppingItem,

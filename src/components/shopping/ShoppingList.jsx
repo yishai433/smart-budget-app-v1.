@@ -9,8 +9,8 @@ import useDelayedFocus from '../../hooks/useDelayedFocus'
 import { X, Pencil, Check, Plus, ShoppingCart } from 'lucide-react'
 import { formatAmount, formatNumber } from '../../utils/format'
 
-const SHOP_CATS = ['produce','dairy','meat','bakery','frozen','drinks','cleaning','personal','other']
-const CAT_COLORS = {
+export const SHOP_CATS = ['produce','dairy','meat','bakery','frozen','drinks','cleaning','personal','other']
+export const CAT_COLORS = {
   produce: '#34C759', dairy: '#5AC8FA', meat: '#FF6B6B', bakery: '#FF9F0A',
   frozen: '#32ADE6', drinks: '#0A84FF', cleaning: '#30D158', personal: '#BF5AF2', other: '#636366',
 }

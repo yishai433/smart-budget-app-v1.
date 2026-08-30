@@ -1,0 +1,68 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // A user is a "member" of a household if they own it (doc id == their uid)
+    // or their uid is in its members array.
+    function isMember(householdId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/households/$(householdId)) &&
+        (householdId == request.auth.uid ||
+         request.auth.uid in get(/databases/$(database)/documents/households/$(householdId)).data.members);
+    }
+
+    // Profiles: anyone signed in can read (needed to show a partner's name/
+    // avatar), only the owner can write their own.
+    match /userProfiles/{uid} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Households: readable by any signed-in user (required so a new user can
+    // look up a household by invite code before they're a member). Writable
+    // by the owner/members, OR by someone redeeming a valid, unused,
+    // unexpired invite code (the join flow adds themselves to `members`).
+    match /households/{householdId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == householdId;
+      allow update: if isSignedIn() && (
+        request.auth.uid == householdId ||
+        request.auth.uid in resource.data.members ||
+        (
+          resource.data.activeInvite.used == false &&
+          resource.data.activeInvite.expiresAt > request.time &&
+          request.resource.data.activeInvite.used == true &&
+          request.resource.data.members == resource.data.members.concat([request.auth.uid])
+        )
+      );
+      allow delete: if false;
+    }
+
+    // App data: only members of the household it belongs to can touch it.
+    match /transactions/{id} {
+      allow read, update, delete: if isMember(resource.data.householdId);
+      allow create: if isMember(request.resource.data.householdId);
+    }
+
+    match /shoppingItems/{id} {
+      allow read, update, delete: if isMember(resource.data.householdId);
+      allow create: if isMember(request.resource.data.householdId);
+    }
+
+    match /laterListItems/{id} {
+      allow read, update, delete: if isMember(resource.data.householdId);
+      allow create: if isMember(request.resource.data.householdId);
+    }
+
+    match /receipts/{id} {
+      allow read, update, delete: if isMember(resource.data.householdId);
+      allow create: if isMember(request.resource.data.householdId);
+    }
+
+    // Anything else is denied by default.
+  }
+}
