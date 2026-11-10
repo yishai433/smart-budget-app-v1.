@@ -1,4 +1,4 @@
-import { useState, Component, useEffect, useLayoutEffect } from 'react'
+import { useState, Component, useEffect, useLayoutEffect, useRef } from 'react'
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AppProvider, useApp } from './contexts/AppContext'
@@ -168,15 +168,20 @@ function AppInner() {
   const [showAdd, setShowAdd] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showIntro, setShowIntro] = useState(() => !localStorage.getItem('sb_intro_seen'))
-  const [globalToast, setGlobalToast] = useState('')
+  // detail is a string, or { message, actionLabel, onAction } for a toast with a button (e.g. Undo)
+  const [globalToast, setGlobalToast] = useState(null)
+  const toastTimer = useRef(null)
 
   useEffect(() => {
     const handler = (e) => {
-      setGlobalToast(e.detail)
-      setTimeout(() => setGlobalToast(''), 2200)
+      const d = e.detail
+      const toast = typeof d === 'string' ? { message: d } : d
+      setGlobalToast(toast)
+      clearTimeout(toastTimer.current)
+      toastTimer.current = setTimeout(() => setGlobalToast(null), toast.onAction ? 5000 : 2200)
     }
     window.addEventListener('sb-toast', handler)
-    return () => window.removeEventListener('sb-toast', handler)
+    return () => { window.removeEventListener('sb-toast', handler); clearTimeout(toastTimer.current) }
   }, [])
 
   useEffect(() => {
@@ -275,7 +280,15 @@ function AppInner() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
           >
-            {globalToast}
+            {globalToast.message}
+            {globalToast.onAction && (
+              <button
+                onClick={() => { globalToast.onAction(); setGlobalToast(null) }}
+                style={{ marginInlineStart: 14, background: 'none', border: 'none', color: 'var(--c-primary)', fontWeight: 800, fontSize: 14, cursor: 'pointer', padding: '2px 4px' }}
+              >
+                {globalToast.actionLabel}
+              </button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
