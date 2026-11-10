@@ -376,26 +376,46 @@ export default function TransactionList({ filter = 'all' }) {
   // Render long lists in pages so scrolling and tab switches stay light
   const PAGE = 40
   const [limit, setLimit] = useState(PAGE)
-  useEffect(() => { setLimit(PAGE) }, [filter, monthKey])
+  // Search looks through every month, by description, category name or amount
+  const [search, setSearch] = useState('')
+  const q = search.trim().toLowerCase()
+  useEffect(() => { setLimit(PAGE) }, [filter, monthKey, q])
 
   const getCatDef = (tx) => CATEGORIES[tx.type]?.find(c => c.id === tx.category)
     || { emoji: tx.type === 'income' ? '💰' : '💸', color: '#8A8272' }
 
   // "All" follows the month picked in the month switcher; "recurring" lists
   // every recurring transaction regardless of month, as before.
-  const filtered = filter === 'recurring'
+  const base = filter === 'recurring'
     ? transactions.filter(tx => tx.isRecurring)
-    : transactions.filter(tx => tx.date?.startsWith(monthKey))
+    : q ? transactions : transactions.filter(tx => tx.date?.startsWith(monthKey))
+  const filtered = !q ? base : base.filter(tx =>
+    (tx.description || '').toLowerCase().includes(q) ||
+    t(`categories.${tx.category}`).toLowerCase().includes(q) ||
+    String(tx.amount ?? '').includes(q))
 
-  if (filtered.length === 0) {
-    return (
-      <div className="empty-state">
-        <div className="empty-icon"><Receipt size={22} strokeWidth={1.8} /></div>
-        <h3>{t('budget.noTransactions')}</h3>
-        {(isCurrentMonth || filter === 'recurring') && <p>{t('budget.noTransactionsHint')}</p>}
-      </div>
-    )
-  }
+  const searchBox = transactions.length > 0 && (
+    <div style={{ padding: '0 16px 12px', position: 'relative' }}>
+      <input
+        className="input-field"
+        type="search"
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        placeholder={settings.language === 'en' ? 'Search all transactions' : 'חיפוש בכל העסקאות'}
+        aria-label={settings.language === 'en' ? 'Search transactions' : 'חיפוש עסקאות'}
+        style={{ fontSize: 14, padding: '10px 14px' }}
+      />
+    </div>
+  )
+
+  // one stable tree (search box always first) so typing never loses focus
+  const emptyState = filtered.length === 0 && (
+    <div className="empty-state">
+      <div className="empty-icon"><Receipt size={22} strokeWidth={1.8} /></div>
+      <h3>{q ? (settings.language === 'en' ? 'Nothing found' : 'לא נמצאו עסקאות') : t('budget.noTransactions')}</h3>
+      {!q && (isCurrentMonth || filter === 'recurring') && <p>{t('budget.noTransactionsHint')}</p>}
+    </div>
+  )
 
   const visible = filtered.slice(0, limit)
   const groups = groupByMonth(visible)
@@ -403,6 +423,8 @@ export default function TransactionList({ filter = 'all' }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+      {searchBox}
+      {emptyState}
       {Object.entries(groups).map(([monthKey, txs]) => (
         <div key={monthKey} style={{ marginBottom: 18 }}>
           <div className="section-label" style={{ padding: '6px 20px 8px' }}>

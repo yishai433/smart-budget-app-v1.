@@ -12,6 +12,7 @@ import WhatsNew from '../components/budget/WhatsNew'
 import SettleUp from '../components/budget/SettleUp'
 import BudgetAlerts from '../components/budget/BudgetAlerts'
 import MonthSummary from '../components/budget/MonthSummary'
+import GettingStarted from '../components/budget/GettingStarted'
 
 const TABS = ['all', 'recurring']
 
@@ -29,6 +30,9 @@ export default function BudgetPage() {
         </div>
         <MonthSwitcher style={{ marginTop: 14 }} />
       </div>
+
+      {/* First steps for a new account */}
+      <GettingStarted />
 
       {/* Changes other household members made since the last visit */}
       <WhatsNew />
