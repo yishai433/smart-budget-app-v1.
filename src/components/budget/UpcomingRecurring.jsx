@@ -41,7 +41,7 @@ export default function UpcomingRecurring() {
             key={it.key}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05, duration: 0.25 }}
+            transition={{ duration: 0.2 }}
             style={{
               display: 'flex', alignItems: 'center', gap: 11, padding: '12px 16px',
               borderBottom: i < items.length - 1 ? '1px solid var(--c-sep)' : 'none',

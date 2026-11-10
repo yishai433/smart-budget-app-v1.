@@ -1,4 +1,4 @@
-import { useState, Component, useEffect, useRef } from 'react'
+import { useState, Component, useEffect, useLayoutEffect } from 'react'
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AppProvider, useApp } from './contexts/AppContext'
@@ -45,47 +45,26 @@ class ErrorBoundary extends Component {
   }
 }
 
-// Tab order matches BottomNav visual order (RTL, rightmost→leftmost: settings→shopping→receipts→reports→budget)
-const TAB_ORDER = ['/settings', '/shopping', '/receipts', '/reports', '/']
-const SLIDE_X = 28
-
+// Tab switch: the new page fades in (opacity only, GPU-friendly) and the scroll
+// position resets to the top. No exit animation and no second page on screen,
+// so there is no layout jump and nothing heavy to animate.
 function AnimatedRoutes() {
   const location = useLocation()
-  const prevPath = useRef(location.pathname)
-  const slideDir = useRef(0)
 
-  // Compute slide direction synchronously before render (React-safe ref mutation)
-  if (prevPath.current !== location.pathname) {
-    const prev = TAB_ORDER.indexOf(prevPath.current)
-    const curr = TAB_ORDER.indexOf(location.pathname)
-    slideDir.current = (prev !== -1 && curr !== -1) ? Math.sign(curr - prev) : 0
-    prevPath.current = location.pathname
-  }
-
-  const d = slideDir.current
-  // RTL: higher tab index is visually on the LEFT → invert slide direction
-  const isRTL = document.documentElement.dir === 'rtl'
-  const x = d * SLIDE_X * (isRTL ? -1 : 1)
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0)
+  }, [location.pathname])
 
   return (
-    <AnimatePresence mode="popLayout">
-      <motion.div
-        key={location.pathname}
-        initial={{ opacity: 0, x }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: -x }}
-        transition={{ type: 'spring', stiffness: 420, damping: 38, mass: 0.7 }}
-        style={{ minHeight: '100dvh', width: '100%', willChange: 'transform' }}
-      >
-        <Routes location={location}>
-          <Route path="/"         element={<ErrorBoundary><BudgetPage /></ErrorBoundary>} />
-          <Route path="/reports"  element={<ErrorBoundary><ReportsPage /></ErrorBoundary>} />
-          <Route path="/shopping" element={<ErrorBoundary><ShoppingPage /></ErrorBoundary>} />
-          <Route path="/settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
-          <Route path="/receipts" element={<ErrorBoundary><ReceiptsPage /></ErrorBoundary>} />
-        </Routes>
-      </motion.div>
-    </AnimatePresence>
+    <div key={location.pathname} className="page-fade" style={{ minHeight: '100dvh', width: '100%' }}>
+      <Routes location={location}>
+        <Route path="/"         element={<ErrorBoundary><BudgetPage /></ErrorBoundary>} />
+        <Route path="/reports"  element={<ErrorBoundary><ReportsPage /></ErrorBoundary>} />
+        <Route path="/shopping" element={<ErrorBoundary><ShoppingPage /></ErrorBoundary>} />
+        <Route path="/settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
+        <Route path="/receipts" element={<ErrorBoundary><ReceiptsPage /></ErrorBoundary>} />
+      </Routes>
+    </div>
   )
 }
 
@@ -108,7 +87,6 @@ function LoadingScreen() {
           position: 'absolute',
           width: 300, height: 300, borderRadius: '50%',
           background: 'radial-gradient(circle, rgba(198,113,57,0.35) 0%, transparent 70%)',
-          filter: 'blur(24px)',
         }}
       />
 
