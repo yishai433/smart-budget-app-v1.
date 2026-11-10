@@ -262,6 +262,17 @@ export function AppProvider({ children }) {
 
   const [dbError, setDbError] = useState('')
 
+  // Live household document, so changes other members make (activity log,
+  // budgets, goals) arrive without reopening the app. Starts only after the
+  // initial load has settled on the right household.
+  useEffect(() => {
+    if (!user || !activeHouseholdId || loading) return
+    const unsub = onSnapshot(doc(db, 'households', activeHouseholdId), (snap) => {
+      if (snap.exists()) setHousehold({ id: activeHouseholdId, ...snap.data() })
+    }, (err) => console.error('household listener error:', err.code, err.message))
+    return unsub
+  }, [user, activeHouseholdId, loading])
+
   // Real-time transactions listener
   useEffect(() => {
     if (!user || !activeHouseholdId) return
@@ -759,11 +770,14 @@ export function AppProvider({ children }) {
   }, [activeHouseholdId, myUid])
   // first time on this account: start counting from now instead of dumping history
   useEffect(() => {
-    if (household && myUid && activitySeenAt === undefined) markActivitySeen()
-  }, [household, myUid, activitySeenAt, markActivitySeen])
+    if (!loading && household && myUid && activitySeenAt === undefined) markActivitySeen()
+  }, [loading, household, myUid, activitySeenAt, markActivitySeen])
   const unseenActivity = Object.entries(household?.activity || {})
     .map(([id, a]) => ({ id, ...a }))
     .filter(a => a.by !== myUid && (a.at || 0) > (activitySeenAt ?? Infinity))
+    .sort((a, b) => b.at - a.at)
+  const activityAll = Object.entries(household?.activity || {})
+    .map(([id, a]) => ({ id, ...a }))
     .sort((a, b) => b.at - a.at)
 
   const value = {
@@ -776,7 +790,7 @@ export function AppProvider({ children }) {
     effectiveCategoryBudgets, overriddenCategoryIds, setCategoryBudget,
     savingsGoals, addSavingsGoal, addToSavingsGoal, deleteSavingsGoal,
     recurringOff, recurringStopped, setRecurringOff, setRecurringStopped,
-    unseenActivity, markActivitySeen,
+    unseenActivity, activityAll, markActivitySeen,
     shoppingItems, CATEGORIES,
     laterItems, addLaterItem, deleteLaterItem, moveLaterItemToShopping,
     receipts, addReceipt, deleteReceipt,

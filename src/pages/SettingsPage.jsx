@@ -12,6 +12,7 @@ import { getThemePref, setThemePref } from '../utils/theme'
 import { buildCsv, downloadCsv } from '../utils/exportCsv'
 import { monthLabel } from '../utils/months'
 import { buildSeries } from '../utils/recurring'
+import ActivityRows from '../components/budget/ActivityRows'
 
 function SettingRow({ icon, label, subtitle, right, onClick, danger }) {
   return (
@@ -51,6 +52,8 @@ export default function SettingsPage() {
   const { avatarConfig, currentMonthlyBudget: monthlyBudget, currentMonthKey, setMonthlyBudget } = useApp()
   const { transactions, monthKey, recurringOff, recurringStopped, setRecurringOff, setRecurringStopped } = useApp()
   const recurringSeries = buildSeries(transactions)
+  const { activityAll } = useApp()
+  const [showHistory, setShowHistory] = useState(false)
 
   const exportCsv = (scope) => {
     const list = scope === 'month' ? transactions.filter(tx => tx.date?.startsWith(monthKey)) : transactions
@@ -626,6 +629,26 @@ export default function SettingsPage() {
           })}
         </div>
 
+        {/* Change history of the whole household (last 30 days) */}
+        <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text2)', padding: '0 4px 8px', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+          {settings.language === 'he' ? 'היסטוריית שינויים' : 'Change history'}
+        </h3>
+        <div className="card" style={{ marginBottom: 20, overflow: 'hidden' }}>
+          <SettingRow
+            icon="🕘"
+            label={settings.language === 'he' ? 'מה השתנה ומי שינה' : 'What changed and who changed it'}
+            subtitle={settings.language === 'he' ? `${activityAll.length} שינויים ב-30 הימים האחרונים` : `${activityAll.length} changes in the last 30 days`}
+            onClick={() => setShowHistory(v => !v)}
+          />
+          {showHistory && (activityAll.length === 0 ? (
+            <div style={{ padding: '12px 16px', fontSize: 13, color: 'var(--c-text2)', borderTop: '1px solid var(--c-sep)' }}>
+              {settings.language === 'he'
+                ? 'עדיין אין שינויים מתועדים. שינויים נרשמים רק ממכשירים שמריצים את הגרסה העדכנית.'
+                : 'No changes recorded yet. Only devices on the latest version record changes.'}
+            </div>
+          ) : <ActivityRows items={activityAll.slice(0, 100)} showSelf />)}
+        </div>
+
         {/* Export — opens in Excel / Google Sheets */}
         <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text2)', padding: '0 4px 8px', letterSpacing: 0.5, textTransform: 'uppercase' }}>
           {settings.language === 'he' ? 'ייצוא נתונים' : 'Export data'}
@@ -647,7 +670,7 @@ export default function SettingsPage() {
 
         {/* About */}
         <div className="card" style={{ marginBottom: 16 }}>
-          <SettingRow icon="ℹ️" label={t('settings.about')} subtitle={t('settings.version')} />
+          <SettingRow icon="ℹ️" label={t('settings.about')} subtitle={`${t('settings.version')}${typeof __BUILD_TIME__ !== 'undefined' ? ' · ' + new Date(__BUILD_TIME__).toLocaleString(settings.language === 'he' ? 'he-IL' : 'en-GB', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}`} />
         </div>
 
         {/* Account */}
