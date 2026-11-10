@@ -2,57 +2,56 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  /* Brand — terracotta accent (primary actions), olive-sage accent-2 (hero / positive money / active nav) */
-  --c-primary:       #c67139;
-  --c-primary-dark:  #8c491a;
-  --c-primary-mid:   #d68f5e;
-  --c-primary-light: #f7e4d3;
+  /* Sage & mustard — deep sage green for actions and the hero, mustard as the warm accent */
+  --c-primary:       #2F4A3C;
+  --c-primary-dark:  #1E3328;
+  --c-primary-mid:   #4E6B5B;
+  --c-primary-light: #DCE6DF;
 
-  --c-accent2:       #7a8a5e;
-  --c-accent2-dark:  #56633f;
-  --c-accent2-mid:   #8fa073;
-  --c-accent2-light: #eaf0e0;
+  --c-accent2:       #E2B13C;
+  --c-accent2-dark:  #7A5A10;   /* mustard as readable text */
+  --c-accent2-mid:   #E2B13C;
+  --c-accent2-light: #F5E6BD;
   /* Kept for the auth/splash screens */
-  --c-header-start:  #56633f;
-  --c-header-end:    #7a8a5e;
+  --c-header-start:  #2F4A3C;
+  --c-header-end:    #45604F;
 
-  /* Semantic — the Organic design has no true red; income = accent-2, expense = neutral text, delete = deep rust */
-  --c-danger:        #D94949;
-  --c-danger-light:  #fbe5e5;
-  --c-success:       #56633f;
-  --c-success-light: #eaf0e0;
-  --c-warning:       #b2622d;
-  --c-blue:          #56633f;
-  --c-purple:        #56633f;
+  --c-danger:        #B93A32;
+  --c-danger-light:  #F6DEDA;
+  --c-success:       #2F6B3F;
+  --c-success-light: #DDEBDD;
+  --c-warning:       #9A6A0E;
+  --c-blue:          #2F4A3C;
+  --c-purple:        #2F4A3C;
 
-  /* Neutrals — warm cream/tan scale */
-  --c-bg:            #f5ead8;
-  --c-card:          #ebddc5;
-  --c-text:          #201e1d;
-  --c-text2:         #6b6255;
-  --c-text3:         #a19786;
-  --c-border:        rgba(32,30,29,0.14);
-  --c-sep:           rgba(32,30,29,0.09);
+  /* Neutrals — sage grey canvas, white rounded blocks */
+  --c-bg:            #E9ECE6;
+  --c-card:          #FFFFFF;
+  --c-text:          #1E2521;
+  --c-text2:         #56615B;
+  --c-text3:         #6F7A73;
+  --c-border:        rgba(30,37,33,0.10);
+  --c-sep:           rgba(30,37,33,0.07);
 
-  /* "Ink" hero — repointed to the accent-2 solid card from the approved design (not dark) */
-  --c-ink:           #8fa073;
-  --c-ink-2:         #7a8a5e;
-  --c-ink-text:      #221f0f;
-  --c-ink-text2:     rgba(34,31,15,0.62);
-  --c-ink-line:      rgba(34,31,15,0.16);
+  /* Hero block — deep sage with light text */
+  --c-ink:           #2F4A3C;
+  --c-ink-2:         #45604F;
+  --c-ink-text:      #F4F1E6;
+  --c-ink-text2:     #C9D3CB;
+  --c-ink-line:      rgba(244,241,230,0.16);
 
-  /* Shadows — soft, ink-tinted */
-  --shadow-xs:       0 1px 2px rgba(32,30,29,0.06);
-  --shadow-sm:       0 2px 6px rgba(32,30,29,0.08), 0 1px 2px rgba(32,30,29,0.05);
-  --shadow-md:       0 6px 14px -4px rgba(32,30,29,0.12), 0 2px 6px -2px rgba(32,30,29,0.06);
-  --shadow-lg:       0 16px 28px -8px rgba(32,30,29,0.16), 0 6px 10px -4px rgba(32,30,29,0.08);
-  --shadow-ink:      0 14px 30px -10px rgba(122,138,94,0.45), 0 4px 12px -4px rgba(32,30,29,0.18);
+  /* Shadows — barely there; blocks separate by colour, not depth */
+  --shadow-xs:       0 1px 2px rgba(30,37,33,0.04);
+  --shadow-sm:       0 2px 6px rgba(30,37,33,0.05);
+  --shadow-md:       0 6px 16px -6px rgba(30,37,33,0.10);
+  --shadow-lg:       0 18px 32px -10px rgba(30,37,33,0.18);
+  --shadow-ink:      none;
 
-  /* Radii — rounded, organic */
-  --r-sm:  10px;
-  --r-md:  16px;
-  --r-lg:  28px;
-  --r-xl:  32px;
+  /* Radii — soft, rounded blocks */
+  --r-sm:  12px;
+  --r-md:  20px;
+  --r-lg:  26px;
+  --r-xl:  30px;
   --r-2xl: 36px;
 
   /* Spacing scale — 4-based, one source of truth */
@@ -65,51 +64,57 @@
   --sp-7: 32px;
   --sp-8: 40px;
 
-  --nav-h: 64px;
+  /* Floating bottom bar: 64px pill, 16px above the safe area */
+  --nav-h: 96px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top:    env(safe-area-inset-top, 0px);
 }
 
-/* ── Dark mode — warm coffee tones, same terracotta + olive accents ──
+/* ── Dark mode — night green with mustard-gold ──
    Applied with <html data-theme="dark"> (see utils/theme.js). */
 :root { color-scheme: light; }
 [data-theme="dark"] {
   color-scheme: dark;
 
-  --c-primary-light: #3b2a1f;
-  --c-accent2-dark:  #a9bd87;   /* used as text on the accent-2 tint */
-  --c-accent2-light: #2b3323;
+  --c-primary:       #A9CDB5;
+  --c-primary-dark:  #8DB89C;
+  --c-primary-mid:   #7FA58D;
+  --c-primary-light: #25332B;
+  --c-accent2-dark:  #E2B13C;
+  --c-accent2-light: #2A2614;
 
-  --c-danger:        #ef6a6a;
-  --c-danger-light:  #3d2322;
-  --c-success:       #a9bd87;
-  --c-success-light: #2b3323;
-  --c-warning:       #e08a4f;
+  --c-danger:        #EF7A70;
+  --c-danger-light:  #3A2220;
+  --c-success:       #8FCB9E;
+  --c-success-light: #1F3326;
+  --c-warning:       #E2B13C;
 
-  --c-bg:            #1d1915;
-  --c-card:          #2a241e;
-  --c-text:          #f1e7d6;
-  --c-text2:         #b9ac96;
-  --c-text3:         #857a69;
-  --c-border:        rgba(241,231,214,0.14);
-  --c-sep:           rgba(241,231,214,0.09);
+  --c-bg:            #121512;
+  --c-card:          #1C211D;
+  --c-text:          #EEF0E8;
+  --c-text2:         #9AA59D;
+  --c-text3:         #7F8A82;
+  --c-border:        rgba(238,240,232,0.10);
+  --c-sep:           rgba(238,240,232,0.07);
 
-  --c-ink:           #4b5937;
-  --c-ink-2:         #3f4c2e;
-  --c-ink-text:      #f3ecd9;
-  --c-ink-text2:     rgba(243,236,217,0.68);
-  --c-ink-line:      rgba(243,236,217,0.18);
+  --c-ink:           #1C211D;
+  --c-ink-2:         #262D28;
+  --c-ink-text:      #EEF0E8;
+  --c-ink-text2:     #9AA59D;
+  --c-ink-line:      rgba(238,240,232,0.12);
 
-  --shadow-xs:       0 1px 2px rgba(0,0,0,0.3);
-  --shadow-sm:       0 2px 6px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.25);
-  --shadow-md:       0 6px 14px -4px rgba(0,0,0,0.45), 0 2px 6px -2px rgba(0,0,0,0.3);
-  --shadow-lg:       0 16px 28px -8px rgba(0,0,0,0.55), 0 6px 10px -4px rgba(0,0,0,0.35);
-  --shadow-ink:      0 14px 30px -10px rgba(0,0,0,0.5), 0 4px 12px -4px rgba(0,0,0,0.3);
+  --shadow-xs:       none;
+  --shadow-sm:       none;
+  --shadow-md:       0 6px 16px -6px rgba(0,0,0,0.5);
+  --shadow-lg:       0 18px 32px -10px rgba(0,0,0,0.6);
+  --shadow-ink:      none;
 }
+[data-theme="dark"] .hero-ink { border: 1px solid #343C36; }
+[data-theme="dark"] .btn-primary { color: #121512; }
 
 /* ── Typography scale — named roles, used across every screen ── */
-.t-display  { font-family: 'Caprasimo', 'Figtree', sans-serif; font-size: 36px; font-weight: 400; letter-spacing: -0.5px; line-height: 1.08; font-variant-numeric: tabular-nums; }
-.t-h1       { font-family: 'Caprasimo', 'Figtree', sans-serif; font-size: 21px; font-weight: 400; letter-spacing: -0.2px; line-height: 1.25; }
+.t-display  { font-family: 'Rubik', sans-serif; font-size: 36px; font-weight: 600; letter-spacing: -0.5px; line-height: 1.08; font-variant-numeric: tabular-nums; }
+.t-h1       { font-family: 'Rubik', sans-serif; font-size: 21px; font-weight: 600; letter-spacing: -0.2px; line-height: 1.25; }
 .t-h2       { font-size: 17px; font-weight: 700; letter-spacing: -0.2px; line-height: 1.25; }
 .t-body     { font-size: 15px; font-weight: 500; letter-spacing: -0.1px; }
 .t-label    { font-size: 13px; font-weight: 500; color: var(--c-text2); }
@@ -128,7 +133,7 @@ html {
 }
 
 body {
-  font-family: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Rubik', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--c-bg);
   color: var(--c-text);
   min-height: 100dvh;
@@ -183,7 +188,7 @@ body {
   position: relative;
 }
 .page-title {
-  font-family: 'Caprasimo', 'Figtree', sans-serif;
+  font-family: 'Rubik', sans-serif;
   font-size: 24px;
   font-weight: 400;
   letter-spacing: -0.3px;
@@ -201,8 +206,8 @@ body {
 /* Cards — soft, rounded, tan surface */
 .card {
   background: var(--c-card);
-  border: 1px solid var(--c-border);
-  border-radius: calc(var(--r-lg) * 1.15);
+  border: none;
+  border-radius: var(--r-lg);
   box-shadow: var(--shadow-xs);
   overflow: hidden;
 }
@@ -236,8 +241,8 @@ body {
   position: relative;
   background: var(--c-ink);
   color: var(--c-ink-text);
-  border-radius: calc(var(--r-lg) * 1.15);
-  padding: 22px 22px 20px;
+  border-radius: var(--r-xl);
+  padding: 22px 20px 18px;
   box-shadow: var(--shadow-ink);
   overflow: hidden;
 }
@@ -246,7 +251,7 @@ body {
 .kpi-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .kpi {
   background: var(--c-card);
-  border: 1px solid var(--c-border);
+  border: none;
   border-radius: var(--r-md);
   padding: 12px 12px 13px;
   display: flex;
@@ -263,7 +268,7 @@ body {
 .kpi-value { font-size: 16px; font-weight: 700; letter-spacing: -0.2px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* Summary numbers — tabular so digits never jitter */
-.amount-xl { font-family: 'Caprasimo', 'Figtree', sans-serif; font-size: 34px; font-weight: 400; letter-spacing: -0.4px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.amount-xl { font-family: 'Rubik', sans-serif; font-size: 34px; font-weight: 600; letter-spacing: -0.4px; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .amount-lg { font-size: 24px; font-weight: 700; letter-spacing: -0.4px; font-variant-numeric: tabular-nums; }
 .amount-md { font-size: 18px; font-weight: 700; letter-spacing: -0.2px; font-variant-numeric: tabular-nums; }
 
@@ -301,7 +306,7 @@ body {
 
 .btn-primary {
   background: var(--c-primary);
-  color: #fff8f0;
+  color: #F4F1E6;
   padding: 13px 24px;
   box-shadow: var(--shadow-xs);
 }
@@ -550,7 +555,7 @@ body {
   justify-content: space-between;
   padding: 20px 20px 0;
 }
-.sheet-title { font-family: 'Caprasimo', 'Figtree', sans-serif; font-size: 19px; font-weight: 400; }
+.sheet-title { font-family: 'Rubik', sans-serif; font-size: 19px; font-weight: 600; }
 
 /* Category grid */
 .cat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }

@@ -116,7 +116,7 @@ function LoadingScreen() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
-        style={{ fontFamily: "'Caprasimo', 'Figtree', sans-serif", fontSize: 30, fontWeight: 400, letterSpacing: 0, marginTop: 26, zIndex: 1 }}
+        style={{ fontFamily: "'Rubik', sans-serif", fontSize: 30, fontWeight: 400, letterSpacing: 0, marginTop: 26, zIndex: 1 }}
       >תקציב חכם</motion.h1>
       <motion.div
         initial={{ opacity: 0 }}

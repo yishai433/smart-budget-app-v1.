@@ -356,7 +356,7 @@ export default function OnboardingIntro({ onFinish }) {
               {slide.mock}
             </div>
             <h1 style={{
-              fontFamily: "'Caprasimo', 'Figtree', sans-serif",
+              fontFamily: "'Rubik', sans-serif",
               fontWeight: 400, fontSize: 21, letterSpacing: '-0.2px',
               color: 'var(--c-text)', marginBottom: 10, lineHeight: 1.3,
             }}>
