@@ -5,6 +5,7 @@ import SummaryCard from '../components/budget/SummaryCard'
 import TransactionList from '../components/budget/TransactionList'
 import CategoryBreakdown from '../components/budget/CategoryBreakdown'
 import SavingsGoals from '../components/budget/SavingsGoals'
+import UpcomingRecurring from '../components/budget/UpcomingRecurring'
 import UserAvatar from '../components/UserAvatar'
 import MonthSwitcher from '../components/budget/MonthSwitcher'
 
@@ -27,6 +28,9 @@ export default function BudgetPage() {
 
       {/* Summary — balance, income, expenses */}
       <SummaryCard />
+
+      {/* Recurring expenses due in the next week (current month only) */}
+      <UpcomingRecurring />
 
       {/* Category breakdown */}
       <CategoryBreakdown />
