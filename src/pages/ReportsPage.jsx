@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { useApp } from '../contexts/AppContext'
@@ -7,6 +7,8 @@ import UserAvatar from '../components/UserAvatar'
 import { formatMoney, formatAmount } from '../utils/format'
 import CategoryIcon from '../components/CategoryIcon'
 import SupermarketTrips from '../components/budget/SupermarketTrips'
+import MonthSwitcher from '../components/budget/MonthSwitcher'
+import CategoryBudgetRows from '../components/budget/CategoryBudgetRows'
 import { Pencil, Check, PieChart } from 'lucide-react'
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני',
@@ -14,11 +16,12 @@ const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','�
 const EN_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun',
                    'Jul','Aug','Sep','Oct','Nov','Dec']
 
-function getLastMonths(n) {
+// The n months ending at endKey ("YYYY-MM"), oldest first
+function getLastMonths(n, endKey) {
   const months = []
-  const now = new Date()
+  const [endY, endM] = endKey.split('-').map(Number)
   for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const d = new Date(endY, endM - 1 - i, 1)
     months.push({
       key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
       label: EN_MONTHS[d.getMonth()],
@@ -51,13 +54,14 @@ function SectionCard({ title, subtitle, action, children }) {
 
 export default function ReportsPage() {
   const { t } = useTranslation()
-  const { transactions, CATEGORIES, settings } = useApp()
+  const { transactions, CATEGORIES, settings, monthKey, effectiveCategoryBudgets } = useApp()
   const cur = settings.currency
   const lang = settings.language || 'he'
 
-  const months = useMemo(() => getLastMonths(6), [])
-  const selected = months[months.length - 1] // current month
+  const months = useMemo(() => getLastMonths(6, monthKey), [monthKey])
+  const selected = months[months.length - 1] // the month chosen in the switcher
   const [barSelectedIdx, setBarSelectedIdx] = useState(null)
+  useEffect(() => { setBarSelectedIdx(null) }, [monthKey])
 
   const [bigExpenseThreshold, setBigExpenseThreshold] = useState(() => {
     const saved = localStorage.getItem('sb_big_expense_threshold')
@@ -89,6 +93,11 @@ export default function ReportsPage() {
       return { id: catId, label: t(`categories.${catId}`), value, color: def.color }
     })
 
+  // Category rows: everything spent this month, plus categories that have a budget
+  const reportRows = [...new Set([...Object.keys(expByCat), ...Object.keys(effectiveCategoryBudgets)])]
+    .map(catId => ({ catId, amount: expByCat[catId] || 0 }))
+    .sort((a, b) => b.amount - a.amount)
+
   // Bar chart data: last 6 months
   const barData = months.map(m => {
     const txs = transactions.filter(t => t.date?.startsWith(m.key))
@@ -111,6 +120,7 @@ export default function ReportsPage() {
           <h1 className="page-title">{lang === 'he' ? 'דוחות' : 'Reports'}</h1>
           <UserAvatar />
         </div>
+        <MonthSwitcher style={{ marginTop: 14 }} />
       </div>
 
       <div style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -185,52 +195,10 @@ export default function ReportsPage() {
         </SectionCard>
 
         {/* 2 — Expenses by category — bar list, per approved design */}
-        {donutSegments.length > 0 ? (
+        {reportRows.length > 0 ? (
           <SectionCard title={lang==='he'?'הוצאות לפי קטגוריה':'Expenses by category'}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {donutSegments.map((seg, i) => {
-                const pct = expenses > 0 ? (seg.value / expenses) * 100 : 0
-                return (
-                  <motion.div
-                    key={seg.id}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05, duration: 0.25 }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-                      <div style={{
-                        width: 30, height: 30, borderRadius: 999, flexShrink: 0,
-                        background: seg.color + '14', color: seg.color,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <CategoryIcon id={seg.id} size={16} strokeWidth={2} />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-                          <span style={{ fontSize: 14, fontWeight: 500 }}>{seg.label}</span>
-                          <span dir="ltr" className="num" style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-danger)' }}>
-                            {formatAmount(seg.value, cur)}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7 }}>
-                          <div className="progress-bar" style={{ flex: 1, height: 4 }}>
-                            <motion.div
-                              className="progress-fill"
-                              style={{ background: seg.color }}
-                              initial={{ width: 0 }}
-                              animate={{ width: `${pct}%` }}
-                              transition={{ duration: 0.65, delay: i * 0.05, ease: 'easeOut' }}
-                            />
-                          </div>
-                          <span className="num" style={{ fontSize: 11.5, color: 'var(--c-text3)', fontWeight: 500, minWidth: 30, textAlign: 'end' }}>
-                            {Math.round(pct)}%
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                )
-              })}
+            <div style={{ margin: '-10px -16px -12px' }}>
+              <CategoryBudgetRows rows={reportRows} totalExpenses={expenses} />
             </div>
           </SectionCard>
         ) : (

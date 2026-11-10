@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowDownLeft, ArrowUpRight, Wallet, X, Receipt } from 'lucide-react'
 import { formatNumber, formatAmount, formatMoney } from '../../utils/format'
+import { monthLabel } from '../../utils/months'
 import CategoryIcon from '../CategoryIcon'
 import useScrollLock from '../../hooks/useScrollLock'
 import useDelayedFocus from '../../hooks/useDelayedFocus'
@@ -251,7 +252,7 @@ function BudgetPromptSheet({ lang, cur, onSave, onClose }) {
 
 export default function SummaryCard() {
   const { t } = useTranslation()
-  const { totalIncome, totalExpenses, settings, monthTransactions, CATEGORIES, monthlyBudget, setMonthlyBudget, household } = useApp()
+  const { totalIncome, totalExpenses, settings, monthTransactions, CATEGORIES, monthlyBudget, setMonthlyBudget, household, isCurrentMonth, monthKey } = useApp()
   const cur = settings.currency
   const lang = settings.language || 'he'
   const [filterOpen, setFilterOpen] = useState(null) // 'income' | 'expense' | null
@@ -269,6 +270,19 @@ export default function SummaryCard() {
 
   const money = (v) => `${v < 0 ? '−' : ''}${formatAmount(v, cur)}`
 
+  // End-of-month forecast: spending so far, extrapolated at the same daily pace.
+  // Only for the current month, and only once there are a few days of data
+  // (day 1–3 would give wild numbers) and before the month is over.
+  const FORECAST_MIN_DAYS = 4
+  const today = new Date()
+  const daysElapsed = today.getDate()
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
+  const showForecast = isCurrentMonth && totalExpenses > 0
+    && daysElapsed >= FORECAST_MIN_DAYS && daysElapsed < daysInMonth
+  const forecast = showForecast ? Math.round((totalExpenses / daysElapsed) * daysInMonth) : 0
+  const forecastDiff = showForecast && hasBudget ? forecast - monthlyBudget : 0 // >0 = over budget
+  const forecastOver = forecastDiff > 0
+
   return (
     <div style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
@@ -284,7 +298,9 @@ export default function SummaryCard() {
             <div className="t-overline" style={{ color: 'var(--c-ink-text2)' }}>
               {overBudget
                 ? (lang === 'he' ? 'חרגנו מהתקציב ב' : 'Over budget by')
-                : (lang === 'he' ? 'הוצאנו החודש' : 'Spent this month')}
+                : isCurrentMonth
+                  ? (lang === 'he' ? 'הוצאנו החודש' : 'Spent this month')
+                  : (lang === 'he' ? `הוצאנו ב${monthLabel(monthKey, lang)}` : `Spent in ${monthLabel(monthKey, lang)}`)}
             </div>
             <div dir="ltr" className="t-display" style={{
               color: overBudget ? 'var(--c-danger)' : 'var(--c-ink-text)',
@@ -306,9 +322,29 @@ export default function SummaryCard() {
           <span className="num" style={{ direction: 'rtl' }}>
             {hasBudget
               ? <>{lang === 'he' ? 'מתוך תקציב של' : 'of a budget of'} <b style={{ color: 'var(--c-ink-text)', fontWeight: 700 }}>{money(monthlyBudget)}</b></>
-              : (lang === 'he' ? 'לא הוגדר תקציב לחודש' : 'No budget set for this month')}
+              : (isCurrentMonth
+                  ? (lang === 'he' ? 'לא הוגדר תקציב לחודש' : 'No budget set for this month')
+                  : (lang === 'he' ? 'לא הוגדר תקציב לחודש זה' : 'No budget was set for this month'))}
           </span>
         </div>
+
+        {/* End-of-month forecast at the current daily pace */}
+        {showForecast && (
+          <div className="num" style={{
+            marginTop: 10, fontSize: 13, lineHeight: 1.5,
+            color: forecastOver ? 'var(--c-danger)' : 'var(--c-ink-text2)',
+            fontWeight: forecastOver ? 600 : 500,
+          }}>
+            {lang === 'he'
+              ? <>בקצב הנוכחי תסיימו את החודש על <b dir="ltr" style={{ color: forecastOver ? 'var(--c-danger)' : 'var(--c-ink-text)', fontWeight: 700 }}>{money(forecast)}</b></>
+              : <>At this pace you'll end the month at <b style={{ color: forecastOver ? 'var(--c-danger)' : 'var(--c-ink-text)', fontWeight: 700 }}>{money(forecast)}</b></>}
+            {hasBudget && forecastDiff !== 0 && (
+              lang === 'he'
+                ? <> · {money(Math.abs(forecastDiff))} {forecastOver ? 'מעל התקציב' : 'מתחת לתקציב'}</>
+                : <> · {money(Math.abs(forecastDiff))} {forecastOver ? 'over' : 'under'} budget</>
+            )}
+          </div>
+        )}
       </motion.div>
 
       {/* KPI row */}
@@ -345,7 +381,7 @@ export default function SummaryCard() {
       {/* Ask for this month's budget once, if none is set yet — can be
           dismissed and set later from Settings. */}
       <AnimatePresence>
-        {household != null && !hasBudget && !budgetPromptDismissed && (
+        {household != null && isCurrentMonth && !hasBudget && !budgetPromptDismissed && (
           <BudgetPromptSheet
             lang={lang}
             cur={cur}

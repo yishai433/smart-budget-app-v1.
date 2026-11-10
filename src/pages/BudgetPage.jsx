@@ -5,34 +5,23 @@ import SummaryCard from '../components/budget/SummaryCard'
 import TransactionList from '../components/budget/TransactionList'
 import CategoryBreakdown from '../components/budget/CategoryBreakdown'
 import UserAvatar from '../components/UserAvatar'
-import { useApp } from '../contexts/AppContext'
+import MonthSwitcher from '../components/budget/MonthSwitcher'
 
 const TABS = ['all', 'recurring']
 
 export default function BudgetPage() {
   const { t } = useTranslation()
-  const { settings } = useApp()
   const [tab, setTab] = useState('all')
-
-  const now = new Date()
-  const monthNames = {
-    he: ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'],
-    en: ['January','February','March','April','May','June','July','August','September','October','November','December'],
-  }
-  const lang = settings.language || 'he'
-  const monthLabel = `${monthNames[lang][now.getMonth()]} ${now.getFullYear()}`
 
   return (
     <div className="page">
       {/* Header — compact, light */}
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <p className="page-eyebrow">{monthLabel}</p>
-            <h1 className="page-title">{t('budget.title')}</h1>
-          </div>
+          <h1 className="page-title">{t('budget.title')}</h1>
           <UserAvatar />
         </div>
+        <MonthSwitcher style={{ marginTop: 14 }} />
       </div>
 
       {/* Summary — balance, income, expenses */}

@@ -42,7 +42,8 @@ function Toggle({ checked, onChange }) {
 export default function SettingsPage() {
   const { t } = useTranslation()
   const { settings, changeLanguage, updateSettings, household, user, activeHouseholdId, logout, isPro } = useApp()
-  const { avatarConfig, monthlyBudget, setMonthlyBudget } = useApp()
+  // Settings always edits the budget of the real current month, not the month being browsed
+  const { avatarConfig, currentMonthlyBudget: monthlyBudget, currentMonthKey, setMonthlyBudget } = useApp()
   const [editingAvatar, setEditingAvatar] = useState(false)
   const [budgetInput, setBudgetInput] = useState(monthlyBudget != null ? String(monthlyBudget) : '')
   const [savingBudget, setSavingBudget] = useState(false)
@@ -63,7 +64,7 @@ export default function SettingsPage() {
     const val = parseFloat(budgetInput)
     if (!(val > 0)) return
     setSavingBudget(true)
-    await setMonthlyBudget(val)
+    await setMonthlyBudget(val, currentMonthKey)
     setSavingBudget(false)
     window.dispatchEvent(new CustomEvent('sb-toast', { detail: '✅ התקציב עודכן' }))
   }
