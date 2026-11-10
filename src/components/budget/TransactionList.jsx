@@ -366,7 +366,7 @@ export default function TransactionList({ filter = 'all' }) {
   const [editingTx, setEditingTx] = useState(null)
 
   const getCatDef = (tx) => CATEGORIES[tx.type]?.find(c => c.id === tx.category)
-    || { emoji: tx.type === 'income' ? '💰' : '💸', color: '#636366' }
+    || { emoji: tx.type === 'income' ? '💰' : '💸', color: '#8A8272' }
 
   // "All" follows the month picked in the month switcher; "recurring" lists
   // every recurring transaction regardless of month, as before.

@@ -14,25 +14,25 @@ const AppContext = createContext(null)
 
 const CATEGORIES = {
   income: [
-    { id: 'salary',     emoji: '💼', color: '#34C759' },
-    { id: 'freelance',  emoji: '💻', color: '#30D158' },
-    { id: 'gift',       emoji: '🎁', color: '#FF9F0A' },
-    { id: 'investment', emoji: '📈', color: '#0A84FF' },
-    { id: 'other',      emoji: '💰', color: '#636366' },
+    { id: 'salary',     emoji: '💼', color: '#56633F' },
+    { id: 'freelance',  emoji: '💻', color: '#7A8A5E' },
+    { id: 'gift',       emoji: '🎁', color: '#D08A2E' },
+    { id: 'investment', emoji: '📈', color: '#4F7A8A' },
+    { id: 'other',      emoji: '💰', color: '#8A8272' },
   ],
   expense: [
-    { id: 'housing',       emoji: '🏠', color: '#D98888' },
-    { id: 'food',          emoji: '🍔', color: '#FF9F0A' },
-    { id: 'transport',     emoji: '🚗', color: '#0A84FF' },
-    { id: 'clothing',      emoji: '👕', color: '#BF5AF2' },
-    { id: 'health',        emoji: '❤️', color: '#D96B6B' },
-    { id: 'education',     emoji: '📚', color: '#5AC8FA' },
-    { id: 'entertainment', emoji: '🎬', color: '#D96B80' },
-    { id: 'subscriptions', emoji: '📡', color: '#6E6ADB' },
-    { id: 'outings',       emoji: '🎉', color: '#FF6B6B' },
-    { id: 'grooming',      emoji: '💆', color: '#FF9ECD' },
-    { id: 'tech',          emoji: '📱', color: '#32ADE6' },
-    { id: 'other',         emoji: '📦', color: '#636366' },
+    { id: 'housing',       emoji: '🏠', color: '#A8553A' },
+    { id: 'food',          emoji: '🍔', color: '#D08A2E' },
+    { id: 'transport',     emoji: '🚗', color: '#56633F' },
+    { id: 'clothing',      emoji: '👕', color: '#9A6B8E' },
+    { id: 'health',        emoji: '❤️', color: '#C0524F' },
+    { id: 'education',     emoji: '📚', color: '#4F7A8A' },
+    { id: 'entertainment', emoji: '🎬', color: '#C77B5C' },
+    { id: 'subscriptions', emoji: '📡', color: '#6B5FA0' },
+    { id: 'outings',       emoji: '🎉', color: '#7E9A5C' },
+    { id: 'grooming',      emoji: '💆', color: '#D98FA0' },
+    { id: 'tech',          emoji: '📱', color: '#3F6F73' },
+    { id: 'other',         emoji: '📦', color: '#8A8272' },
   ]
 }
 
