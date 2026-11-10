@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import SummaryCard from '../components/budget/SummaryCard'
 import TransactionList from '../components/budget/TransactionList'
 import CategoryBreakdown from '../components/budget/CategoryBreakdown'
+import SavingsGoals from '../components/budget/SavingsGoals'
 import UserAvatar from '../components/UserAvatar'
 import MonthSwitcher from '../components/budget/MonthSwitcher'
 
@@ -29,6 +30,9 @@ export default function BudgetPage() {
 
       {/* Category breakdown */}
       <CategoryBreakdown />
+
+      {/* Savings goals — shared with the household */}
+      <SavingsGoals />
 
       {/* Transactions */}
       <div style={{ padding: '26px 16px 10px' }}>
