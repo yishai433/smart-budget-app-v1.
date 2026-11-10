@@ -10,6 +10,8 @@ import UserAvatar from '../components/UserAvatar'
 import MonthSwitcher from '../components/budget/MonthSwitcher'
 import WhatsNew from '../components/budget/WhatsNew'
 import SettleUp from '../components/budget/SettleUp'
+import BudgetAlerts from '../components/budget/BudgetAlerts'
+import MonthSummary from '../components/budget/MonthSummary'
 
 const TABS = ['all', 'recurring']
 
@@ -33,6 +35,10 @@ export default function BudgetPage() {
 
       {/* Summary — balance, income, expenses */}
       <SummaryCard />
+
+      {/* Budget heads-up (80%+ or over) and last month's summary */}
+      <BudgetAlerts />
+      <MonthSummary />
 
       {/* Recurring expenses due in the next week (current month only) */}
       <UpcomingRecurring />
