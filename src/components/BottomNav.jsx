@@ -2,103 +2,66 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { useApp } from '../contexts/AppContext'
-import { Wallet, BarChart2, ShoppingCart, Receipt, Settings } from 'lucide-react'
+import { Home, List, Plus, BarChart2, ShoppingBag, Receipt } from 'lucide-react'
 
-// Order matches the approved design's DOM order (RTL: first child renders rightmost).
-const BASE_TABS = [
-  { path: '/settings', Icon: Settings,      key: 'settings' },
-  { path: '/shopping', Icon: ShoppingCart,  key: 'shopping' },
-  { path: '/reports',  Icon: BarChart2,     key: 'reports' },
-  { path: '/',         Icon: Wallet,        key: 'budget' },
-]
-const RECEIPTS_TAB = { path: '/receipts', Icon: Receipt,  key: 'receipts' }
-
+// Floating bottom bar: a dark rounded pill that sits above the page. The add
+// button lives in the middle so it is in the same place on every tab.
 const LABELS = {
-  he: { budget:'תקציב', reports:'דוחות', shopping:'קניות', receipts:'חשבוניות', settings:'הגדרות' },
-  en: { budget:'Budget', reports:'Reports', shopping:'Shopping', receipts:'Receipts', settings:'Settings' },
+  he: { budget: 'בית', transactions: 'עסקאות', add: 'הוספת עסקה', reports: 'דוחות', shopping: 'קניות', receipts: 'חשבוניות' },
+  en: { budget: 'Home', transactions: 'Transactions', add: 'Add transaction', reports: 'Reports', shopping: 'Shopping', receipts: 'Receipts' },
 }
 
-export default function BottomNav() {
+export default function BottomNav({ onAdd }) {
   const { i18n } = useTranslation()
   const { settings, isPro } = useApp()
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const lang = i18n.language === 'he' ? 'he' : 'en'
+  const L = LABELS[lang]
 
-  // Receipts is inserted right after shopping (index 2) to keep budget rightmost.
-  const tabs = settings.receiptsEnabled && isPro
-    ? [BASE_TABS[0], BASE_TABS[1], RECEIPTS_TAB, BASE_TABS[2], BASE_TABS[3]]
-    : BASE_TABS
+  const items = [
+    { path: '/', Icon: Home, key: 'budget' },
+    { path: '/transactions', Icon: List, key: 'transactions' },
+    { add: true, Icon: Plus, key: 'add' },
+    { path: '/reports', Icon: BarChart2, key: 'reports' },
+    { path: '/shopping', Icon: ShoppingBag, key: 'shopping' },
+  ]
+  if (settings.receiptsEnabled && isPro) items.push({ path: '/receipts', Icon: Receipt, key: 'receipts' })
 
   return (
-    <nav className="bottom-nav" style={{
-      position: 'fixed',
-      left: 0,
-      right: 0,
-      bottom: 0,
-      margin: '0 auto',
-      width: '100%',
-      maxWidth: '480px',
-      height: `calc(var(--nav-h) + var(--safe-bottom))`,
-      paddingBottom: 'var(--safe-bottom)',
-      background: 'var(--c-card)',
-      borderTop: '1px solid var(--c-border)',
-      boxShadow: '0 -4px 16px -8px rgba(32,30,29,0.14)',
-      display: 'flex',
-      alignItems: 'center',
-      padding: '0 8px',
-      zIndex: 150,
-    }}>
-      {tabs.map(tab => {
-        const active = pathname === tab.path
-        const { Icon } = tab
+    <nav className="bottom-nav" aria-label={lang === 'he' ? 'ניווט ראשי' : 'Main navigation'}>
+      {items.map(item => {
+        const { Icon } = item
+        if (item.add) {
+          return (
+            <motion.button
+              key="add"
+              className="nav-add"
+              whileTap={{ scale: 0.9 }}
+              onClick={onAdd}
+              aria-label={L.add}
+            >
+              <Icon size={24} strokeWidth={2.4} />
+            </motion.button>
+          )
+        }
+        const active = pathname === item.path
         return (
           <button
-            key={tab.path}
-            onClick={() => navigate(tab.path)}
-            style={{
-              flex: 1,
-              display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center', gap: '3px',
-              border: 'none', background: 'transparent',
-              cursor: 'pointer', padding: '8px 2px',
-              position: 'relative',
-              height: '100%',
-              WebkitTapHighlightColor: 'transparent',
-            }}
+            key={item.path}
+            className={`nav-item ${active ? 'active' : ''}`}
+            onClick={() => navigate(item.path)}
+            aria-label={L[item.key]}
+            aria-current={active ? 'page' : undefined}
           >
             {active && (
-              <motion.div
-                layoutId="nav-chip"
-                style={{
-                  position: 'absolute',
-                  inset: '6px 4px',
-                  background: 'var(--c-accent2-light)',
-                  borderRadius: 999,
-                  zIndex: 0,
-                }}
-                transition={{ type: 'spring', stiffness: 440, damping: 36 }}
+              <motion.span
+                layoutId="nav-active"
+                className="nav-active-dot"
+                transition={{ type: 'tween', duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
               />
             )}
-            <div style={{
-              position: 'relative', zIndex: 1,
-              display: 'flex', flexDirection: 'column',
-              alignItems: 'center', gap: '3px',
-            }}>
-              <Icon
-                size={20}
-                strokeWidth={active ? 2.3 : 1.8}
-                color={active ? 'var(--c-accent2-dark)' : 'var(--c-text3)'}
-              />
-              <span style={{
-                fontSize: '10px',
-                fontWeight: active ? 700 : 500,
-                color: active ? 'var(--c-accent2-dark)' : 'var(--c-text3)',
-                letterSpacing: '0.1px',
-              }}>
-                {LABELS[lang][tab.key]}
-              </span>
-            </div>
+            <Icon size={22} strokeWidth={active ? 2.3 : 2} style={{ position: 'relative', zIndex: 1 }} />
           </button>
         )
       })}

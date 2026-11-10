@@ -12,6 +12,7 @@ import AuthPage from './pages/AuthPage'
 import OnboardingIntro from './pages/OnboardingIntro'
 import ReportsPage from './pages/ReportsPage'
 import ReceiptsPage from './pages/ReceiptsPage'
+import TransactionsPage from './pages/TransactionsPage'
 import AvatarCreator from './components/AvatarCreator'
 import { Wallet } from 'lucide-react'
 
@@ -34,7 +35,7 @@ class ErrorBoundary extends Component {
           <button
             onClick={() => { this.setState({ error: null }); window.location.hash = '/' }}
             style={{
-              background: '#c67139', color: '#fff8f0', border: 'none',
+              background: '#2F4A3C', color: '#F4F1E6', border: 'none',
               borderRadius: 999, padding: '12px 28px', fontSize: 15,
               fontWeight: 700, cursor: 'pointer',
             }}
@@ -60,6 +61,7 @@ function AnimatedRoutes() {
     <div key={location.pathname} className="page-fade" style={{ minHeight: '100dvh', width: '100%' }}>
       <Routes location={location}>
         <Route path="/"         element={<ErrorBoundary><BudgetPage /></ErrorBoundary>} />
+        <Route path="/transactions" element={<ErrorBoundary><TransactionsPage /></ErrorBoundary>} />
         <Route path="/reports"  element={<ErrorBoundary><ReportsPage /></ErrorBoundary>} />
         <Route path="/shopping" element={<ErrorBoundary><ShoppingPage /></ErrorBoundary>} />
         <Route path="/settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
@@ -75,8 +77,8 @@ function LoadingScreen() {
       minHeight: '100dvh',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      background: 'radial-gradient(circle at 50% 34%, #8fa073 0%, #56633f 72%)',
-      color: '#fff8f0',
+      background: '#2F4A3C',
+      color: '#F4F1E6',
       position: 'relative', overflow: 'hidden',
     }}>
       {/* Soft glow behind the logo */}
@@ -87,7 +89,7 @@ function LoadingScreen() {
         style={{
           position: 'absolute',
           width: 300, height: 300, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(198,113,57,0.35) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(226,177,60,0.25) 0%, transparent 70%)',
         }}
       />
 
@@ -98,9 +100,9 @@ function LoadingScreen() {
         transition={{ type: 'spring', stiffness: 260, damping: 20 }}
         style={{
           width: 96, height: 96, borderRadius: 32,
-          background: 'linear-gradient(145deg, #c67139 0%, #8c491a 100%)',
+          background: '#E2B13C',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 12px 40px rgba(140,73,26,0.45)',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
           position: 'relative', zIndex: 1,
         }}
       >
@@ -108,7 +110,7 @@ function LoadingScreen() {
           animate={{ scale: [1, 1.08, 1] }}
           transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
         >
-          <Wallet size={46} color="#fff8f0" strokeWidth={2} />
+          <Wallet size={46} color="#2A2006" strokeWidth={2} />
         </motion.div>
       </motion.div>
 
@@ -116,7 +118,7 @@ function LoadingScreen() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
-        style={{ fontFamily: "'Caprasimo', 'Figtree', sans-serif", fontSize: 30, fontWeight: 400, letterSpacing: 0, marginTop: 26, zIndex: 1 }}
+        style={{ fontFamily: "'Rubik', sans-serif", fontSize: 30, fontWeight: 400, letterSpacing: 0, marginTop: 26, zIndex: 1 }}
       >תקציב חכם</motion.h1>
       <motion.div
         initial={{ opacity: 0 }}
@@ -137,29 +139,6 @@ function LoadingScreen() {
         ))}
       </div>
     </div>
-  )
-}
-
-// FAB lives OUTSIDE AnimatePresence so it's never inside a transformed div
-function GlobalFAB({ onOpen }) {
-  const { pathname } = useLocation()
-  if (pathname !== '/') return null
-  return (
-    <motion.button
-      className="fab"
-      whileTap={{ scale: 0.88 }}
-      onClick={onOpen}
-      aria-label="הוסף עסקה"
-      initial={{ scale: 0, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ type: 'spring', stiffness: 380, damping: 28, delay: 0.1 }}
-    >
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" strokeWidth="2.8" strokeLinecap="round">
-        <line x1="12" y1="5" x2="12" y2="19" />
-        <line x1="5" y1="12" x2="19" y2="12" />
-      </svg>
-    </motion.button>
   )
 }
 
@@ -261,10 +240,8 @@ function AppInner() {
     <>
       <OfflineBanner />
       <AnimatedRoutes />
-      <BottomNav />
+      <BottomNav onAdd={() => setShowAdd(true)} />
 
-      {/* FAB rendered outside animated routes — never clipped by transforms */}
-      <GlobalFAB onOpen={() => setShowAdd(true)} />
 
       {/* AddTransaction sheet also at root level */}
       <AnimatePresence>

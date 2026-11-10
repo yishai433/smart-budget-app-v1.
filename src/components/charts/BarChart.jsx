@@ -10,8 +10,8 @@ import {
 } from 'recharts'
 import { formatAmount } from '../../utils/format'
 
-const INC = '#7a8a5e'
-const EXP = '#c67139'
+const INC = '#5E8B6E'
+const EXP = '#E2B13C'
 
 // Compact axis labels: 12,400 → 12.4K
 function compactNumber(n) {
