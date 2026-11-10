@@ -251,7 +251,8 @@ function BudgetPromptSheet({ lang, cur, onSave, onClose }) {
   ), document.body)
 }
 
-export default function SummaryCard() {
+// showKpis: the saved / expenses / income tiles (off on the home screen to keep it calm)
+export default function SummaryCard({ showKpis = false }) {
   const { t } = useTranslation()
   const { totalIncome, totalExpenses, settings, monthTransactions, CATEGORIES, monthlyBudget, setMonthlyBudget, household, isCurrentMonth, monthKey } = useApp()
   const cur = settings.currency
@@ -335,7 +336,7 @@ export default function SummaryCard() {
         </div>
         <div className="num" style={{ fontSize: 13, color: 'var(--c-ink-text2)', marginTop: 6 }}>
           {hasBudget
-            ? <>{lang === 'he' ? 'מתוך' : 'of'} <b style={{ color: 'var(--c-accent2)', fontWeight: 600 }}>{money(monthlyBudget)}</b>
+            ? <>{lang === 'he' ? 'מתוך' : 'of'} <b style={{ color: 'var(--c-ink-text)', fontWeight: 600 }}>{money(monthlyBudget)}</b>
                 {perDayLeft > 0 && <> · {money(perDayLeft)} {lang === 'he' ? 'ליום' : 'a day'}</>}
                 {!isCurrentMonth && <> · {lang === 'he' ? 'הוצאתם' : 'spent'} {money(totalExpenses)}</>}</>
             : (isCurrentMonth
@@ -349,8 +350,8 @@ export default function SummaryCard() {
               aria-label={lang === 'he' ? 'קצב ההוצאות מתחילת החודש מול קצב התקציב' : 'Spending so far this month against the budget pace'}
               style={{ display: 'block', overflow: 'visible' }}>
               {pace.budgetLine && <line {...pace.budgetLine} stroke="var(--c-ink-line-strong)" strokeWidth="1.2" strokeDasharray="3 5" />}
-              <polyline points={pace.points} fill="none" stroke="var(--c-accent2)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-              <circle cx={pace.last[0]} cy={pace.last[1]} r="5" fill="var(--c-accent2)" stroke="var(--c-ink)" strokeWidth="2" />
+              <polyline points={pace.points} fill="none" stroke="var(--c-pace)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+              <circle cx={pace.last[0]} cy={pace.last[1]} r="5" fill="var(--c-pace)" stroke="var(--c-ink)" strokeWidth="2" />
             </svg>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11.5, color: 'var(--c-ink-text2)', marginTop: 4 }}>
               <span>{lang === 'he' ? '1 בחודש' : 'Day 1'}</span>
@@ -366,7 +367,7 @@ export default function SummaryCard() {
         )}
 
         {/* End-of-month forecast at the current daily pace */}
-        {showForecast && (
+        {showForecast && forecastOver && (
           <div className="num" style={{
             marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--c-ink-line)',
             fontSize: 13, lineHeight: 1.5,
@@ -386,6 +387,7 @@ export default function SummaryCard() {
       </motion.div>
 
       {/* KPI row */}
+      {showKpis && (
       <motion.div
         className="kpi-row"
         initial={{ opacity: 0, y: 10 }}
@@ -402,6 +404,7 @@ export default function SummaryCard() {
           {money(totalIncome)}
         </Kpi>
       </motion.div>
+      )}
 
       <AnimatePresence>
         {filterOpen && (

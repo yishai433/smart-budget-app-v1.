@@ -35,7 +35,7 @@ class ErrorBoundary extends Component {
           <button
             onClick={() => { this.setState({ error: null }); window.location.hash = '/' }}
             style={{
-              background: '#2F4A3C', color: '#F4F1E6', border: 'none',
+              background: '#4F7362', color: '#F4F1E6', border: 'none',
               borderRadius: 999, padding: '12px 28px', fontSize: 15,
               fontWeight: 700, cursor: 'pointer',
             }}
@@ -77,7 +77,7 @@ function LoadingScreen() {
       minHeight: '100dvh',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      background: '#2F4A3C',
+      background: '#4F7362',
       color: '#F4F1E6',
       position: 'relative', overflow: 'hidden',
     }}>

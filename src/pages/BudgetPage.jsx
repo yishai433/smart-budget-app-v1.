@@ -37,7 +37,7 @@ export default function BudgetPage() {
       <SummaryCard />
       <Updates />
       <SettleUp />
-      <CategoryBreakdown />
+      <CategoryBreakdown limit={4} />
 
       <div style={{ padding: '26px 16px 10px' }}>
         <div className="section-head-row">
@@ -47,7 +47,7 @@ export default function BudgetPage() {
           </button>
         </div>
       </div>
-      <TransactionList filter="all" preview={5} />
+      <TransactionList filter="all" preview={3} />
     </div>
   )
 }
