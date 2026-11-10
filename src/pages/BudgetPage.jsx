@@ -8,6 +8,7 @@ import SavingsGoals from '../components/budget/SavingsGoals'
 import UpcomingRecurring from '../components/budget/UpcomingRecurring'
 import UserAvatar from '../components/UserAvatar'
 import MonthSwitcher from '../components/budget/MonthSwitcher'
+import WhatsNew from '../components/budget/WhatsNew'
 
 const TABS = ['all', 'recurring']
 
@@ -25,6 +26,9 @@ export default function BudgetPage() {
         </div>
         <MonthSwitcher style={{ marginTop: 14 }} />
       </div>
+
+      {/* Changes other household members made since the last visit */}
+      <WhatsNew />
 
       {/* Summary — balance, income, expenses */}
       <SummaryCard />
