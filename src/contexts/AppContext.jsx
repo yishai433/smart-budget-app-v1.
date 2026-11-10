@@ -1,9 +1,27 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { db, auth, storage } from '../firebase'
 import {
-  collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc,
-  query, where, orderBy, setDoc, getDoc, getDocs, serverTimestamp, arrayUnion, deleteField, increment
+  collection, doc, onSnapshot, addDoc as fsAddDoc, updateDoc as fsUpdateDoc, deleteDoc as fsDeleteDoc,
+  query, where, orderBy, setDoc as fsSetDoc, getDoc, getDocs, serverTimestamp, arrayUnion, deleteField, increment
 } from 'firebase/firestore'
+
+// Offline: Firestore applies a write locally right away, but its promise only
+// settles once the server confirms. While offline we don't wait for that, so
+// saving never hangs; the write is queued and synced when the connection returns.
+const offlineSafe = (fn) => (...args) => {
+  const p = fn(...args)
+  if (typeof navigator === 'undefined' || navigator.onLine) return p
+  p.catch(e => console.error('queued write failed:', e?.code, e?.message))
+  return Promise.resolve()
+}
+const updateDoc = offlineSafe(fsUpdateDoc)
+const deleteDoc = offlineSafe(fsDeleteDoc)
+const setDoc = offlineSafe(fsSetDoc)
+// addDoc with an id made on the device, so the caller gets the reference offline too
+const addDoc = (col, data) => {
+  const ref = doc(col)
+  return setDoc(ref, data).then(() => ref)
+}
 import { ref, deleteObject } from 'firebase/storage'
 import { onAuthStateChanged, signOut, updateProfile } from 'firebase/auth'
 import i18n from '../i18n'

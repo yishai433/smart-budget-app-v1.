@@ -3,6 +3,7 @@ import { HashRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AppProvider, useApp } from './contexts/AppContext'
 import BottomNav from './components/BottomNav'
+import OfflineBanner from './components/OfflineBanner'
 import BudgetPage from './pages/BudgetPage'
 import ShoppingPage from './pages/ShoppingPage'
 import SettingsPage from './pages/SettingsPage'
@@ -253,6 +254,7 @@ function AppInner() {
 
   return (
     <>
+      <OfflineBanner />
       <AnimatedRoutes />
       <BottomNav />
 
