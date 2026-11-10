@@ -6,38 +6,94 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function householdPath(householdId) {
+      return /databases/$(database)/documents/households/$(householdId);
+    }
+
     // A user is a "member" of a household if they own it (doc id == their uid)
     // or their uid is in its members array.
     function isMember(householdId) {
       return isSignedIn() &&
-        exists(/databases/$(database)/documents/households/$(householdId)) &&
+        exists(householdPath(householdId)) &&
         (householdId == request.auth.uid ||
-         request.auth.uid in get(/databases/$(database)/documents/households/$(householdId)).data.members);
+         request.auth.uid in get(householdPath(householdId)).data.members);
     }
 
-    // Profiles: anyone signed in can read (needed to show a partner's name/
-    // avatar), only the owner can write their own.
+    // True when the signed-in user and `uid` belong to the same household:
+    // they are in `uid`'s own household, `uid` is in theirs, or both are
+    // members of the household the signed-in user joined.
+    function myProfilePath() {
+      return /databases/$(database)/documents/userProfiles/$(request.auth.uid);
+    }
+    function inMyLinkedHousehold(uid) {
+      return exists(myProfilePath()) &&
+        get(myProfilePath()).data.get('linkedHouseholdId', null) is string &&
+        exists(householdPath(get(myProfilePath()).data.linkedHouseholdId)) &&
+        uid in get(householdPath(get(myProfilePath()).data.linkedHouseholdId)).data.members &&
+        request.auth.uid in get(householdPath(get(myProfilePath()).data.linkedHouseholdId)).data.members;
+    }
+    function sharesHouseholdWith(uid) {
+      return (exists(householdPath(uid)) && request.auth.uid in get(householdPath(uid)).data.members) ||
+        (exists(householdPath(request.auth.uid)) && uid in get(householdPath(request.auth.uid)).data.members) ||
+        inMyLinkedHousehold(uid);
+    }
+
+    // Profiles (name, email, avatar, settings): readable by the owner and by
+    // people who share a household with them. Only the owner can write.
     match /userProfiles/{uid} {
-      allow read: if isSignedIn();
+      allow get: if isSignedIn() && (request.auth.uid == uid || sharesHouseholdWith(uid));
+      allow list: if false;
       allow write: if isSignedIn() && request.auth.uid == uid;
     }
 
-    // Households: readable by any signed-in user (required so a new user can
-    // look up a household by invite code before they're a member). Writable
-    // by the owner/members, OR by someone redeeming a valid, unused,
-    // unexpired invite code (the join flow adds themselves to `members`).
+    // One-time invite codes. A code can be fetched only by its exact id (so it
+    // works like a password) and never listed. Redeeming marks it as used.
+    match /invites/{code} {
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow create: if isSignedIn() &&
+        request.resource.data.createdBy == request.auth.uid &&
+        request.resource.data.used == false &&
+        isMember(request.resource.data.householdId);
+      allow update: if isSignedIn() &&
+        resource.data.used == false &&
+        resource.data.expiresAt > request.time &&
+        request.resource.data.used == true &&
+        request.resource.data.usedBy == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used', 'usedBy']);
+      allow delete: if isSignedIn() && resource.data.createdBy == request.auth.uid;
+    }
+
+    // Joining: a non-member may add only themselves to `members`, and only in
+    // the same batch that marks a valid, unused, unexpired invite for this
+    // household as used by them.
+    function invitePath(code) {
+      return /databases/$(database)/documents/invites/$(code);
+    }
+    function isValidJoin(householdId) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'lastJoinCode']) &&
+        request.resource.data.members == resource.data.members.concat([request.auth.uid]) &&
+        request.resource.data.lastJoinCode is string &&
+        exists(invitePath(request.resource.data.lastJoinCode)) &&
+        get(invitePath(request.resource.data.lastJoinCode)).data.householdId == householdId &&
+        get(invitePath(request.resource.data.lastJoinCode)).data.used == false &&
+        get(invitePath(request.resource.data.lastJoinCode)).data.expiresAt > request.time &&
+        getAfter(invitePath(request.resource.data.lastJoinCode)).data.used == true &&
+        getAfter(invitePath(request.resource.data.lastJoinCode)).data.usedBy == request.auth.uid;
+    }
+
+    // Households (budgets, goals, change log): only the owner and members can
+    // read. Listing is allowed only for households the user is a member of
+    // (the app queries `members array-contains <uid>`).
     match /households/{householdId} {
-      allow read: if isSignedIn();
+      allow get: if isSignedIn() &&
+        (request.auth.uid == householdId || request.auth.uid in resource.data.members);
+      allow list: if isSignedIn() && request.auth.uid in resource.data.members;
       allow create: if isSignedIn() && request.auth.uid == householdId;
       allow update: if isSignedIn() && (
         request.auth.uid == householdId ||
         request.auth.uid in resource.data.members ||
-        (
-          resource.data.activeInvite.used == false &&
-          resource.data.activeInvite.expiresAt > request.time &&
-          request.resource.data.activeInvite.used == true &&
-          request.resource.data.members == resource.data.members.concat([request.auth.uid])
-        )
+        isValidJoin(householdId)
       );
       allow delete: if false;
     }

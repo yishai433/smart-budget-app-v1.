@@ -10,6 +10,7 @@ import i18n from '../i18n'
 import { buildAvatarUrl } from '../utils/avatar'
 import { guessShoppingCategory } from '../utils/guessCategory'
 import { getDueRecurring } from '../utils/recurring'
+import { redeemInviteCode } from '../utils/invites'
 
 const AppContext = createContext(null)
 
@@ -247,18 +248,11 @@ export function AppProvider({ children }) {
     setLoading(false)
   }
 
+  // Invite that arrived through a shared link before sign-in
   const applyInviteCode = async (uid, code) => {
     try {
-      const q = query(collection(db, 'households'), where('inviteCode', '==', code.toUpperCase()))
-      const snap = await getDocs(q)
-      if (!snap.empty) {
-        const hhDoc = snap.docs[0]
-        if (hhDoc.id !== uid) { // don't join own household
-          await updateDoc(doc(db, 'households', hhDoc.id), {
-            members: arrayUnion(uid)
-          })
-        }
-      }
+      const result = await redeemInviteCode(code, uid, null)
+      if (result === 'ok') window.location.reload()
     } catch (e) {
       console.error('invite join error', e)
     }
