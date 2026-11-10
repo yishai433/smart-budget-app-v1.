@@ -11,8 +11,8 @@ import { formatAmount, formatNumber } from '../../utils/format'
 
 export const SHOP_CATS = ['produce','dairy','meat','bakery','frozen','drinks','cleaning','personal','other']
 export const CAT_COLORS = {
-  produce: '#34C759', dairy: '#5AC8FA', meat: '#FF6B6B', bakery: '#FF9F0A',
-  frozen: '#32ADE6', drinks: '#0A84FF', cleaning: '#30D158', personal: '#BF5AF2', other: '#636366',
+  produce: '#7E9A5C', dairy: '#4F7A8A', meat: '#C0524F', bakery: '#D08A2E',
+  frozen: '#3F6F73', drinks: '#6B5FA0', cleaning: '#56633F', personal: '#D98FA0', other: '#8A8272',
 }
 
 function SheetWrap({ onClose, children }) {
@@ -282,7 +282,7 @@ export default function ShoppingList({ onCheckout }) {
                   <div className="list-item" style={{ position: 'relative', overflow: 'hidden' }}>
                     <div style={{
                       position: 'absolute', right: 0, top: 0, bottom: 0,
-                      width: 4, background: CAT_COLORS[item.category] || '#636366',
+                      width: 4, background: CAT_COLORS[item.category] || '#8A8272',
                     }} />
                     <button
                       className={`check-btn ${item.checked ? 'checked' : ''}`}

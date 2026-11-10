@@ -105,7 +105,7 @@ export default function LaterListSheet({ onClose }) {
             ) : (
               <>
                 {Object.entries(groups).map(([category, items]) => {
-                  const color = CAT_COLORS[category] || '#636366'
+                  const color = CAT_COLORS[category] || '#8A8272'
                   return (
                     <div key={category}>
                       <div style={{
