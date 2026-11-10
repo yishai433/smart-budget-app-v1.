@@ -8,6 +8,7 @@ import AvatarCreator from '../components/AvatarCreator'
 import { db } from '../firebase'
 import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, getDoc, setDoc, Timestamp } from 'firebase/firestore'
 import { Bell, Users, User, UserPlus, LogIn, Copy, Share2, Check, Download } from 'lucide-react'
+import { getThemePref, setThemePref } from '../utils/theme'
 import { buildCsv, downloadCsv } from '../utils/exportCsv'
 import { monthLabel } from '../utils/months'
 
@@ -43,6 +44,7 @@ function Toggle({ checked, onChange }) {
 
 export default function SettingsPage() {
   const { t } = useTranslation()
+  const [themePref, setThemePrefState] = useState(getThemePref)
   const { settings, changeLanguage, updateSettings, household, user, activeHouseholdId, logout, isPro } = useApp()
   // Settings always edits the budget of the real current month, not the month being browsed
   const { avatarConfig, currentMonthlyBudget: monthlyBudget, currentMonthKey, setMonthlyBudget } = useApp()
@@ -219,6 +221,30 @@ export default function SettingsPage() {
         <div className="card" style={{ marginBottom: 24 }}>
           <div className="card-inner" style={{ display:'flex', justifyContent:'center', padding: '24px 20px' }}>
             <SettingsAvatar size={90} onEdit={() => setEditingAvatar(true)} />
+          </div>
+        </div>
+
+        {/* Appearance — light (default), dark, or follow the device */}
+        <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text2)', padding: '0 4px 8px', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+          {settings.language === 'he' ? 'מראה' : 'Appearance'}
+        </h3>
+        <div className="card" style={{ marginBottom: 20 }}>
+          <div className="card-inner">
+            <div className="segment">
+              {[
+                ['light', settings.language === 'he' ? 'בהיר' : 'Light'],
+                ['dark', settings.language === 'he' ? 'כהה' : 'Dark'],
+                ['auto', settings.language === 'he' ? 'אוטומטי' : 'Auto'],
+              ].map(([value, label]) => (
+                <button
+                  key={value}
+                  className={`segment-btn ${themePref === value ? 'active' : ''}`}
+                  onClick={() => { setThemePref(value); setThemePrefState(value) }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

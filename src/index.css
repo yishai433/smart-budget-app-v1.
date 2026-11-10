@@ -71,6 +71,43 @@
   --safe-top:    env(safe-area-inset-top, 0px);
 }
 
+/* ── Dark mode — warm coffee tones, same terracotta + olive accents ──
+   Applied with <html data-theme="dark"> (see utils/theme.js). */
+:root { color-scheme: light; }
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --c-primary-light: #3b2a1f;
+  --c-accent2-dark:  #a9bd87;   /* used as text on the accent-2 tint */
+  --c-accent2-light: #2b3323;
+
+  --c-danger:        #ef6a6a;
+  --c-danger-light:  #3d2322;
+  --c-success:       #a9bd87;
+  --c-success-light: #2b3323;
+  --c-warning:       #e08a4f;
+
+  --c-bg:            #1d1915;
+  --c-card:          #2a241e;
+  --c-text:          #f1e7d6;
+  --c-text2:         #b9ac96;
+  --c-text3:         #857a69;
+  --c-border:        rgba(241,231,214,0.14);
+  --c-sep:           rgba(241,231,214,0.09);
+
+  --c-ink:           #4b5937;
+  --c-ink-2:         #3f4c2e;
+  --c-ink-text:      #f3ecd9;
+  --c-ink-text2:     rgba(243,236,217,0.68);
+  --c-ink-line:      rgba(243,236,217,0.18);
+
+  --shadow-xs:       0 1px 2px rgba(0,0,0,0.3);
+  --shadow-sm:       0 2px 6px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.25);
+  --shadow-md:       0 6px 14px -4px rgba(0,0,0,0.45), 0 2px 6px -2px rgba(0,0,0,0.3);
+  --shadow-lg:       0 16px 28px -8px rgba(0,0,0,0.55), 0 6px 10px -4px rgba(0,0,0,0.35);
+  --shadow-ink:      0 14px 30px -10px rgba(0,0,0,0.5), 0 4px 12px -4px rgba(0,0,0,0.3);
+}
+
 /* ── Typography scale — named roles, used across every screen ── */
 .t-display  { font-family: 'Caprasimo', 'Figtree', sans-serif; font-size: 36px; font-weight: 400; letter-spacing: -0.5px; line-height: 1.08; font-variant-numeric: tabular-nums; }
 .t-h1       { font-family: 'Caprasimo', 'Figtree', sans-serif; font-size: 21px; font-weight: 400; letter-spacing: -0.2px; line-height: 1.25; }
@@ -114,6 +151,7 @@ body {
 @media (min-width: 481px) {
   #root {
     box-shadow: 0 0 0 1px var(--c-border), 0 24px 48px -12px rgba(32,30,29,0.14);
+    background: var(--c-bg);
   }
 }
 

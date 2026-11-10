@@ -23,7 +23,7 @@ class ErrorBoundary extends Component {
         <div style={{
           minHeight: '100dvh', display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
-          padding: 24, background: '#f5ead8', gap: 16, textAlign: 'center',
+          padding: 24, background: 'var(--c-bg)', gap: 16, textAlign: 'center',
         }}>
           <div style={{ fontSize: 48 }}>⚠️</div>
           <h2 style={{ fontSize: 20, fontWeight: 700, color: '#201e1d' }}>משהו השתבש</h2>
