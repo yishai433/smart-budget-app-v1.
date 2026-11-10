@@ -12,7 +12,7 @@ export default function WhatsNew() {
   const he = (settings.language || 'he') === 'he'
   if (unseenActivity.length === 0) return null
 
-  const names = [...new Set(unseenActivity.map(a => a.name || (he ? 'בן בית' : 'A member')))]
+  const names = [...new Set(unseenActivity.map(a => (a.name || '').trim().split(/\s+/)[0] || (he ? 'בן בית' : 'A member')))]
   const count = unseenActivity.length
   const title = he
     ? `${names.join(', ')} ${count === 1 ? 'ביצע/ה שינוי' : `ביצעו ${count} שינויים`} מאז הביקור האחרון`

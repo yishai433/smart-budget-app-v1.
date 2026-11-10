@@ -50,7 +50,7 @@ export default function ActivityRows({ items, showSelf = false }) {
 
   return items.map(a => {
     const d = describe(a)
-    const who = showSelf && a.by === user?.uid ? (he ? 'אתה' : 'You') : (a.name || (he ? 'בן בית' : 'Member'))
+    const who = showSelf && a.by === user?.uid ? (he ? 'אתה' : 'You') : ((a.name || '').trim().split(/\s+/)[0] || (he ? 'בן בית' : 'Member'))
     const img = avatarOf(a)
     return (
       <div key={a.id} style={{ display: 'flex', gap: 12, padding: '10px 14px', borderTop: '1px solid var(--c-sep)', alignItems: 'flex-start' }}>
