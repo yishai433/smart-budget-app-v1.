@@ -7,7 +7,9 @@ import UserAvatar from '../components/UserAvatar'
 import AvatarCreator from '../components/AvatarCreator'
 import { db } from '../firebase'
 import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, getDoc, setDoc, Timestamp } from 'firebase/firestore'
-import { Bell, Users, User, UserPlus, LogIn, Copy, Share2, Check } from 'lucide-react'
+import { Bell, Users, User, UserPlus, LogIn, Copy, Share2, Check, Download } from 'lucide-react'
+import { buildCsv, downloadCsv } from '../utils/exportCsv'
+import { monthLabel } from '../utils/months'
 
 function SettingRow({ icon, label, subtitle, right, onClick, danger }) {
   return (
@@ -44,6 +46,13 @@ export default function SettingsPage() {
   const { settings, changeLanguage, updateSettings, household, user, activeHouseholdId, logout, isPro } = useApp()
   // Settings always edits the budget of the real current month, not the month being browsed
   const { avatarConfig, currentMonthlyBudget: monthlyBudget, currentMonthKey, setMonthlyBudget } = useApp()
+  const { transactions, monthKey } = useApp()
+
+  const exportCsv = (scope) => {
+    const list = scope === 'month' ? transactions.filter(tx => tx.date?.startsWith(monthKey)) : transactions
+    const csv = buildCsv(list, { catName: id => t(`categories.${id}`), lang: settings.language || 'he' })
+    downloadCsv(scope === 'month' ? `smart-budget-${monthKey}.csv` : 'smart-budget-all.csv', csv)
+  }
   const [editingAvatar, setEditingAvatar] = useState(false)
   const [budgetInput, setBudgetInput] = useState(monthlyBudget != null ? String(monthlyBudget) : '')
   const [savingBudget, setSavingBudget] = useState(false)
@@ -554,6 +563,25 @@ export default function SettingsPage() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Export — opens in Excel / Google Sheets */}
+        <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text2)', padding: '0 4px 8px', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+          {settings.language === 'he' ? 'ייצוא נתונים' : 'Export data'}
+        </h3>
+        <div className="card" style={{ marginBottom: 20 }}>
+          <div className="card-inner" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <button className="btn btn-secondary btn-full" onClick={() => exportCsv('month')}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <Download size={16} strokeWidth={2.2} />
+              {settings.language === 'he' ? `ייצוא ${monthLabel(monthKey, 'he')} (CSV)` : `Export ${monthLabel(monthKey, 'en')} (CSV)`}
+            </button>
+            <button className="btn btn-secondary btn-full" onClick={() => exportCsv('all')}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <Download size={16} strokeWidth={2.2} />
+              {settings.language === 'he' ? 'ייצוא כל העסקאות (CSV)' : 'Export all transactions (CSV)'}
+            </button>
           </div>
         </div>
 
