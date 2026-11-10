@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback } from 'rea
 import { db, auth, storage } from '../firebase'
 import {
   collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc,
-  query, where, orderBy, setDoc, getDoc, getDocs, serverTimestamp, arrayUnion
+  query, where, orderBy, setDoc, getDoc, getDocs, serverTimestamp, arrayUnion, deleteField
 } from 'firebase/firestore'
 import { ref, deleteObject } from 'firebase/storage'
 import { onAuthStateChanged, signOut, updateProfile } from 'firebase/auth'
@@ -512,9 +512,26 @@ export function AppProvider({ children }) {
     }
   }, [user])
 
-  // Derived stats for current month
+  // Month the user is currently viewing ("YYYY-MM"). Defaults to the real
+  // current month; can be moved back with shiftMonth, never past today.
   const now = new Date()
-  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const [selectedMonthKey, setSelectedMonthKey] = useState(currentMonthKey)
+  const monthKey = selectedMonthKey
+  const isCurrentMonth = monthKey === currentMonthKey
+
+  const shiftMonth = useCallback((delta) => {
+    setSelectedMonthKey(prev => {
+      const [y, m] = prev.split('-').map(Number)
+      const d = new Date(y, m - 1 + delta, 1)
+      const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      return next > currentMonthKey ? prev : next
+    })
+  }, [currentMonthKey])
+
+  const goToCurrentMonth = useCallback(() => setSelectedMonthKey(currentMonthKey), [currentMonthKey])
+
+  // Derived stats for the viewed month
   const monthTransactions = transactions.filter(t => t.date?.startsWith(monthKey))
   const totalIncome = monthTransactions.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0)
   const totalExpenses = monthTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0)
@@ -524,6 +541,9 @@ export function AppProvider({ children }) {
   // Budget tab prompt or Settings. Stored on the household doc so both
   // members see/set the same number.
   const monthlyBudget = household?.monthlyBudgets?.[monthKey] ?? null
+  // Budget of the real current month, regardless of which month is being viewed
+  // (Settings always edits this one).
+  const currentMonthlyBudget = household?.monthlyBudgets?.[currentMonthKey] ?? null
 
   const setMonthlyBudget = useCallback(async (amount, key = monthKey) => {
     if (!activeHouseholdId) return
@@ -535,12 +555,71 @@ export function AppProvider({ children }) {
     }
   }, [activeHouseholdId, monthKey])
 
+  // Per-category budgets. `categoryBudgets` is the default limit that applies
+  // to every month; `categoryBudgetOverrides[monthKey][catId]` replaces it for
+  // one month (a positive number = different limit, null = no limit that month).
+  // Stored on the household doc so both members share them.
+  const categoryBudgetOverridesForMonth = household?.categoryBudgetOverrides?.[monthKey] || {}
+  const effectiveCategoryBudgets = {}
+  Object.entries(household?.categoryBudgets || {}).forEach(([id, v]) => {
+    if (v > 0) effectiveCategoryBudgets[id] = v
+  })
+  Object.entries(categoryBudgetOverridesForMonth).forEach(([id, v]) => {
+    if (v > 0) effectiveCategoryBudgets[id] = v
+    else if (v === null) delete effectiveCategoryBudgets[id]
+  })
+  const overriddenCategoryIds = Object.keys(categoryBudgetOverridesForMonth)
+
+  // amount: positive number to set, null to remove.
+  // onlyThisMonth: write to the viewed month's override instead of the default.
+  const setCategoryBudget = useCallback(async (catId, amount, { onlyThisMonth = false } = {}) => {
+    if (!activeHouseholdId) return
+    const key = monthKey
+    setHousehold(h => {
+      if (!h) return h
+      const budgets = { ...(h.categoryBudgets || {}) }
+      const overrides = { ...(h.categoryBudgetOverrides || {}) }
+      const monthOv = { ...(overrides[key] || {}) }
+      if (onlyThisMonth) {
+        monthOv[catId] = amount
+      } else {
+        if (amount > 0) budgets[catId] = amount
+        else delete budgets[catId]
+        delete monthOv[catId]
+      }
+      overrides[key] = monthOv
+      return { ...h, categoryBudgets: budgets, categoryBudgetOverrides: overrides }
+    })
+    const ref = doc(db, 'households', activeHouseholdId)
+    const ovPath = `categoryBudgetOverrides.${key}.${catId}`
+    try {
+      if (onlyThisMonth) {
+        await updateDoc(ref, { [ovPath]: amount })
+      } else {
+        await updateDoc(ref, {
+          [`categoryBudgets.${catId}`]: amount > 0 ? amount : deleteField(),
+          [ovPath]: deleteField(),
+        })
+      }
+    } catch {
+      const nested = onlyThisMonth
+        ? { categoryBudgetOverrides: { [key]: { [catId]: amount } } }
+        : {
+            categoryBudgets: { [catId]: amount > 0 ? amount : deleteField() },
+            categoryBudgetOverrides: { [key]: { [catId]: deleteField() } },
+          }
+      await setDoc(ref, nested, { merge: true })
+    }
+  }, [activeHouseholdId, monthKey])
+
   const value = {
     user, household, activeHouseholdId, loading, settings, isPro,
     avatarConfig, avatarUrl, saveAvatar, partnerProfile,
     transactions, monthTransactions,
     totalIncome, totalExpenses, balance, monthKey,
-    monthlyBudget, setMonthlyBudget,
+    currentMonthKey, isCurrentMonth, shiftMonth, goToCurrentMonth,
+    monthlyBudget, currentMonthlyBudget, setMonthlyBudget,
+    effectiveCategoryBudgets, overriddenCategoryIds, setCategoryBudget,
     shoppingItems, CATEGORIES,
     laterItems, addLaterItem, deleteLaterItem, moveLaterItemToShopping,
     receipts, addReceipt, deleteReceipt,
