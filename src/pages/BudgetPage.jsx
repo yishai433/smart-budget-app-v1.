@@ -9,6 +9,7 @@ import UpcomingRecurring from '../components/budget/UpcomingRecurring'
 import UserAvatar from '../components/UserAvatar'
 import MonthSwitcher from '../components/budget/MonthSwitcher'
 import WhatsNew from '../components/budget/WhatsNew'
+import SettleUp from '../components/budget/SettleUp'
 
 const TABS = ['all', 'recurring']
 
@@ -35,6 +36,9 @@ export default function BudgetPage() {
 
       {/* Recurring expenses due in the next week (current month only) */}
       <UpcomingRecurring />
+
+      {/* Who owes whom (only when the household splits expenses) */}
+      <SettleUp />
 
       {/* Category breakdown */}
       <CategoryBreakdown />

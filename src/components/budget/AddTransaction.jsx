@@ -44,7 +44,9 @@ const CategoryGrid = memo(function CategoryGrid({ cats, category, onSelect, t })
 export default function AddTransaction({ onClose }) {
   useScrollLock()
   const { t } = useTranslation()
-  const { addTransaction, CATEGORIES, settings, isPro, transactions } = useApp()
+  const { addTransaction, CATEGORIES, settings, isPro, transactions, members, splitEnabled, user } = useApp()
+  const [paidBy, setPaidBy] = useState(user?.uid || '')
+  const [personal, setPersonal] = useState(false)
   const he = (settings.language || 'he') === 'he'
   const amountRef = useRef(null)
   const categoryTouched = useRef(false)
@@ -112,11 +114,12 @@ export default function AddTransaction({ onClose }) {
         date,
         isRecurring,
         frequency: isRecurring ? frequency : null,
+        ...(splitEnabled && type === 'expense' ? { paidBy, scope: personal ? 'personal' : 'shared' } : {}),
       })
       if (addAnother === true) {
         // keep the sheet open for the next one; date and type stay
         setAmountStr(''); setDescription(''); setCategory(''); setOtherNote('')
-        setIsRecurring(false); setAutoPicked(false); categoryTouched.current = false
+        setIsRecurring(false); setPersonal(false); setAutoPicked(false); categoryTouched.current = false
         window.dispatchEvent(new CustomEvent('sb-toast', { detail: he ? '✅ נשמר, אפשר להוסיף עוד' : '✅ Saved, add another' }))
         setTimeout(() => amountRef.current?.focus({ preventScroll: true }), 50)
       } else if (settings.receiptsEnabled && isPro) {
@@ -305,6 +308,33 @@ export default function AddTransaction({ onClose }) {
             </div>
             <input className="input-field" type="date" value={date} onChange={e => setDate(e.target.value)} />
           </div>
+
+          {/* Who paid + personal (only when the household splits expenses) */}
+          {splitEnabled && type === 'expense' && (
+            <div className="input-group" style={{ marginBottom: 0 }}>
+              <label className="input-label">{he ? 'מי שילם' : 'Paid by'}</label>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {members.map(m => (
+                  <button key={m.uid} type="button" className="btn btn-secondary"
+                    onClick={() => setPaidBy(m.uid)}
+                    style={{ padding: '6px 14px', fontSize: 13, ...(paidBy === m.uid ? { borderColor: 'var(--c-primary)', color: 'var(--c-primary)', fontWeight: 700 } : {}) }}>
+                    {m.uid === user?.uid ? (he ? 'אני' : 'Me') : (m.firstName || (he ? 'בן בית' : 'Member'))}
+                  </button>
+                ))}
+              </div>
+              <div className="toggle-wrap" style={{ marginTop: 10 }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 15 }}>{he ? 'הוצאה אישית' : 'Personal expense'}</div>
+                  <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2 }}>{he ? 'לא מתחלקת בין החברים' : 'Not split between members'}</div>
+                </div>
+                <label className="toggle">
+                  <input type="checkbox" checked={personal} onChange={e => setPersonal(e.target.checked)} />
+                  <div className="toggle-track" />
+                  <div className="toggle-thumb" />
+                </label>
+              </div>
+            </div>
+          )}
 
           {/* Recurring toggle */}
           <div className="toggle-wrap">

@@ -418,8 +418,12 @@ export function AppProvider({ children }) {
   const addTransaction = useCallback(async (data) => {
     if (!user || !activeHouseholdId) return
     try {
+      const split = household?.splitEnabled && data.type === 'expense' && (household.members || []).length > 1
+        ? { paidBy: data.paidBy || user.uid, scope: data.scope || 'shared', splitAmong: data.splitAmong || household.members }
+        : {}
       const docRef = await addDoc(collection(db, 'transactions'), {
         ...data,
+        ...split,
         householdId: activeHouseholdId,
         createdAt: serverTimestamp(),
       })
@@ -429,7 +433,7 @@ export function AppProvider({ children }) {
       console.error('addTransaction error:', err.code, err.message)
       throw err
     }
-  }, [user, activeHouseholdId, logActivity])
+  }, [user, activeHouseholdId, logActivity, household])
 
   // Put back a transaction that was just deleted (same id and data).
   const restoreTransaction = useCallback(async (tx) => {
@@ -769,6 +773,41 @@ export function AppProvider({ children }) {
     await updateDoc(doc(db, 'households', activeHouseholdId), { [`savingsGoals.${id}`]: deleteField() })
   }, [activeHouseholdId, household, logActivity])
 
+  // Everyone in the household (name + avatar), for 2 or more members.
+  const [members, setMembers] = useState([])
+  const memberKey = (household?.members || []).join(',')
+  useEffect(() => {
+    const uids = household?.members || []
+    if (!user || uids.length === 0) { setMembers([]); return }
+    let cancelled = false
+    Promise.all(uids.map(async uid => {
+      try {
+        const snap = await getDoc(doc(db, 'userProfiles', uid))
+        const d = snap.exists() ? snap.data() : {}
+        const name = d.displayName || d.email?.split('@')[0] || ''
+        return { uid, name, firstName: name.trim().split(/\s+/)[0] || '', avatarUrl: d.avatarConfig ? buildAvatarUrl(d.avatarConfig) : null }
+      } catch { return { uid, name: '', firstName: '', avatarUrl: null } }
+    })).then(list => { if (!cancelled) setMembers(list) })
+    return () => { cancelled = true }
+  }, [user, memberKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Expense splitting ("who paid, who owes whom"), off unless the household turns it on.
+  const splitEnabled = !!household?.splitEnabled && (household?.members || []).length > 1
+  const setSplitEnabled = useCallback(async (on) => {
+    if (!activeHouseholdId) return
+    setHousehold(h => h && ({ ...h, splitEnabled: on }))
+    await setDoc(doc(db, 'households', activeHouseholdId), { splitEnabled: on }, { merge: true })
+  }, [activeHouseholdId])
+  const settlements = Object.entries(household?.settlements || {}).map(([id, v]) => ({ id, ...v }))
+  const addSettlement = useCallback(async ({ from, to, amount }) => {
+    if (!activeHouseholdId || !from || !to || !(amount > 0)) return
+    const id = `s${Date.now().toString(36)}`
+    const rec = { from, to, amount, at: Date.now() }
+    setHousehold(h => h && ({ ...h, settlements: { ...(h.settlements || {}), [id]: rec } }))
+    await setDoc(doc(db, 'households', activeHouseholdId), { settlements: { [id]: rec } }, { merge: true })
+    logActivity({ kind: 'settle', from, to, amount })
+  }, [activeHouseholdId, logActivity])
+
   // Recurring expenses: book occurrences whose date has arrived. Runs when the
   // app opens (no server). Off switch and stopped series live on the household doc.
   const recurringOff = !!household?.recurringOff
@@ -840,6 +879,7 @@ export function AppProvider({ children }) {
     savingsGoals, addSavingsGoal, addToSavingsGoal, deleteSavingsGoal,
     recurringOff, recurringStopped, setRecurringOff, setRecurringStopped,
     unseenActivity, activityAll, markActivitySeen,
+    members, splitEnabled, setSplitEnabled, settlements, addSettlement,
     shoppingItems, CATEGORIES,
     laterItems, addLaterItem, deleteLaterItem, moveLaterItemToShopping,
     receipts, addReceipt, deleteReceipt,

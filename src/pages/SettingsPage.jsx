@@ -53,7 +53,7 @@ export default function SettingsPage() {
   const { avatarConfig, currentMonthlyBudget: monthlyBudget, currentMonthKey, setMonthlyBudget } = useApp()
   const { transactions, monthKey, recurringOff, recurringStopped, setRecurringOff, setRecurringStopped } = useApp()
   const recurringSeries = buildSeries(transactions)
-  const { activityAll } = useApp()
+  const { activityAll, splitEnabled, setSplitEnabled } = useApp()
   const [showHistory, setShowHistory] = useState(false)
 
   const exportCsv = (scope) => {
@@ -576,6 +576,18 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+
+        {/* Expense splitting — for flatmates and anyone who settles up */}
+        {(household?.members || []).length > 1 && (
+          <div className="card" style={{ marginBottom: 20 }}>
+            <SettingRow
+              icon="⇄"
+              label={settings.language === 'he' ? 'חלוקת הוצאות בין החברים' : 'Split expenses between members'}
+              subtitle={settings.language === 'he' ? 'מי שילם, מי חייב למי, והתחשבנות. מתאים לשותפים לדירה' : 'Who paid, who owes whom, and settling up'}
+              right={<Toggle checked={splitEnabled} onChange={setSplitEnabled} />}
+            />
+          </div>
+        )}
 
         {/* Recurring expenses — booked automatically on their date */}
         <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text2)', padding: '0 4px 8px', letterSpacing: 0.5, textTransform: 'uppercase' }}>

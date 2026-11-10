@@ -7,8 +7,9 @@ import { monthLabel } from '../../utils/months'
 // Used by the "what's new" card and the full history in Settings.
 export default function ActivityRows({ items, showSelf = false }) {
   const { t } = useTranslation()
-  const { settings, user, avatarUrl, partnerProfile } = useApp()
+  const { settings, user, avatarUrl, members } = useApp()
   const he = (settings.language || 'he') === 'he'
+  const nameOf = (uid) => members.find(m => m.uid === uid)?.firstName || (he ? 'בן בית' : 'Member')
   const cur = settings.currency
   const money = (n) => formatAmount(n || 0, cur)
   const cat = (id) => t(`categories.${id}`)
@@ -39,6 +40,7 @@ export default function ActivityRows({ items, showSelf = false }) {
         text: `${he ? 'תקציב חודשי' : 'Monthly budget'} ${monthLabel(a.month, he ? 'he' : 'en')}`,
         detail: `${a.before == null ? '—' : money(a.before)} ← ${money(a.after)}`,
       }
+      case 'settle': return { icon: '⇄', text: he ? `${nameOf(a.from)} החזיר/ה ל${nameOf(a.to)} ${money(a.amount)}` : `${nameOf(a.from)} paid back ${nameOf(a.to)} ${money(a.amount)}` }
       default: return { icon: '•', text: a.kind }
     }
   }
@@ -46,7 +48,7 @@ export default function ActivityRows({ items, showSelf = false }) {
 
   // avatar saved with the entry; older entries fall back to the known profiles
   const avatarOf = (a) => a.avatar
-    || (a.by === user?.uid ? avatarUrl : partnerProfile?.uid === a.by ? partnerProfile.avatarUrl : null)
+    || (a.by === user?.uid ? avatarUrl : members.find(m => m.uid === a.by)?.avatarUrl || null)
 
   return items.map(a => {
     const d = describe(a)
