@@ -106,7 +106,7 @@ function ReceiptCard({ receipt, onDelete }) {
           onClick={() => imgSrc && setViewing(true)}
           style={{
             width: '100%', height: 160,
-            background: '#f0f0f0',
+            background: 'var(--c-card)',
             overflow: 'hidden',
             cursor: imgSrc ? 'pointer' : 'default',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
