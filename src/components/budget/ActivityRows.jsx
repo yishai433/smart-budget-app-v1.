@@ -7,7 +7,7 @@ import { monthLabel } from '../../utils/months'
 // Used by the "what's new" card and the full history in Settings.
 export default function ActivityRows({ items, showSelf = false }) {
   const { t } = useTranslation()
-  const { settings, user } = useApp()
+  const { settings, user, avatarUrl, partnerProfile } = useApp()
   const he = (settings.language || 'he') === 'he'
   const cur = settings.currency
   const money = (n) => formatAmount(n || 0, cur)
@@ -44,16 +44,30 @@ export default function ActivityRows({ items, showSelf = false }) {
   }
   const when = (at) => new Date(at).toLocaleString(he ? 'he-IL' : 'en-GB', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
 
+  // avatar saved with the entry; older entries fall back to the known profiles
+  const avatarOf = (a) => a.avatar
+    || (a.by === user?.uid ? avatarUrl : partnerProfile?.uid === a.by ? partnerProfile.avatarUrl : null)
+
   return items.map(a => {
     const d = describe(a)
     const who = showSelf && a.by === user?.uid ? (he ? 'אתה' : 'You') : (a.name || (he ? 'בן בית' : 'Member'))
+    const img = avatarOf(a)
     return (
-      <div key={a.id} style={{ display: 'flex', gap: 10, padding: '10px 14px', borderTop: '1px solid var(--c-sep)' }}>
-        <span style={{ width: 18, textAlign: 'center', color: 'var(--c-text3)' }}>{d.icon}</span>
+      <div key={a.id} style={{ display: 'flex', gap: 12, padding: '10px 14px', borderTop: '1px solid var(--c-sep)', alignItems: 'flex-start' }}>
+        <div style={{ width: 52, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+          {img ? (
+            <img src={img} alt="" style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', background: 'var(--c-primary-light)' }} />
+          ) : (
+            <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--c-primary-light)', color: 'var(--c-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15 }}>
+              {(who || '?').trim().charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div style={{ fontSize: 11, color: 'var(--c-text2)', maxWidth: 52, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{who}</div>
+        </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13.5, color: 'var(--c-text)' }}>{d.text}</div>
           {d.detail && <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2 }}>{d.detail}</div>}
-          <div style={{ fontSize: 11.5, color: 'var(--c-text3)', marginTop: 2 }}>{who} · {when(a.at)}</div>
+          <div style={{ fontSize: 11.5, color: 'var(--c-text3)', marginTop: 3 }}>{when(a.at)}</div>
         </div>
       </div>
     )
