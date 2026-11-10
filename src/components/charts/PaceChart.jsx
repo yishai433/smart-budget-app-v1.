@@ -9,7 +9,7 @@ import {
 } from 'recharts'
 import { formatAmount } from '../../utils/format'
 
-const SPENT = '#c67139'  // terracotta — this month's cumulative spending
+const SPENT = '#D9A22A'  // mustard — this month's cumulative spending
 const REF = '#8a8272'    // warm gray — the budget pace / last month
 
 function compactNumber(n) {

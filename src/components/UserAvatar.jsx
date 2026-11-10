@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useApp } from '../contexts/AppContext'
 
@@ -64,7 +65,9 @@ export function AvatarCircle({ user, size = 44, fontSize = 18, style = {}, onCli
 
 // Header avatar with name — used in all page headers
 export default function UserAvatar() {
-  const { user, household, avatarUrl, partnerProfile } = useApp()
+  const { user, household, avatarUrl, partnerProfile, settings } = useApp()
+  const navigate = useNavigate()
+  const lang = settings.language || 'he'
   // Shared if household has >1 member — independent of whether partnerProfile loaded yet
   const isShared = (household?.members?.length ?? 0) > 1
   const myName = user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || ''
@@ -73,11 +76,15 @@ export default function UserAvatar() {
   const partnerUid = household?.members?.find(m => m !== user?.uid) || null
 
   return (
-    <motion.div
-      initial={{ scale: 0.8, opacity: 0 }}
+    <motion.button
+      type="button"
+      onClick={() => navigate('/settings')}
+      aria-label={lang === 'he' ? 'חשבון והגדרות' : 'Account and settings'}
+      initial={{ scale: 0.9, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      transition={{ type: 'spring', stiffness: 320, damping: 24, delay: 0.15 }}
-      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
+      transition={{ type: 'tween', duration: 0.2 }}
+      whileTap={{ scale: 0.94 }}
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, border: 'none', background: 'none', padding: 0, font: 'inherit', cursor: 'pointer' }}
     >
       {isShared ? (
         <>
@@ -119,7 +126,7 @@ export default function UserAvatar() {
           )}
         </>
       )}
-    </motion.div>
+    </motion.button>
   )
 }
 

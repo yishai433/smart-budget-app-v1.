@@ -360,7 +360,8 @@ function TransactionDetailSheet({ tx, catDef, cur, t, onDelete, onEdit, onClose 
   ), document.body)
 }
 
-export default function TransactionList({ filter = 'all' }) {
+// preview: a short list of the latest few (home screen) — no search, no paging
+export default function TransactionList({ filter = 'all', preview = 0 }) {
   const { t, i18n } = useTranslation()
   const { transactions, deleteTransaction, updateTransaction, CATEGORIES, settings, monthKey, isCurrentMonth, members, splitEnabled, user } = useApp()
   const payerLabel = (tx) => {
@@ -394,7 +395,7 @@ export default function TransactionList({ filter = 'all' }) {
     t(`categories.${tx.category}`).toLowerCase().includes(q) ||
     String(tx.amount ?? '').includes(q))
 
-  const searchBox = transactions.length > 0 && (
+  const searchBox = !preview && transactions.length > 0 && (
     <div style={{ padding: '0 16px 12px', position: 'relative' }}>
       <input
         className="input-field"
@@ -417,7 +418,7 @@ export default function TransactionList({ filter = 'all' }) {
     </div>
   )
 
-  const visible = filtered.slice(0, limit)
+  const visible = filtered.slice(0, preview || limit)
   const groups = groupByMonth(visible)
   const lang = i18n.language
 
@@ -427,9 +428,11 @@ export default function TransactionList({ filter = 'all' }) {
       {emptyState}
       {Object.entries(groups).map(([monthKey, txs]) => (
         <div key={monthKey} style={{ marginBottom: 18 }}>
-          <div className="section-label" style={{ padding: '6px 20px 8px' }}>
-            {formatMonthKey(monthKey, lang)}
-          </div>
+          {!preview && (
+            <div className="section-label" style={{ padding: '6px 20px 8px' }}>
+              {formatMonthKey(monthKey, lang)}
+            </div>
+          )}
           <div style={{ margin: '0 16px' }}>
             <AnimatePresence initial={false}>
               {txs.map((tx, i) => {
@@ -461,7 +464,7 @@ export default function TransactionList({ filter = 'all' }) {
         </div>
       ))}
 
-      {filtered.length > limit && (
+      {!preview && filtered.length > limit && (
         <button
           className="btn btn-secondary"
           style={{ margin: '0 16px 18px' }}

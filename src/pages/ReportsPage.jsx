@@ -7,6 +7,7 @@ import UserAvatar from '../components/UserAvatar'
 import { formatMoney, formatAmount } from '../utils/format'
 import CategoryIcon from '../components/CategoryIcon'
 import SupermarketTrips from '../components/budget/SupermarketTrips'
+import SavingsGoals from '../components/budget/SavingsGoals'
 import MonthSwitcher from '../components/budget/MonthSwitcher'
 import CategoryBudgetRows from '../components/budget/CategoryBudgetRows'
 import PaceChart from '../components/charts/PaceChart'
@@ -379,6 +380,9 @@ export default function ReportsPage() {
 
         <div style={{ height: 4 }} />
       </div>
+
+      {/* Savings goals — shared with the household */}
+      <SavingsGoals />
     </div>
   )
 }

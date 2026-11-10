@@ -39,6 +39,8 @@
   --c-ink-text:      #F4F1E6;
   --c-ink-text2:     #C9D3CB;
   --c-ink-line:      rgba(244,241,230,0.16);
+  --c-ink-line-strong: #7F9A88;
+  --c-hero-over:     #F4B4A8;
 
   /* Shadows — barely there; blocks separate by colour, not depth */
   --shadow-xs:       0 1px 2px rgba(30,37,33,0.04);
@@ -102,6 +104,8 @@
   --c-ink-text:      #EEF0E8;
   --c-ink-text2:     #9AA59D;
   --c-ink-line:      rgba(238,240,232,0.12);
+  --c-ink-line-strong: #56625A;
+  --c-hero-over:     #EF7A70;
 
   --shadow-xs:       none;
   --shadow-sm:       none;
@@ -341,6 +345,51 @@ body {
 .btn-full { width: 100%; }
 
 /* FAB — full circle, accent-2, matches approved design */
+/* ── Floating bottom bar ── */
+.bottom-nav {
+  position: fixed;
+  left: 0; right: 0;
+  bottom: calc(var(--safe-bottom) + 14px);
+  margin: 0 auto;
+  width: calc(100% - 32px);
+  max-width: 448px;
+  height: 64px;
+  border-radius: 32px;
+  background: #1E2521;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 8px;
+  z-index: 150;
+  box-shadow: 0 12px 28px -10px rgba(30,37,33,0.45);
+  transition: transform 0.25s ease;
+}
+[data-theme="dark"] .bottom-nav { background: #262D28; border: 1px solid #343C36; box-shadow: none; }
+.nav-item {
+  position: relative;
+  width: 48px; height: 48px;
+  border: none; background: transparent;
+  border-radius: 24px;
+  color: #AEB9B1;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.nav-item.active { color: #1E2521; }
+.nav-active-dot {
+  position: absolute; inset: 0;
+  border-radius: 24px;
+  background: var(--c-accent2);
+}
+.nav-add {
+  width: 48px; height: 48px;
+  border: none; border-radius: 24px;
+  background: #F4F1E6; color: #1E2521;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .fab {
   position: fixed;
   bottom: calc(var(--nav-h) + var(--safe-bottom) + 30px);
@@ -531,14 +580,14 @@ body {
   gap: 16px;
 }
 .sheet-footer {
-  padding: 12px 20px calc(var(--nav-h) + var(--safe-bottom) + 8px);
+  padding: 12px 20px calc(var(--safe-bottom) + 16px);
   background: var(--c-card);
   border-top: 1px solid var(--c-sep);
   flex-shrink: 0;
 }
 /* BottomNav keyboard-hide animation */
 .kb-open .bottom-nav {
-  transform: translateY(calc(100% + var(--safe-bottom)));
+  transform: translateY(calc(100% + var(--safe-bottom) + 24px));
 }
 .kb-open .sheet-footer {
   padding: 10px 20px 10px;
