@@ -9,7 +9,10 @@ import CategoryIcon from '../components/CategoryIcon'
 import SupermarketTrips from '../components/budget/SupermarketTrips'
 import MonthSwitcher from '../components/budget/MonthSwitcher'
 import CategoryBudgetRows from '../components/budget/CategoryBudgetRows'
-import { Pencil, Check, PieChart } from 'lucide-react'
+import PaceChart from '../components/charts/PaceChart'
+import { buildInsights, cumulativeByDay, daysInMonth } from '../utils/insights'
+import { monthName } from '../utils/months'
+import { Pencil, Check, PieChart, TrendingUp, TrendingDown, Info } from 'lucide-react'
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני',
                    'יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
@@ -54,7 +57,7 @@ function SectionCard({ title, subtitle, action, children }) {
 
 export default function ReportsPage() {
   const { t } = useTranslation()
-  const { transactions, CATEGORIES, settings, monthKey, effectiveCategoryBudgets } = useApp()
+  const { transactions, CATEGORIES, settings, monthKey, effectiveCategoryBudgets, monthlyBudget, isCurrentMonth } = useApp()
   const cur = settings.currency
   const lang = settings.language || 'he'
 
@@ -97,6 +100,33 @@ export default function ReportsPage() {
   const reportRows = [...new Set([...Object.keys(expByCat), ...Object.keys(effectiveCategoryBudgets)])]
     .map(catId => ({ catId, amount: expByCat[catId] || 0 }))
     .sort((a, b) => b.amount - a.amount)
+
+  // Spending pace: cumulative spending per day vs the budget pace (or last month when there's no budget)
+  const prevMonthKey = months[months.length - 2]?.key
+  const paceRefLabel = monthlyBudget > 0
+    ? (lang === 'he' ? 'קצב התקציב' : 'Budget pace')
+    : (lang === 'he' ? `ב${monthName(prevMonthKey, lang)}` : monthName(prevMonthKey, lang))
+  const paceData = useMemo(() => {
+    const days = daysInMonth(selected.key)
+    const lastDay = isCurrentMonth ? new Date().getDate() : days
+    const cum = cumulativeByDay(transactions, selected.key)
+    const prevCum = prevMonthKey ? cumulativeByDay(transactions, prevMonthKey) : []
+    const hasPrev = prevCum.length > 0 && prevCum[prevCum.length - 1] > 0
+    if (cum[days - 1] === 0 && !(monthlyBudget > 0)) return []
+    return Array.from({ length: days }, (_, i) => {
+      const day = i + 1
+      let ref = null
+      if (monthlyBudget > 0) ref = Math.round((monthlyBudget * day) / days)
+      else if (hasPrev) ref = prevCum[Math.min(day, prevCum.length) - 1]
+      return { day, spent: day <= lastDay ? cum[i] : null, ref }
+    })
+  }, [transactions, selected.key, prevMonthKey, monthlyBudget, isCurrentMonth])
+
+  // Automatic insights vs the previous month
+  const insights = useMemo(() => buildInsights({
+    transactions, monthKey: selected.key, isCurrentMonth, lang, cur,
+    catName: id => t(`categories.${id}`),
+  }), [transactions, selected.key, isCurrentMonth, lang, cur, t])
 
   // Bar chart data: last 6 months
   const barData = months.map(m => {
@@ -193,6 +223,47 @@ export default function ReportsPage() {
             )
           })()}
         </SectionCard>
+
+        {/* Spending pace through the month */}
+        {paceData.length > 0 && (
+          <SectionCard
+            title={lang==='he'?'קצב הוצאות':'Spending pace'}
+            subtitle={monthlyBudget > 0
+              ? (lang==='he'?'הוצאות מצטברות מול הקצב שמתאים לתקציב':'Cumulative spending vs the pace your budget allows')
+              : (lang==='he'?'הוצאות מצטברות מול החודש הקודם':'Cumulative spending vs last month')}
+          >
+            <PaceChart data={paceData} currency={cur} lang={lang} refLabel={paceRefLabel} />
+          </SectionCard>
+        )}
+
+        {/* Automatic insights */}
+        {insights.length > 0 && (
+          <SectionCard
+            title={lang==='he'?'תובנות':'Insights'}
+            subtitle={isCurrentMonth
+              ? (lang==='he'?'בהשוואה לאותה תקופה בחודש שעבר':'Compared with the same period last month')
+              : (lang==='he'?'בהשוואה לחודש הקודם':'Compared with the previous month')}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {insights.map(ins => {
+                const Icon = ins.tone === 'up' ? TrendingUp : ins.tone === 'down' ? TrendingDown : Info
+                const color = ins.tone === 'up' ? 'var(--c-danger)' : ins.tone === 'down' ? 'var(--c-accent2-dark)' : 'var(--c-text2)'
+                return (
+                  <div key={ins.id} style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+                    <div style={{
+                      width: 30, height: 30, borderRadius: 'var(--r-sm)', flexShrink: 0,
+                      background: 'var(--c-bg)', color,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <Icon size={16} strokeWidth={2.2} />
+                    </div>
+                    <span className="num" style={{ fontSize: 13.5, lineHeight: 1.45, color: 'var(--c-text)' }}>{ins.text}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </SectionCard>
+        )}
 
         {/* 2 — Expenses by category — bar list, per approved design */}
         {reportRows.length > 0 ? (

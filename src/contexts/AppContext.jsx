@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback } from 'rea
 import { db, auth, storage } from '../firebase'
 import {
   collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc,
-  query, where, orderBy, setDoc, getDoc, getDocs, serverTimestamp, arrayUnion, deleteField
+  query, where, orderBy, setDoc, getDoc, getDocs, serverTimestamp, arrayUnion, deleteField, increment
 } from 'firebase/firestore'
 import { ref, deleteObject } from 'firebase/storage'
 import { onAuthStateChanged, signOut, updateProfile } from 'firebase/auth'
@@ -14,25 +14,25 @@ const AppContext = createContext(null)
 
 const CATEGORIES = {
   income: [
-    { id: 'salary',     emoji: '💼', color: '#34C759' },
-    { id: 'freelance',  emoji: '💻', color: '#30D158' },
-    { id: 'gift',       emoji: '🎁', color: '#FF9F0A' },
-    { id: 'investment', emoji: '📈', color: '#0A84FF' },
-    { id: 'other',      emoji: '💰', color: '#636366' },
+    { id: 'salary',     emoji: '💼', color: '#56633F' },
+    { id: 'freelance',  emoji: '💻', color: '#7A8A5E' },
+    { id: 'gift',       emoji: '🎁', color: '#D08A2E' },
+    { id: 'investment', emoji: '📈', color: '#4F7A8A' },
+    { id: 'other',      emoji: '💰', color: '#8A8272' },
   ],
   expense: [
-    { id: 'housing',       emoji: '🏠', color: '#D98888' },
-    { id: 'food',          emoji: '🍔', color: '#FF9F0A' },
-    { id: 'transport',     emoji: '🚗', color: '#0A84FF' },
-    { id: 'clothing',      emoji: '👕', color: '#BF5AF2' },
-    { id: 'health',        emoji: '❤️', color: '#D96B6B' },
-    { id: 'education',     emoji: '📚', color: '#5AC8FA' },
-    { id: 'entertainment', emoji: '🎬', color: '#D96B80' },
-    { id: 'subscriptions', emoji: '📡', color: '#6E6ADB' },
-    { id: 'outings',       emoji: '🎉', color: '#FF6B6B' },
-    { id: 'grooming',      emoji: '💆', color: '#FF9ECD' },
-    { id: 'tech',          emoji: '📱', color: '#32ADE6' },
-    { id: 'other',         emoji: '📦', color: '#636366' },
+    { id: 'housing',       emoji: '🏠', color: '#A8553A' },
+    { id: 'food',          emoji: '🍔', color: '#D08A2E' },
+    { id: 'transport',     emoji: '🚗', color: '#56633F' },
+    { id: 'clothing',      emoji: '👕', color: '#9A6B8E' },
+    { id: 'health',        emoji: '❤️', color: '#C0524F' },
+    { id: 'education',     emoji: '📚', color: '#4F7A8A' },
+    { id: 'entertainment', emoji: '🎬', color: '#C77B5C' },
+    { id: 'subscriptions', emoji: '📡', color: '#6B5FA0' },
+    { id: 'outings',       emoji: '🎉', color: '#7E9A5C' },
+    { id: 'grooming',      emoji: '💆', color: '#D98FA0' },
+    { id: 'tech',          emoji: '📱', color: '#3F6F73' },
+    { id: 'other',         emoji: '📦', color: '#8A8272' },
   ]
 }
 
@@ -612,6 +612,56 @@ export function AppProvider({ children }) {
     }
   }, [activeHouseholdId, monthKey])
 
+  // Savings goals, stored as a map on the household doc so both members share
+  // them: savingsGoals[goalId] = { name, target, saved, date ("YYYY-MM" or ""), color, createdAt }.
+  // Deposits use increment() so two people depositing at once never overwrite each other.
+  // Deposits to a goal are NOT transactions: they don't affect the budget or the totals.
+  const GOAL_COLORS = ['#4F7A8A', '#56633F', '#A8553A', '#9A6B8E', '#D08A2E', '#3F6F73']
+  const savingsGoals = Object.entries(household?.savingsGoals || {})
+    .map(([id, g]) => ({ id, ...g }))
+    .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))
+
+  const addSavingsGoal = useCallback(async ({ name, target, date = '' }) => {
+    if (!activeHouseholdId) return
+    const id = `g${Date.now().toString(36)}`
+    const goal = {
+      name, target, saved: 0, date,
+      color: GOAL_COLORS[Object.keys(household?.savingsGoals || {}).length % GOAL_COLORS.length],
+      createdAt: Date.now(),
+    }
+    setHousehold(h => h && ({ ...h, savingsGoals: { ...(h.savingsGoals || {}), [id]: goal } }))
+    const ref = doc(db, 'households', activeHouseholdId)
+    try {
+      await updateDoc(ref, { [`savingsGoals.${id}`]: goal })
+    } catch {
+      await setDoc(ref, { savingsGoals: { [id]: goal } }, { merge: true })
+    }
+  }, [activeHouseholdId, household])
+
+  // delta > 0 deposits, delta < 0 withdraws (never below zero)
+  const addToSavingsGoal = useCallback(async (id, delta) => {
+    if (!activeHouseholdId) return
+    const current = household?.savingsGoals?.[id]?.saved || 0
+    const safeDelta = Math.max(delta, -current)
+    if (!safeDelta) return
+    setHousehold(h => {
+      const g = h?.savingsGoals?.[id]
+      if (!g) return h
+      return { ...h, savingsGoals: { ...h.savingsGoals, [id]: { ...g, saved: Math.max(0, (g.saved || 0) + safeDelta) } } }
+    })
+    await updateDoc(doc(db, 'households', activeHouseholdId), { [`savingsGoals.${id}.saved`]: increment(safeDelta) })
+  }, [activeHouseholdId, household])
+
+  const deleteSavingsGoal = useCallback(async (id) => {
+    if (!activeHouseholdId) return
+    setHousehold(h => {
+      if (!h?.savingsGoals) return h
+      const { [id]: _removed, ...rest } = h.savingsGoals
+      return { ...h, savingsGoals: rest }
+    })
+    await updateDoc(doc(db, 'households', activeHouseholdId), { [`savingsGoals.${id}`]: deleteField() })
+  }, [activeHouseholdId])
+
   const value = {
     user, household, activeHouseholdId, loading, settings, isPro,
     avatarConfig, avatarUrl, saveAvatar, partnerProfile,
@@ -620,6 +670,7 @@ export function AppProvider({ children }) {
     currentMonthKey, isCurrentMonth, shiftMonth, goToCurrentMonth,
     monthlyBudget, currentMonthlyBudget, setMonthlyBudget,
     effectiveCategoryBudgets, overriddenCategoryIds, setCategoryBudget,
+    savingsGoals, addSavingsGoal, addToSavingsGoal, deleteSavingsGoal,
     shoppingItems, CATEGORIES,
     laterItems, addLaterItem, deleteLaterItem, moveLaterItemToShopping,
     receipts, addReceipt, deleteReceipt,
