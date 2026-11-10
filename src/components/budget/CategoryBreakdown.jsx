@@ -3,7 +3,8 @@ import { useApp } from '../../contexts/AppContext'
 import { monthLabel } from '../../utils/months'
 import CategoryBudgetRows from './CategoryBudgetRows'
 
-export default function CategoryBreakdown() {
+// limit: show only the biggest N (home screen); the full list is on Reports
+export default function CategoryBreakdown({ limit = 0 }) {
   const { t } = useTranslation()
   const { monthTransactions, totalExpenses, settings, isCurrentMonth, monthKey, effectiveCategoryBudgets } = useApp()
   const lang = settings.language || 'he'
@@ -24,6 +25,7 @@ export default function CategoryBreakdown() {
   const rows = [...ids]
     .map(catId => ({ catId, amount: expensesByCategory[catId] || 0 }))
     .sort((a, b) => b.amount - a.amount)
+    .slice(0, limit || undefined)
 
   if (rows.length === 0) return null
 
