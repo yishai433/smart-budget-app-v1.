@@ -15,3 +15,9 @@ export function monthLabel(key, lang = 'he') {
   const name = (lang === 'he' ? HE_MONTHS : EN_MONTHS)[monthIdx]
   return `${name} ${year}`
 }
+
+// "2026-11" → "נובמבר" / "November" (name only, no year)
+export function monthName(key, lang = 'he') {
+  const { monthIdx } = parseMonthKey(key)
+  return (lang === 'he' ? HE_MONTHS : EN_MONTHS)[monthIdx]
+}
