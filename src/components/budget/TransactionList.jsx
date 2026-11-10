@@ -360,7 +360,7 @@ function TransactionDetailSheet({ tx, catDef, cur, t, onDelete, onEdit, onClose 
 
 export default function TransactionList({ filter = 'all' }) {
   const { t, i18n } = useTranslation()
-  const { transactions, deleteTransaction, updateTransaction, CATEGORIES, settings } = useApp()
+  const { transactions, deleteTransaction, updateTransaction, CATEGORIES, settings, monthKey, isCurrentMonth } = useApp()
   const cur = settings.currency
   const [detailTx, setDetailTx] = useState(null)
   const [editingTx, setEditingTx] = useState(null)
@@ -368,16 +368,18 @@ export default function TransactionList({ filter = 'all' }) {
   const getCatDef = (tx) => CATEGORIES[tx.type]?.find(c => c.id === tx.category)
     || { emoji: tx.type === 'income' ? '💰' : '💸', color: '#636366' }
 
+  // "All" follows the month picked in the month switcher; "recurring" lists
+  // every recurring transaction regardless of month, as before.
   const filtered = filter === 'recurring'
     ? transactions.filter(tx => tx.isRecurring)
-    : transactions
+    : transactions.filter(tx => tx.date?.startsWith(monthKey))
 
   if (filtered.length === 0) {
     return (
       <div className="empty-state">
         <div className="empty-icon"><Receipt size={22} strokeWidth={1.8} /></div>
         <h3>{t('budget.noTransactions')}</h3>
-        <p>{t('budget.noTransactionsHint')}</p>
+        {(isCurrentMonth || filter === 'recurring') && <p>{t('budget.noTransactionsHint')}</p>}
       </div>
     )
   }
