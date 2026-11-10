@@ -376,7 +376,7 @@ export function AppProvider({ children }) {
     try {
       const at = Date.now()
       const id = `${at.toString(36)}${Math.random().toString(36).slice(2, 5)}`
-      const rec = { ...entry, at, by: user.uid, name: actorName }
+      const rec = { ...entry, at, by: user.uid, name: actorName, avatar: avatarUrl || null }
       const cutoff = at - 30 * 86400000
       const patch = { [`activity.${id}`]: rec }
       Object.entries(household?.activity || {}).forEach(([k, a]) => {
@@ -388,7 +388,7 @@ export function AppProvider({ children }) {
     } catch (err) {
       console.error('logActivity error:', err.code, err.message)
     }
-  }, [user, activeHouseholdId, household, actorName])
+  }, [user, activeHouseholdId, household, actorName, avatarUrl])
 
   const txSnap = (t) => ({
     type: t.type || 'expense', amount: t.amount || 0, category: t.category || 'other',
