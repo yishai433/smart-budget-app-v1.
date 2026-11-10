@@ -54,7 +54,7 @@ export default function CategoryBudgetRows({ rows, totalExpenses }) {
               onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && setSheetCat(catId)}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05, duration: 0.25 }}
+              transition={{ duration: 0.2 }}
               style={{
                 padding: '12px 16px', cursor: 'pointer',
                 borderBottom: i < rows.length - 1 ? '1px solid var(--c-sep)' : 'none',
@@ -89,7 +89,7 @@ export default function CategoryBudgetRows({ rows, totalExpenses }) {
                         style={{ background: barColor }}
                         initial={{ width: 0 }}
                         animate={{ width: `${barWidth}%` }}
-                        transition={{ duration: 0.65, delay: i * 0.05, ease: 'easeOut' }}
+                        transition={{ duration: 0.5, ease: 'easeOut' }}
                       />
                     </div>
                     {!hasLimit && (

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion'
@@ -178,7 +178,7 @@ function EditTransactionSheet({ tx, cats, cur, t, onSave, onClose }) {
       <div className="sheet-viewport">
         <motion.div className="sheet"
           initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-          transition={{ type: 'spring', stiffness: 380, damping: 36 }}
+          transition={{ type: 'tween', duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
         >
           <div className="sheet-handle" />
           <div className="sheet-header">
@@ -275,7 +275,7 @@ function TransactionDetailSheet({ tx, catDef, cur, t, onDelete, onEdit, onClose 
       <div className="sheet-viewport">
         <motion.div className="sheet"
           initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-          transition={{ type: 'spring', stiffness: 380, damping: 36 }}
+          transition={{ type: 'tween', duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
         >
           <div className="sheet-handle" />
           <div className="sheet-header">
@@ -365,6 +365,10 @@ export default function TransactionList({ filter = 'all' }) {
   const cur = settings.currency
   const [detailTx, setDetailTx] = useState(null)
   const [editingTx, setEditingTx] = useState(null)
+  // Render long lists in pages so scrolling and tab switches stay light
+  const PAGE = 40
+  const [limit, setLimit] = useState(PAGE)
+  useEffect(() => { setLimit(PAGE) }, [filter, monthKey])
 
   const getCatDef = (tx) => CATEGORIES[tx.type]?.find(c => c.id === tx.category)
     || { emoji: tx.type === 'income' ? '💰' : '💸', color: '#8A8272' }
@@ -385,7 +389,8 @@ export default function TransactionList({ filter = 'all' }) {
     )
   }
 
-  const groups = groupByMonth(filtered)
+  const visible = filtered.slice(0, limit)
+  const groups = groupByMonth(visible)
   const lang = i18n.language
 
   return (
@@ -406,7 +411,7 @@ export default function TransactionList({ filter = 'all' }) {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, height: 0 }}
-                    transition={{ delay: Math.min(i, 8) * 0.03, duration: 0.22 }}
+                    transition={{ duration: 0.2 }}
                     style={{ borderBottom: i < txs.length - 1 ? '1px solid var(--c-sep)' : 'none', background: 'transparent' }}
                   >
                     <SwipeableRow
@@ -424,6 +429,16 @@ export default function TransactionList({ filter = 'all' }) {
           </div>
         </div>
       ))}
+
+      {filtered.length > limit && (
+        <button
+          className="btn btn-secondary"
+          style={{ margin: '0 16px 18px' }}
+          onClick={() => setLimit(l => l + PAGE)}
+        >
+          {settings.language === 'en' ? `Show ${Math.min(PAGE, filtered.length - limit)} more` : `הצג עוד ${Math.min(PAGE, filtered.length - limit)}`}
+        </button>
+      )}
 
       <AnimatePresence>
         {detailTx && (

@@ -65,7 +65,7 @@ export default function SavingsGoals() {
                 onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && setSheet(g.id)}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05, duration: 0.25 }}
+                transition={{ duration: 0.2 }}
                 style={{ padding: '13px 15px', cursor: 'pointer' }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>

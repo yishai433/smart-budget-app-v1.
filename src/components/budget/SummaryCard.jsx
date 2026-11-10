@@ -111,7 +111,7 @@ function FilteredTransactionsSheet({ type, transactions, CATEGORIES, cur, total,
       <div className="sheet-viewport">
         <motion.div className="sheet"
           initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-          transition={{ type: 'spring', stiffness: 380, damping: 36 }}
+          transition={{ type: 'tween', duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
         >
           <div className="sheet-handle" />
           <div className="sheet-header">
@@ -205,7 +205,7 @@ function BudgetPromptSheet({ lang, cur, onSave, onClose }) {
       <div className="sheet-viewport">
         <motion.div className="sheet"
           initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-          transition={{ type: 'spring', stiffness: 380, damping: 36 }}
+          transition={{ type: 'tween', duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
         >
           <div className="sheet-handle" />
           <div className="sheet-header">

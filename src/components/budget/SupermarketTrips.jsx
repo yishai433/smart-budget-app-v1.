@@ -33,7 +33,7 @@ function TripDetailSheet({ tx, cur, onClose }) {
       <div className="sheet-viewport">
         <motion.div className="sheet"
           initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-          transition={{ type: 'spring', stiffness: 380, damping: 36 }}
+          transition={{ type: 'tween', duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
         >
           <div className="sheet-handle" />
           <div className="sheet-header">
@@ -119,7 +119,7 @@ export default function SupermarketTrips({ cur }) {
               className="list-item"
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04, duration: 0.22 }}
+              transition={{ duration: 0.2 }}
               onClick={() => setSelected(tx)}
               style={{
                 cursor: 'pointer',

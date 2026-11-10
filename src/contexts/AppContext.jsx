@@ -112,6 +112,10 @@ export function AppProvider({ children }) {
   }, [user, activeHouseholdId])
 
   const initHousehold = async (uid) => {
+    // Start fetching the household we used last time in parallel with the profile:
+    // saves one network round-trip on most opens (verified against the profile below).
+    const cachedHh = localStorage.getItem(`sb_hh_${uid}`)
+    const hhPrefetch = cachedHh ? getDoc(doc(db, 'households', cachedHh)).catch(() => null) : null
     // Load profile (avatar + settings + linkedHouseholdId)
     let linkedId = null
     try {
@@ -177,8 +181,10 @@ export function AppProvider({ children }) {
     setActiveHouseholdId(hhOwnerId)
 
     // Load the household document (may be someone else's)
+    localStorage.setItem(`sb_hh_${uid}`, hhOwnerId)
     const hhRef = doc(db, 'households', hhOwnerId)
-    const snap = await getDoc(hhRef)
+    const prefetched = hhPrefetch && cachedHh === hhOwnerId ? await hhPrefetch : null
+    const snap = prefetched || await getDoc(hhRef)
     if (!snap.exists() && hhOwnerId === uid) {
       // Create own household if it doesn't exist yet
       const code = Math.random().toString(36).substring(2, 8).toUpperCase()
@@ -221,12 +227,14 @@ export function AppProvider({ children }) {
 
     // Also ensure user's own household exists (for their invite code)
     if (hhOwnerId !== uid) {
+      // not needed to show the app, so it runs in the background
       const ownRef = doc(db, 'households', uid)
-      const ownSnap = await getDoc(ownRef)
-      if (!ownSnap.exists()) {
-        const code = Math.random().toString(36).substring(2, 8).toUpperCase()
-        await setDoc(ownRef, { owner: uid, members: [uid], inviteCode: code, createdAt: serverTimestamp() })
-      }
+      getDoc(ownRef).then(ownSnap => {
+        if (!ownSnap.exists()) {
+          const code = Math.random().toString(36).substring(2, 8).toUpperCase()
+          return setDoc(ownRef, { owner: uid, members: [uid], inviteCode: code, createdAt: serverTimestamp() })
+        }
+      }).catch(e => console.error('own household check error', e))
     }
 
     // Auto-join if there's a pending invite from a shared link
