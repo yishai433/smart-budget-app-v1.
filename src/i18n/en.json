@@ -24,6 +24,7 @@
     "yesterday": "Yesterday"
   },
   "transaction": {
+    "auto": "auto",
     "addIncome": "Add Income",
     "addExpense": "Add Expense",
     "income": "Income",

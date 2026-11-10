@@ -24,6 +24,7 @@
     "yesterday": "אתמול"
   },
   "transaction": {
+    "auto": "אוטומטי",
     "addIncome": "הוסף הכנסה",
     "addExpense": "הוסף הוצאה",
     "income": "הכנסה",

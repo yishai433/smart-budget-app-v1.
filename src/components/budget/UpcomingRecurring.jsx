@@ -10,13 +10,13 @@ import { monthName } from '../../utils/months'
 // the recurring transactions already logged. Current month only; hidden when empty.
 export default function UpcomingRecurring() {
   const { t } = useTranslation()
-  const { transactions, settings, isCurrentMonth } = useApp()
+  const { transactions, settings, isCurrentMonth, recurringOff, recurringStopped } = useApp()
   const cur = settings.currency
   const lang = settings.language || 'he'
   const he = lang === 'he'
 
   if (!isCurrentMonth) return null
-  const items = getUpcomingRecurring(transactions).slice(0, 4)
+  const items = getUpcomingRecurring(transactions, new Date(), 7, { stopped: recurringStopped, includeToday: recurringOff }).slice(0, 4)
   if (items.length === 0) return null
 
   const when = (it) => {

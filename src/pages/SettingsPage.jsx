@@ -11,6 +11,7 @@ import { Bell, Users, User, UserPlus, LogIn, Copy, Share2, Check, Download } fro
 import { getThemePref, setThemePref } from '../utils/theme'
 import { buildCsv, downloadCsv } from '../utils/exportCsv'
 import { monthLabel } from '../utils/months'
+import { buildSeries } from '../utils/recurring'
 
 function SettingRow({ icon, label, subtitle, right, onClick, danger }) {
   return (
@@ -48,7 +49,8 @@ export default function SettingsPage() {
   const { settings, changeLanguage, updateSettings, household, user, activeHouseholdId, logout, isPro } = useApp()
   // Settings always edits the budget of the real current month, not the month being browsed
   const { avatarConfig, currentMonthlyBudget: monthlyBudget, currentMonthKey, setMonthlyBudget } = useApp()
-  const { transactions, monthKey } = useApp()
+  const { transactions, monthKey, recurringOff, recurringStopped, setRecurringOff, setRecurringStopped } = useApp()
+  const recurringSeries = buildSeries(transactions)
 
   const exportCsv = (scope) => {
     const list = scope === 'month' ? transactions.filter(tx => tx.date?.startsWith(monthKey)) : transactions
@@ -590,6 +592,38 @@ export default function SettingsPage() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Recurring expenses — booked automatically on their date */}
+        <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text2)', padding: '0 4px 8px', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+          {settings.language === 'he' ? 'הוצאות קבועות' : 'Recurring expenses'}
+        </h3>
+        <div className="card" style={{ marginBottom: 20 }}>
+          <SettingRow
+            icon="🔁"
+            label={settings.language === 'he' ? 'הוספה אוטומטית' : 'Add automatically'}
+            subtitle={settings.language === 'he' ? 'הוצאה קבועה נרשמת בתאריך שלה כשפותחים את האפליקציה' : 'Recurring expenses are booked on their date when the app opens'}
+            right={<Toggle checked={!recurringOff} onChange={on => setRecurringOff(!on)} />}
+          />
+          {recurringSeries.map(s => {
+            const stopped = !!recurringStopped[s.hash]
+            return (
+              <div key={s.hash} className="list-item" style={{ cursor: 'default', gap: 10, opacity: stopped ? 0.6 : 1 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {s.name || t(`categories.${s.category}`)}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2 }}>
+                    {t(`transaction.${s.frequency}`)}{stopped ? (settings.language === 'he' ? ' · הופסקה' : ' · stopped') : ''}
+                  </div>
+                </div>
+                <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: 13 }}
+                  onClick={() => setRecurringStopped(s.hash, !stopped)}>
+                  {stopped ? (settings.language === 'he' ? 'חדש' : 'Resume') : (settings.language === 'he' ? 'הפסק' : 'Stop')}
+                </button>
+              </div>
+            )
+          })}
         </div>
 
         {/* Export — opens in Excel / Google Sheets */}
