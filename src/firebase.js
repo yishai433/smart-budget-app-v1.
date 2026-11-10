@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app'
-import { getFirestore } from 'firebase/firestore'
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore'
 import { getAuth } from 'firebase/auth'
 import { getAnalytics } from 'firebase/analytics'
 import { getStorage } from 'firebase/storage'
@@ -17,7 +17,19 @@ const firebaseConfig = {
 }
 
 const app = initializeApp(firebaseConfig)
-export const db        = getFirestore(app)
+// Keep a local copy of the data on the device, so the app opens and works
+// without a connection and syncs when it is back. Falls back to the plain
+// in-memory client where the browser has no IndexedDB (e.g. some private modes).
+function createDb() {
+  try {
+    return initializeFirestore(app, {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+    })
+  } catch (e) {
+    return getFirestore(app)
+  }
+}
+export const db        = createDb()
 export const auth      = getAuth(app)
 export const storage   = getStorage(app)
 export let analytics   = null

@@ -12,6 +12,7 @@ import { getThemePref, setThemePref } from '../utils/theme'
 import { buildCsv, downloadCsv } from '../utils/exportCsv'
 import { monthLabel } from '../utils/months'
 import { buildSeries } from '../utils/recurring'
+import { createInviteCode, redeemInviteCode } from '../utils/invites'
 import ActivityRows from '../components/budget/ActivityRows'
 
 function SettingRow({ icon, label, subtitle, right, onClick, danger }) {
@@ -52,7 +53,7 @@ export default function SettingsPage() {
   const { avatarConfig, currentMonthlyBudget: monthlyBudget, currentMonthKey, setMonthlyBudget } = useApp()
   const { transactions, monthKey, recurringOff, recurringStopped, setRecurringOff, setRecurringStopped } = useApp()
   const recurringSeries = buildSeries(transactions)
-  const { activityAll } = useApp()
+  const { activityAll, splitEnabled, setSplitEnabled } = useApp()
   const [showHistory, setShowHistory] = useState(false)
 
   const exportCsv = (scope) => {
@@ -103,19 +104,12 @@ export default function SettingsPage() {
     window.dispatchEvent(new CustomEvent('sb-toast', { detail: msg }))
   }
 
-  // Generate a one-time invite code stored inside the household doc (no new collection needed)
+  // One-time invite code (24h), kept in its own collection: see utils/invites.js
   const createInvite = async () => {
     if (!user) return
     setCreatingInvite(true)
     try {
-      const part = () => Math.random().toString(36).substring(2, 5).toUpperCase()
-      const code = part() + part()
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
-      const hhId = activeHouseholdId || user.uid
-      await updateDoc(doc(db, 'households', hhId), {
-        activeInvite: { code, expiresAt: Timestamp.fromDate(expiresAt), used: false }
-      })
-      setCurrentInvite({ code, expiresAt })
+      setCurrentInvite(await createInviteCode(activeHouseholdId || user.uid, user.uid))
     } catch (e) { showToast('שגיאה ביצירת קוד: ' + (e.code || e.message)) }
     setCreatingInvite(false)
   }
@@ -142,26 +136,12 @@ export default function SettingsPage() {
     setJoining(true)
     setJoinResult(null)
     try {
-      const code = joinCode.trim().toUpperCase()
-      // Search in households collection — no new collection, no rules issues
-      const q = query(collection(db, 'households'), where('activeInvite.code', '==', code))
-      const snap = await getDocs(q)
-      if (snap.empty) { setJoinResult('error'); setJoining(false); return }
-      const hhDoc = snap.docs[0]
-      const invite = hhDoc.data().activeInvite
-      if (invite.used) { setJoinResult('used'); setJoining(false); return }
-      if (invite.expiresAt.toDate() < new Date()) { setJoinResult('expired'); setJoining(false); return }
-      const ownerUid = hhDoc.id
-      if (ownerUid === (activeHouseholdId || user.uid)) { setJoinResult('self'); setJoining(false); return }
-
-      await updateDoc(doc(db, 'households', ownerUid), {
-        members: arrayUnion(user.uid),
-        'activeInvite.used': true,
-      })
-      await setDoc(doc(db, 'userProfiles', user.uid), { linkedHouseholdId: ownerUid }, { merge: true })
-      setJoinResult('ok')
-      setJoinCode('')
-      setTimeout(() => window.location.reload(), 1500)
+      const result = await redeemInviteCode(joinCode, user.uid, activeHouseholdId)
+      setJoinResult(result)
+      if (result === 'ok') {
+        setJoinCode('')
+        setTimeout(() => window.location.reload(), 1500)
+      }
     } catch (e) {
       console.error('join error', e)
       setJoinResult('error')
@@ -499,10 +479,10 @@ export default function SettingsPage() {
             <div style={{ display: 'flex', gap: 8 }}>
               <input
                 className="input-field"
-                placeholder="ABC123"
+                placeholder="ABCD2345"
                 value={joinCode}
                 onChange={e => { setJoinCode(e.target.value.toUpperCase()); setJoinResult(null) }}
-                maxLength={6}
+                maxLength={8}
                 style={{ letterSpacing: 4, fontWeight: 800, fontSize: 18, flex: 1, textAlign: 'center' }}
               />
               <button
@@ -596,6 +576,18 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+
+        {/* Expense splitting — for flatmates and anyone who settles up */}
+        {(household?.members || []).length > 1 && (
+          <div className="card" style={{ marginBottom: 20 }}>
+            <SettingRow
+              icon="⇄"
+              label={settings.language === 'he' ? 'חלוקת הוצאות בין החברים' : 'Split expenses between members'}
+              subtitle={settings.language === 'he' ? 'מי שילם, מי חייב למי, והתחשבנות. מתאים לשותפים לדירה' : 'Who paid, who owes whom, and settling up'}
+              right={<Toggle checked={splitEnabled} onChange={setSplitEnabled} />}
+            />
+          </div>
+        )}
 
         {/* Recurring expenses — booked automatically on their date */}
         <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text2)', padding: '0 4px 8px', letterSpacing: 0.5, textTransform: 'uppercase' }}>

@@ -9,6 +9,10 @@ import UpcomingRecurring from '../components/budget/UpcomingRecurring'
 import UserAvatar from '../components/UserAvatar'
 import MonthSwitcher from '../components/budget/MonthSwitcher'
 import WhatsNew from '../components/budget/WhatsNew'
+import SettleUp from '../components/budget/SettleUp'
+import BudgetAlerts from '../components/budget/BudgetAlerts'
+import MonthSummary from '../components/budget/MonthSummary'
+import GettingStarted from '../components/budget/GettingStarted'
 
 const TABS = ['all', 'recurring']
 
@@ -27,14 +31,24 @@ export default function BudgetPage() {
         <MonthSwitcher style={{ marginTop: 14 }} />
       </div>
 
+      {/* First steps for a new account */}
+      <GettingStarted />
+
       {/* Changes other household members made since the last visit */}
       <WhatsNew />
 
       {/* Summary — balance, income, expenses */}
       <SummaryCard />
 
+      {/* Budget heads-up (80%+ or over) and last month's summary */}
+      <BudgetAlerts />
+      <MonthSummary />
+
       {/* Recurring expenses due in the next week (current month only) */}
       <UpcomingRecurring />
+
+      {/* Who owes whom (only when the household splits expenses) */}
+      <SettleUp />
 
       {/* Category breakdown */}
       <CategoryBreakdown />

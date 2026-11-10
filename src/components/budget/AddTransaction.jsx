@@ -1,4 +1,4 @@
-import { useState, useCallback, memo } from 'react'
+import { useState, useCallback, useEffect, useRef, memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '../../contexts/AppContext'
@@ -6,6 +6,14 @@ import ReceiptScanner from '../ReceiptScanner'
 import CategoryIcon from '../CategoryIcon'
 import useScrollLock from '../../hooks/useScrollLock'
 import { X } from 'lucide-react'
+import { suggestCategory } from '../../utils/suggestCategory'
+
+// local calendar date as YYYY-MM-DD (toISOString is UTC and gives yesterday after midnight)
+const localDate = (offsetDays = 0) => {
+  const d = new Date()
+  d.setDate(d.getDate() + offsetDays)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 const FREQUENCIES = ['daily', 'weekly', 'monthly', 'yearly']
 
@@ -36,12 +44,18 @@ const CategoryGrid = memo(function CategoryGrid({ cats, category, onSelect, t })
 export default function AddTransaction({ onClose }) {
   useScrollLock()
   const { t } = useTranslation()
-  const { addTransaction, CATEGORIES, settings, isPro } = useApp()
+  const { addTransaction, CATEGORIES, settings, isPro, transactions, members, splitEnabled, user } = useApp()
+  const [paidBy, setPaidBy] = useState(user?.uid || '')
+  const [personal, setPersonal] = useState(false)
+  const he = (settings.language || 'he') === 'he'
+  const amountRef = useRef(null)
+  const categoryTouched = useRef(false)
+  const [autoPicked, setAutoPicked] = useState(false)
   const [type, setType] = useState('expense')
   const [amountStr, setAmountStr] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('')
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+  const [date, setDate] = useState(() => localDate())
   const [isRecurring, setIsRecurring] = useState(false)
   const [frequency, setFrequency] = useState('monthly')
   const [otherNote, setOtherNote] = useState('')
@@ -53,7 +67,23 @@ export default function AddTransaction({ onClose }) {
 
   const cats = CATEGORIES[type]
 
+  // open ready to type the amount (after the sheet finished sliding in)
+  useEffect(() => {
+    const id = setTimeout(() => amountRef.current?.focus({ preventScroll: true }), 320)
+    return () => clearTimeout(id)
+  }, [])
+
+  // suggest a category from the description until the person picks one themselves
+  useEffect(() => {
+    if (categoryTouched.current) return
+    const s = suggestCategory(description, transactions, type)
+    if (s && cats.some(c => c.id === s)) { setCategory(s); setAutoPicked(true) }
+    else if (autoPicked) { setCategory(''); setAutoPicked(false) }
+  }, [description, type]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSelectCategory = useCallback((id) => {
+    categoryTouched.current = true
+    setAutoPicked(false)
     setCategory(id)
     if (id !== 'other') setOtherNote('')
   }, [])
@@ -71,7 +101,7 @@ export default function AddTransaction({ onClose }) {
   }
   const actualAmount = parseFloat(amountStr) || 0
 
-  const handleSave = async () => {
+  const handleSave = async (addAnother = false) => {
     if (!actualAmount || !category) return
     setSaving(true)
     setError('')
@@ -84,8 +114,15 @@ export default function AddTransaction({ onClose }) {
         date,
         isRecurring,
         frequency: isRecurring ? frequency : null,
+        ...(splitEnabled && type === 'expense' ? { paidBy, scope: personal ? 'personal' : 'shared' } : {}),
       })
-      if (settings.receiptsEnabled && isPro) {
+      if (addAnother === true) {
+        // keep the sheet open for the next one; date and type stay
+        setAmountStr(''); setDescription(''); setCategory(''); setOtherNote('')
+        setIsRecurring(false); setPersonal(false); setAutoPicked(false); categoryTouched.current = false
+        window.dispatchEvent(new CustomEvent('sb-toast', { detail: he ? '✅ נשמר, אפשר להוסיף עוד' : '✅ Saved, add another' }))
+        setTimeout(() => amountRef.current?.focus({ preventScroll: true }), 50)
+      } else if (settings.receiptsEnabled && isPro) {
         setSavedTxId(txId)
         setShowReceiptPrompt(true)
       } else {
@@ -195,13 +232,13 @@ export default function AddTransaction({ onClose }) {
           {/* Type toggle */}
           <div className="segment">
             <button className={`segment-btn ${type === 'expense' ? 'active' : ''}`}
-              onClick={() => { setType('expense'); setCategory('') }}
+              onClick={() => { setType('expense'); setCategory(''); categoryTouched.current = false; setAutoPicked(false) }}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--c-danger)' }} />
               {t('transaction.expense')}
             </button>
             <button className={`segment-btn ${type === 'income' ? 'active' : ''}`}
-              onClick={() => { setType('income'); setCategory('') }}
+              onClick={() => { setType('income'); setCategory(''); categoryTouched.current = false; setAutoPicked(false) }}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--c-success)' }} />
               {t('transaction.income')}
@@ -214,6 +251,7 @@ export default function AddTransaction({ onClose }) {
               <label className="input-label">סכום (₪)</label>
               <input
                 className="input-field"
+                ref={amountRef}
                 type="text"
                 inputMode="decimal"
                 placeholder="0.00"
@@ -237,7 +275,10 @@ export default function AddTransaction({ onClose }) {
 
           {/* Category */}
           <div className="input-group" style={{ marginBottom: 0 }}>
-            <label className="input-label">{t('transaction.category')}</label>
+            <label className="input-label">
+              {t('transaction.category')}
+              {autoPicked && <span style={{ fontWeight: 500, color: 'var(--c-text3)', marginInlineStart: 8 }}>{he ? 'נבחרה לפי התיאור' : 'picked from description'}</span>}
+            </label>
             <CategoryGrid cats={cats} category={category} onSelect={handleSelectCategory} t={t} />
             <AnimatePresence>
               {category === 'other' && (
@@ -256,8 +297,44 @@ export default function AddTransaction({ onClose }) {
           {/* Date */}
           <div className="input-group" style={{ marginBottom: 0 }}>
             <label className="input-label">{t('transaction.date')}</label>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              {[[0, he ? 'היום' : 'Today'], [-1, he ? 'אתמול' : 'Yesterday']].map(([off, label]) => (
+                <button key={off} type="button" className="btn btn-secondary"
+                  onClick={() => setDate(localDate(off))}
+                  style={{ padding: '6px 14px', fontSize: 13, ...(date === localDate(off) ? { borderColor: 'var(--c-primary)', color: 'var(--c-primary)', fontWeight: 700 } : {}) }}>
+                  {label}
+                </button>
+              ))}
+            </div>
             <input className="input-field" type="date" value={date} onChange={e => setDate(e.target.value)} />
           </div>
+
+          {/* Who paid + personal (only when the household splits expenses) */}
+          {splitEnabled && type === 'expense' && (
+            <div className="input-group" style={{ marginBottom: 0 }}>
+              <label className="input-label">{he ? 'מי שילם' : 'Paid by'}</label>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {members.map(m => (
+                  <button key={m.uid} type="button" className="btn btn-secondary"
+                    onClick={() => setPaidBy(m.uid)}
+                    style={{ padding: '6px 14px', fontSize: 13, ...(paidBy === m.uid ? { borderColor: 'var(--c-primary)', color: 'var(--c-primary)', fontWeight: 700 } : {}) }}>
+                    {m.uid === user?.uid ? (he ? 'אני' : 'Me') : (m.firstName || (he ? 'בן בית' : 'Member'))}
+                  </button>
+                ))}
+              </div>
+              <div className="toggle-wrap" style={{ marginTop: 10 }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 15 }}>{he ? 'הוצאה אישית' : 'Personal expense'}</div>
+                  <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2 }}>{he ? 'לא מתחלקת בין החברים' : 'Not split between members'}</div>
+                </div>
+                <label className="toggle">
+                  <input type="checkbox" checked={personal} onChange={e => setPersonal(e.target.checked)} />
+                  <div className="toggle-track" />
+                  <div className="toggle-thumb" />
+                </label>
+              </div>
+            </div>
+          )}
 
           {/* Recurring toggle */}
           <div className="toggle-wrap">
@@ -298,14 +375,22 @@ export default function AddTransaction({ onClose }) {
           )}
         </div>
 
-        <div className="sheet-footer">
+        <div className="sheet-footer" style={{ display: 'flex', gap: 10 }}>
           <button
-            className="btn btn-primary btn-full"
-            onClick={handleSave}
+            className="btn btn-secondary"
+            onClick={() => handleSave(true)}
             disabled={!actualAmount || !category || saving}
-            style={{ opacity: (!actualAmount || !category) ? 0.45 : 1, transition: 'opacity 0.2s', fontSize: 16, fontWeight: 700 }}
+            style={{ flex: 1, opacity: (!actualAmount || !category) ? 0.45 : 1, fontSize: 14, fontWeight: 600 }}
           >
-            {saving ? '⏳ שומר...' : t('common.save')}
+            {he ? 'שמור והוסף עוד' : 'Save & add another'}
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={() => handleSave()}
+            disabled={!actualAmount || !category || saving}
+            style={{ flex: 1, opacity: (!actualAmount || !category) ? 0.45 : 1, transition: 'opacity 0.2s', fontSize: 16, fontWeight: 700 }}
+          >
+            {saving ? (he ? '⏳ שומר...' : '⏳ Saving...') : t('common.save')}
           </button>
         </div>
       </motion.div>
