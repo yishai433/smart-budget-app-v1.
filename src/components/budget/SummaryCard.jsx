@@ -270,6 +270,19 @@ export default function SummaryCard() {
 
   const money = (v) => `${v < 0 ? '−' : ''}${formatAmount(v, cur)}`
 
+  // End-of-month forecast: spending so far, extrapolated at the same daily pace.
+  // Only for the current month, and only once there are a few days of data
+  // (day 1–3 would give wild numbers) and before the month is over.
+  const FORECAST_MIN_DAYS = 4
+  const today = new Date()
+  const daysElapsed = today.getDate()
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
+  const showForecast = isCurrentMonth && totalExpenses > 0
+    && daysElapsed >= FORECAST_MIN_DAYS && daysElapsed < daysInMonth
+  const forecast = showForecast ? Math.round((totalExpenses / daysElapsed) * daysInMonth) : 0
+  const forecastDiff = showForecast && hasBudget ? forecast - monthlyBudget : 0 // >0 = over budget
+  const forecastOver = forecastDiff > 0
+
   return (
     <div style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
@@ -314,6 +327,24 @@ export default function SummaryCard() {
                   : (lang === 'he' ? 'לא הוגדר תקציב לחודש זה' : 'No budget was set for this month'))}
           </span>
         </div>
+
+        {/* End-of-month forecast at the current daily pace */}
+        {showForecast && (
+          <div className="num" style={{
+            marginTop: 10, fontSize: 13, lineHeight: 1.5,
+            color: forecastOver ? 'var(--c-danger)' : 'var(--c-ink-text2)',
+            fontWeight: forecastOver ? 600 : 500,
+          }}>
+            {lang === 'he'
+              ? <>בקצב הנוכחי תסיימו את החודש על <b dir="ltr" style={{ color: forecastOver ? 'var(--c-danger)' : 'var(--c-ink-text)', fontWeight: 700 }}>{money(forecast)}</b></>
+              : <>At this pace you'll end the month at <b style={{ color: forecastOver ? 'var(--c-danger)' : 'var(--c-ink-text)', fontWeight: 700 }}>{money(forecast)}</b></>}
+            {hasBudget && forecastDiff !== 0 && (
+              lang === 'he'
+                ? <> · {money(Math.abs(forecastDiff))} {forecastOver ? 'מעל התקציב' : 'מתחת לתקציב'}</>
+                : <> · {money(Math.abs(forecastDiff))} {forecastOver ? 'over' : 'under'} budget</>
+            )}
+          </div>
+        )}
       </motion.div>
 
       {/* KPI row */}
