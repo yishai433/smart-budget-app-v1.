@@ -360,3 +360,15 @@ export function compareBasket(dataDir, items, keys) {
   }
   return out
 }
+
+// load the chosen branches into memory (and build their search index) in the background, one at a time,
+// so the first search after a restart doesn't have to wait for it
+export async function warm(dataDir, keys, log = console.log) {
+  const t = Date.now()
+  for (const k of keys) {
+    const d = loadStore(dataDir, k)
+    if (d) normIndex(d)
+    await new Promise(r => setImmediate(r))
+  }
+  log(`סניפים נטענו לזיכרון: ${keys.length} (${Date.now() - t}ms)`)
+}

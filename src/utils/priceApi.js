@@ -2,7 +2,7 @@ import { collection, addDoc, onSnapshot, deleteDoc, serverTimestamp } from 'fire
 import { db } from '../firebase'
 
 // The home server is outbound-only, so the app asks it by writing a document and waiting for the answer.
-export function askPriceServer(householdId, uid, payload, timeoutMs = 15000) {
+export function askPriceServer(householdId, uid, payload, timeoutMs = 30000) {
   return new Promise(async (resolve, reject) => {
     try {
       const ref = await addDoc(collection(db, 'priceLookups'), {
