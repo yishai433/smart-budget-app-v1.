@@ -10,6 +10,16 @@ import InfoHeading from './InfoHeading'
 
 const DEFAULTS = ['shufersal-190', 'sapir-21']
 const CHAIN = { shufersal: 'שופרסל', sapir: 'ספיר' }
+// Shufersal's file gives the city as a national city code (not a name). Major cities:
+const CITY_BY_CODE = {
+  3000: 'ירושלים', 5000: 'תל אביב-יפו', 4000: 'חיפה', 70: 'אשדוד', 7100: 'אשקלון', 9000: 'באר שבע', 6100: 'בני ברק',
+  6600: 'חולון', 6200: 'בת ים', 8600: 'רמת גן', 6400: 'הרצליה', 6900: 'כפר סבא', 8700: 'רעננה', 7900: 'פתח תקווה',
+  8300: 'ראשון לציון', 8400: 'רחובות', 7400: 'נתניה', 6500: 'חדרה', 1200: 'מודיעין-מכבים-רעות', 7000: 'לוד', 8500: 'רמלה',
+  2610: 'בית שמש', 2630: 'קרית גת', 1139: 'כרמיאל', 9700: 'הוד השרון', 2620: 'קרית אונו', 2660: 'יבנה', 7600: 'עכו',
+  9100: 'נהריה', 6700: 'טבריה', 7700: 'עפולה', 2500: 'נס ציונה', 2600: 'אילת', 2640: 'ראש העין', 2200: 'דימונה',
+  2800: 'קרית שמונה', 8000: 'צפת', 7800: 'פרדס חנה-כרכור', 2530: 'באר יעקב', 1304: 'שוהם',
+}
+const cityName = (c) => /^\d+$/.test(c || '') ? (CITY_BY_CODE[Number(c)] || '') : (c || '')
 
 // one row; memo so tapping a branch re-renders only that row
 const Row = memo(function Row({ s, on, onToggle }) {
@@ -18,7 +28,7 @@ const Row = memo(function Row({ s, on, onToggle }) {
       style={{ width: '100%', border: 'none', textAlign: 'start', fontFamily: 'inherit', background: on ? 'var(--c-primary-light)' : undefined }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 500 }}>{s.n}</div>
-        <div style={{ fontSize: 12, color: 'var(--c-text2)' }}>{CHAIN[s.c]}{s.city ? ` · ${s.city}` : ''}{s.a ? ` · ${s.a}` : ''}</div>
+        <div style={{ fontSize: 12, color: 'var(--c-text2)' }}>{CHAIN[s.c]}{cityName(s.city) ? ` · ${cityName(s.city)}` : ''}{s.a ? ` · ${s.a}` : ''}</div>
       </div>
       {on && <Check size={18} color="var(--c-primary)" strokeWidth={2.5} />}
     </button>
@@ -32,11 +42,11 @@ function Picker({ catalog, selected, onSave, onClose }) {
   const [sel, setSel] = useState(() => new Set(selected))
   const initial = useRef(new Set(selected))            // order is fixed when the sheet opens, so rows don't jump on tap
   // searchable text built once, not on every keystroke
-  const index = useMemo(() => catalog.map(s => ({ s, text: `${s.n} ${s.city} ${s.a}` })), [catalog])
+  const index = useMemo(() => catalog.map(s => ({ s, text: `${s.n} ${cityName(s.city)} ${s.a}` })), [catalog])
   const shown = useMemo(() => {
     const t = dq.trim()
     const list = (t ? index.filter(x => x.text.includes(t)) : index).map(x => x.s)
-    return list.sort((a, b) => (initial.current.has(b.k) - initial.current.has(a.k)) || (a.city || '').localeCompare(b.city || '')).slice(0, 80)
+    return list.sort((a, b) => (initial.current.has(b.k) - initial.current.has(a.k)) || cityName(a.city).localeCompare(cityName(b.city))).slice(0, 80)
   }, [dq, index])
   // scrolling the list closes the keyboard, so the whole list gets the screen
   const dismissKeyboard = useCallback(() => { const a = document.activeElement; if (a && a.tagName === 'INPUT') a.blur() }, [])
