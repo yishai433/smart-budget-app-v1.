@@ -10,6 +10,7 @@ import {
   monthLabelHe, prevMonthKey, isShabbat,
 } from './logic.js'
 import { getDueRecurring } from './recurring.js'
+import { STORES, refreshAll, lookup, loadStore } from './prices.js'
 
 const KEY_FILE = process.env.GOOGLE_APPLICATION_CREDENTIALS || '/run/secrets/firebase.json'
 const DATA_DIR = process.env.DATA_DIR || './data'
@@ -295,7 +296,45 @@ async function runRecurring() {
 }
 let lastRecurring = 0
 
+// ── supermarket prices: refreshed every morning, looked up when the app scans a barcode ──
+const PRICE_KEYS = (process.env.PRICE_STORES || Object.keys(STORES).join(',')).split(',').map(x => x.trim()).filter(Boolean)
+const pricesStale = () => PRICE_KEYS.some(k => { const d = loadStore(DATA_DIR, k); return !d || Date.now() - d.fetchedAt > 26 * 3600 * 1000 })
+let pricesRunning = false
+async function runPrices() {
+  if (pricesRunning) return
+  pricesRunning = true
+  try { await refreshAll(DATA_DIR, log, PRICE_KEYS) } finally { pricesRunning = false }
+}
+
+function watchPriceLookups() {
+  db.collection('priceLookups').where('status', '==', 'pending').onSnapshot(snap => {
+    snap.docChanges().forEach(async ch => {
+      if (ch.type !== 'added') return
+      const q = ch.doc.data()
+      try {
+        let keys = PRICE_KEYS
+        if (q.householdId) {
+          const hh = (await db.doc(`households/${q.householdId}`).get()).data() || {}
+          if (Array.isArray(hh.priceStores) && hh.priceStores.length) keys = hh.priceStores.filter(k => PRICE_KEYS.includes(k))
+        }
+        const results = lookup(DATA_DIR, q.barcode, keys)
+        await ch.doc.ref.update({ status: 'done', results, answeredAt: FieldValue.serverTimestamp(), stale: pricesStale() })
+      } catch (e) {
+        log('חיפוש מחיר נכשל:', e.message)
+        await ch.doc.ref.update({ status: 'error', error: e.message }).catch(() => {})
+      }
+    })
+  }, e => { log('האזנה לחיפושי מחיר נפלה:', e.message); setTimeout(watchPriceLookups, 10000) })
+  // old requests are not needed after a few minutes
+  setInterval(async () => {
+    const old = await db.collection('priceLookups').where('createdAt', '<', Timestamp.fromMillis(Date.now() - 10 * 60 * 1000)).get().catch(() => null)
+    old?.docs.forEach(d => d.ref.delete().catch(() => {}))
+  }, 5 * 60 * 1000)
+  log('מאזין לחיפושי מחיר')
+}
+
 function tick() {
+  if ((new Date().getHours() >= 6 || PRICE_KEYS.some(k => !loadStore(DATA_DIR, k))) && pricesStale()) runPrices().catch(e => log('מחירים נכשלו:', e.message))
   if (Date.now() - lastRecurring > 60 * 60 * 1000) {
     lastRecurring = Date.now()
     runRecurring().catch(e => log('הוצאות קבועות נכשלו:', e.message))
@@ -316,6 +355,7 @@ function tick() {
 setInterval(tick, 60000)
 setTimeout(tick, 5000)
 
+watchPriceLookups()
 watchTransactions()
 watchTests()
 log('השרת פועל. פרויקט:', admin.app().options.credential ? 'ok' : '?')

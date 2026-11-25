@@ -105,6 +105,13 @@ service cloud.firestore {
     }
 
     // App data: only members of the household it belongs to can touch it.
+    // barcode price lookups: the app asks, the home server answers (admin writes bypass the rules)
+    match /priceLookups/{id} {
+      allow create: if isSignedIn() && isMember(request.resource.data.householdId)
+                    && request.resource.data.status == 'pending';
+      allow read, delete: if isMember(resource.data.householdId);
+    }
+
     match /transactions/{id} {
       allow read, update, delete: if isMember(resource.data.householdId);
       allow create: if isMember(request.resource.data.householdId);

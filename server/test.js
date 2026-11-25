@@ -110,4 +110,21 @@ const it = parseItems('<Items><Item><ItemCode>7290000000001</ItemCode><ItemName>
 assert.equal(it[0].code, '7290000000001'); assert.equal(it[0].price, 6.9)
 const pr = parsePromos('<Promotions><Promotion><PromotionId>5</PromotionId><PromotionDescription>2 ב-10</PromotionDescription><PromotionEndDate>2026-12-01</PromotionEndDate><DiscountedPrice>5</DiscountedPrice><PromotionItems><Item><ItemCode>111</ItemCode></Item></PromotionItems></Promotion></Promotions>')
 assert.equal(pr[0].items[0], '111'); assert.equal(pr[0].price, 5)
+// prices module: real-format promotion, coupon skipped, lookup variants
+import { parsePromos as pp, parseItems as pi, lookup } from './prices.js'
+import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path'
+const promoXml = `<Promotions>
+<Promotion><PromotionID>1</PromotionID><PromotionDescription>קופון</PromotionDescription><PromotionStartDateTime>2014-07-16T00:00:00.000</PromotionStartDateTime><PromotionEndDateTime>2031-01-01T02:59:00.000</PromotionEndDateTime><ClubID>0 - כלל הלקוחות</ClubID><AdditionalIsCoupon>1</AdditionalIsCoupon><Groups><Group><PromotionItems><PromotionItem><ItemCode>111</ItemCode><MinQty>1.00</MinQty><DiscountedPrice>0.00</DiscountedPrice></PromotionItem></PromotionItems></Group></Groups></Promotion>
+<Promotion><PromotionID>2</PromotionID><PromotionDescription>2 ב-10</PromotionDescription><PromotionStartDateTime>2026-11-01T00:00:00.000</PromotionStartDateTime><PromotionEndDateTime>2026-12-01T00:00:00.000</PromotionEndDateTime><ClubID>5 - מועדון</ClubID><AdditionalIsCoupon>0</AdditionalIsCoupon><Groups><Group><PromotionItems><PromotionItem><ItemCode>222</ItemCode><MinQty>2.00</MinQty><DiscountRate></DiscountRate><DiscountedPrice>10.00</DiscountedPrice></PromotionItem></PromotionItems></Group></Groups></Promotion>
+<Promotion><PromotionID>3</PromotionID><PromotionDescription>פג</PromotionDescription><PromotionStartDateTime>2026-01-01T00:00:00.000</PromotionStartDateTime><PromotionEndDateTime>2026-02-01T00:00:00.000</PromotionEndDateTime><ClubID>0</ClubID><Groups><Group><PromotionItems><PromotionItem><ItemCode>333</ItemCode></PromotionItem></PromotionItems></Group></Groups></Promotion></Promotions>`
+const promos = pp(promoXml, new Date('2026-11-25T10:00:00'))
+assert.equal(promos['111'], undefined)
+assert.equal(promos['333'], undefined)
+assert.equal(promos['222'][0].price, 10); assert.equal(promos['222'][0].club, true); assert.equal(promos['222'][0].minQty, 2)
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pr-'))
+fs.mkdirSync(path.join(tmp, 'prices'))
+fs.writeFileSync(path.join(tmp, 'prices', 'shufersal-190.json'), JSON.stringify({ key: 'shufersal-190', label: 'ש', chain: 'shufersal', fetchedAt: 1, items: { '7290000000001': ['חלב', 6.9, ''] }, promos: {} }))
+const found = lookup(tmp, '07290000000001', ['shufersal-190'])
+assert.equal(found.length, 1); assert.equal(found[0].price, 6.9)
+assert.equal(lookup(tmp, '999', ['shufersal-190']).length, 0)
 console.log('כל הבדיקות עברו')

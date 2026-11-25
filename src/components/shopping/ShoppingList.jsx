@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '../../contexts/AppContext'
 import useScrollLock from '../../hooks/useScrollLock'
 import useDelayedFocus from '../../hooks/useDelayedFocus'
-import { X, Check, Plus } from 'lucide-react'
+import { X, Check, Plus, ScanLine } from 'lucide-react'
+import BarcodeSheet from './BarcodeSheet'
 import { formatAmount } from '../../utils/format'
 
 export const SHOP_CATS = ['produce','dairy','meat','bakery','frozen','drinks','cleaning','personal','other']
@@ -100,6 +101,7 @@ function EditItemSheet({ item, cur, onSave, onClose }) {
 export default function ShoppingList({ onCheckout }) {
   const { shoppingItems, updateShoppingItem, deleteShoppingItem, addShoppingItem, settings } = useApp()
   const [editing, setEditing] = useState(null)
+  const [scanning, setScanning] = useState(false)
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
   const cur = settings.currency
@@ -115,7 +117,7 @@ export default function ShoppingList({ onCheckout }) {
     if (!n) return
     await addShoppingItem({
       name: n, quantity: 1, estimatedPrice: Math.max(0, parseFloat(price) || 0),
-      category: 'other', otherLabel: '',
+      category: 'other', otherLabel: '', checked: false,   // typed in = still to buy
     })
     setName(''); setPrice('')
   }
@@ -135,6 +137,12 @@ export default function ShoppingList({ onCheckout }) {
           type="number" inputMode="decimal" placeholder={cur} aria-label="מחיר משוער"
           value={price} onChange={e => setPrice(e.target.value)}
         />
+        <button type="button" onClick={() => setScanning(true)} aria-label="סריקת ברקוד" style={{
+          width: 50, height: 50, borderRadius: '50%', border: '1px solid var(--c-border)', flexShrink: 0,
+          background: 'var(--c-card)', color: 'var(--c-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+        }}>
+          <ScanLine size={22} strokeWidth={2.2} />
+        </button>
         <button type="submit" aria-label="הוספה לרשימה" style={{
           width: 50, height: 50, borderRadius: '50%', border: 'none', flexShrink: 0,
           background: 'var(--c-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
@@ -224,6 +232,9 @@ export default function ShoppingList({ onCheckout }) {
         )}
       </div>
 
+      <AnimatePresence>
+        {scanning && <BarcodeSheet onClose={() => setScanning(false)} />}
+      </AnimatePresence>
       <AnimatePresence>
         {editing && (
           <EditItemSheet item={editing} cur={cur} onSave={updateShoppingItem} onClose={() => setEditing(null)} />
