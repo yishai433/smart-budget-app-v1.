@@ -33,11 +33,11 @@ assert.deepEqual(st.map(s => [s.id, s.level]), [['food', 'over'], ['__total', 'n
 assert.deepEqual(budgetStatus(txs, hh, '2026-11', 'transport').map(s => s.id), ['__total'])
 // income is ignored
 assert.deepEqual(budgetStatus([{ type: 'income', amount: 9999, date: '2026-11-02', category: 'salary' }], hh, '2026-11', 'salary'), [])
-// per-person threshold: own amount wins, reaching it counts, default when unset
-assert.equal(reachesBigAmount({ bigAmount: 300 }, 250), false)
-assert.equal(reachesBigAmount({ bigAmount: 300 }, 300), true)
-assert.equal(reachesBigAmount({ bigAmount: 50 }, 60), true)
-assert.equal(reachesBigAmount({}, 149), false)
+// account threshold: reaching it counts, default when unset
+assert.equal(reachesBigAmount(300, 250), false)
+assert.equal(reachesBigAmount(300, 300), true)
+assert.equal(reachesBigAmount(50, 60), true)
+assert.equal(reachesBigAmount(undefined, 149), false)
 assert.equal(reachesBigAmount(undefined, 150), true)
-assert.equal(reachesBigAmount({ bigAmount: 'x' }, 200, 150), true)
+assert.equal(reachesBigAmount('x', 200, 150), true)
 console.log('כל הבדיקות עברו')
