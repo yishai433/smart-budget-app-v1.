@@ -128,3 +128,10 @@ const found = lookup(tmp, '07290000000001', ['shufersal-190'])
 assert.equal(found.length, 1); assert.equal(found[0].price, 6.9)
 assert.equal(lookup(tmp, '999', ['shufersal-190']).length, 0)
 console.log('כל הבדיקות עברו')
+
+// Cerberus chains: key format + store list in Cerberus' mixed-case XML
+import { validKey, parseStoreList } from './prices.js'
+assert.ok(validKey('osherad-12') && validKey('shufersal-190') && !validKey('osherad-x') && !validKey('foo-1'))
+const cb = parseStoreList('<Root><SubChains><SubChain><Stores><Store><StoreId>12</StoreId><StoreName>קרית שמונה</StoreName><Address>הרצל 1</Address><City>קרית שמונה</City></Store></Stores></SubChain></SubChains></Root>')
+assert.equal(cb[0].id, '12'); assert.equal(cb[0].city, 'קרית שמונה')
+console.log('Cerberus: בדיקות עברו')
