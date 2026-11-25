@@ -24,21 +24,19 @@ const pad = (n) => String(n).padStart(2, '0')
 export const monthKeyOf = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}`
 export const dayStr = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 
-// Is this expense unusually large compared with the household's own history?
-// `history` = other expenses [{ category, amount, date }], `tx` = the new one.
-// Returns null, or { ratio, base, scope } where scope is 'category' | 'all'.
-export function unusualExpense(tx, history, { minAmount = 150, ratio = 3, now = new Date(), days = 180 } = {}) {
+// Is this a big expense? Every expense of `minAmount` or more counts. When the
+// household has enough history, also say how it compares with the usual amount.
+// Returns null, or { ratio, base, scope } (ratio/base null without history).
+export function unusualExpense(tx, history, { minAmount = 150, now = new Date(), days = 180 } = {}) {
+  if (!(tx.amount >= minAmount)) return null
   const since = dayStr(new Date(now.getTime() - days * 86400000))
   const recent = history.filter(h => h.date >= since && h.amount > 0)
   const sameCat = recent.filter(h => h.category === tx.category).map(h => h.amount)
-  const all = recent.map(h => h.amount)
-  let base = 0, scope = null, need = ratio
-  if (sameCat.length >= 4) { base = median(sameCat); scope = 'category' }
-  else if (all.length >= 8) { base = median(all); scope = 'all'; need = ratio + 2 } // stricter without category history
-  else return null
-  if (tx.amount < minAmount) return null
-  if (tx.amount < base * need) return null
-  return { ratio: base > 0 ? tx.amount / base : null, base, scope }
+  if (sameCat.length >= 4) {
+    const base = median(sameCat)
+    return { ratio: base > 0 ? tx.amount / base : null, base, scope: 'category' }
+  }
+  return { ratio: null, base: null, scope: null }
 }
 
 // Effective per-category limits for a month: default limits, overridden per month

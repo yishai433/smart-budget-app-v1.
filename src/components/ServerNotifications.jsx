@@ -71,7 +71,7 @@ export default function ServerNotifications() {
                 התראות במכשיר הזה
               </div>
               <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2 }}>
-                הוצאות חריגות וחריגה מהתקציב, גם כשהאפליקציה סגורה
+                הוצאות גדולות וחריגה מהתקציב, גם כשהאפליקציה סגורה
               </div>
             </div>
             <Switch checked={on} disabled={!can || busy} onChange={toggle} />
@@ -82,7 +82,7 @@ export default function ServerNotifications() {
           {on && (
             <>
               <div className="toggle-wrap">
-                <div style={{ fontSize: 14 }}>הוצאה חריגה שאחר מהבית רשם</div>
+                <div style={{ fontSize: 14 }}>הוצאה גדולה (150₪ ומעלה) שאחר מהבית רשם</div>
                 <Switch checked={prefs.unusual} onChange={v => setPref('unusual', v)} />
               </div>
               <div className="toggle-wrap">
