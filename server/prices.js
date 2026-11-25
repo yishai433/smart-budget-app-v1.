@@ -18,6 +18,12 @@ export const STORES = {
 // chains published through Cerberus (url.publishedprices.co.il): the chain's own user name, empty password
 export const CERBERUS = {
   osherad: { user: 'osherad', label: 'אושר עד' },
+  ramilevi: { user: 'RamiLevi', label: 'רמי לוי' },
+  yohananof: { user: 'yohananof', label: 'יוחננוף' },
+  tivtaam: { user: 'TivTaam', label: 'טיב טעם' },
+  freshmarket: { user: 'Freshmarket', label: 'פרשמרקט' },
+  stopmarket: { user: 'Stop_Market', label: 'סטופ מרקט' },
+  keshet: { user: 'Keshet', label: 'קשת טעמים' },
 }
 const KEY_RE = new RegExp(`^(shufersal|sapir|${Object.keys(CERBERUS).join('|')})-(\\d+)$`)
 export const validKey = (k) => KEY_RE.test(String(k || ''))
@@ -250,7 +256,7 @@ export function loadCatalog(dataDir) {
   if (catalogCache) return catalogCache
   try { catalogCache = JSON.parse(fs.readFileSync(catFile(dataDir), 'utf8')).stores; return catalogCache } catch { return null }
 }
-const CATALOG_V = 2     // bump to force every server to rebuild the branch list (new chains added)
+const CATALOG_V = 3     // bump to force every server to rebuild the branch list (new chains added)
 export const catalogAge = (dataDir) => {
   try { if (JSON.parse(fs.readFileSync(catFile(dataDir), 'utf8')).v !== CATALOG_V) return Infinity; return Date.now() - fs.statSync(catFile(dataDir)).mtimeMs } catch { return Infinity }
 }
@@ -289,7 +295,7 @@ export async function refreshCatalog(dataDir, log = console.log) {
         const id = String(parseInt(x.id, 10))
         if (id === 'NaN' || seen.has(id)) continue
         seen.add(id)
-        out.push({ k: `${chain}-${id}`, c: chain, n: `${def.label} ${x.name}`.trim(), city: x.city, a: x.a })
+        out.push({ k: `${chain}-${id}`, c: chain, n: x.name.includes(def.label) ? x.name : `${def.label} ${x.name}`.trim(), city: x.city, a: x.a })
       }
     } catch (e) { log(`קטלוג ${def.label} נכשל:`, e.message) }
   }
