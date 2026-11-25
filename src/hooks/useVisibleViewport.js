@@ -11,10 +11,12 @@ export default function useKeyboardHeight() {
   useEffect(() => {
     const v = window.visualViewport
     if (!v) return
-    let raf = 0
-    const sync = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => setKb(p => { const n = read(); return Math.abs(n - p) < 2 ? p : n })) }
+    // Update only once the keyboard has finished moving: changing the layout on every animation frame
+    // made opening/closing the keyboard laggy.
+    let t = 0
+    const sync = () => { clearTimeout(t); t = setTimeout(() => setKb(p => { const n = read(); return Math.abs(n - p) < 2 ? p : n }), 120) }
     v.addEventListener('resize', sync); v.addEventListener('scroll', sync)
-    return () => { cancelAnimationFrame(raf); v.removeEventListener('resize', sync); v.removeEventListener('scroll', sync) }
+    return () => { clearTimeout(t); v.removeEventListener('resize', sync); v.removeEventListener('scroll', sync) }
   }, [])
   return kb
 }
