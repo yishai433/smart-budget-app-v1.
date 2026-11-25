@@ -101,4 +101,13 @@ due = getDueRecurring([rec({ date: '2026-10-25', frequency: 'monthly' }), rec({ 
 assert.equal(due.length, 0)
 assert.equal(intervalLabel('weekly', 2, true), 'כל 2 שבועות')
 assert.equal(intervalLabel('weekly', 1, true), null)
+// price-file parsing (UTF-16 stores file, items, promotions)
+import { decodeText, parseStores, parseItems, parsePromos } from './prices-probe.js'
+const storesXml = '<Root><Stores><STORE><STOREID>12</STOREID><STORENAME>שופרסל דיל חצור</STORENAME><ADDRESS>הרצל 1</ADDRESS><CITY>חצור הגלילית</CITY></STORE></Stores></Root>'
+const s16 = Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(storesXml, 'utf16le')])
+assert.equal(parseStores(decodeText(s16))[0].city, 'חצור הגלילית')
+const it = parseItems('<Items><Item><ItemCode>7290000000001</ItemCode><ItemName>חלב 3%</ItemName><ItemPrice>6.9</ItemPrice></Item></Items>')
+assert.equal(it[0].code, '7290000000001'); assert.equal(it[0].price, 6.9)
+const pr = parsePromos('<Promotions><Promotion><PromotionId>5</PromotionId><PromotionDescription>2 ב-10</PromotionDescription><PromotionEndDate>2026-12-01</PromotionEndDate><DiscountedPrice>5</DiscountedPrice><PromotionItems><Item><ItemCode>111</ItemCode></Item></PromotionItems></Promotion></Promotions>')
+assert.equal(pr[0].items[0], '111'); assert.equal(pr[0].price, 5)
 console.log('כל הבדיקות עברו')
