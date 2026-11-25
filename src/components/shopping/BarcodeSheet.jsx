@@ -33,6 +33,7 @@ export default function BarcodeSheet({ onClose }) {
   const [price, setPrice] = useState('')
   const [qty, setQty] = useState('1')
   const [stale, setStale] = useState(false)
+  const [preparing, setPreparing] = useState(false)
   const busy = useRef(false)
 
   // ── camera ──
@@ -91,7 +92,7 @@ export default function BarcodeSheet({ onClose }) {
         if (d.status === 'done' && d.results?.length) {
           const sorted = [...d.results].sort((a, b) => a.price - b.price)
           setResults(sorted); setPick(0); setName(sorted[0].name); setPrice(String(sorted[0].price)); setStale(!!d.stale); setStage('result')
-        } else if (d.status === 'done') { setStage('notfound') } else { setStage('error') }
+        } else if (d.status === 'done') { setPreparing(!!d.preparing); setStage('notfound') } else { setStage('error') }
       })
     } catch { setStage('error') }
   }
@@ -177,7 +178,9 @@ export default function BarcodeSheet({ onClose }) {
             {(stage === 'notfound' || stage === 'error') && (
               <>
                 <div style={{ fontSize: 14, color: 'var(--c-text2)', lineHeight: 1.5 }}>
-                  {stage === 'notfound'
+                  {stage === 'notfound' && preparing
+                    ? 'מחירי הסניפים החדשים שבחרת עדיין נטענים בשרת (בערך דקה). נסה שוב עוד רגע, או הוסף את המוצר ידנית.'
+                    : stage === 'notfound'
                     ? `הברקוד ${barcode} לא נמצא בקבצי המחירים של הסניפים שלך. אפשר להוסיף את המוצר ידנית.`
                     : 'השרת הביתי לא ענה בזמן. בדוק שהוא פועל ושיש אינטרנט. אפשר להוסיף את המוצר ידנית.'}
                 </div>
