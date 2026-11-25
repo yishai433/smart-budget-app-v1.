@@ -109,6 +109,18 @@ export default function ServerNotifications() {
                 <div style={{ fontSize: 14 }}>התקרבות לתקציב או חריגה ממנו</div>
                 <Switch checked={prefs.budget} onChange={v => setPref('budget', v)} />
               </div>
+              <div className="toggle-wrap">
+                <div style={{ fontSize: 14 }}>סיכום שבועי וסיכום חודשי</div>
+                <Switch checked={prefs.summary !== false} onChange={v => setPref('summary', v)} />
+              </div>
+              <div className="toggle-wrap">
+                <div style={{ fontSize: 14 }}>קצב הוצאות גבוה וקטגוריה שקפצה</div>
+                <Switch checked={prefs.pace !== false} onChange={v => setPref('pace', v)} />
+              </div>
+              <div className="toggle-wrap">
+                <div style={{ fontSize: 14 }}>הוצאה כפולה חשודה</div>
+                <Switch checked={prefs.duplicate !== false} onChange={v => setPref('duplicate', v)} />
+              </div>
               <button className="btn btn-secondary" onClick={test} style={{ alignSelf: 'flex-start' }}>שלח בדיקה</button>
             </>
           )}
