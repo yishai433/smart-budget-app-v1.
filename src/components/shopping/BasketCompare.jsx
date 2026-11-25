@@ -11,17 +11,20 @@ import { loadPriceIndex, prepareIndex, searchLocal } from '../../utils/priceInde
 
 const money = (n, cur) => <span dir="ltr" className="num">{formatAmount(n, cur)}</span>
 
-const ResultRow = memo(function ResultRow({ p, cur, onAdd }) {
-  const n = Object.keys(p.prices).length
+const ResultRow = memo(function ResultRow({ p, cur, labels, onAdd }) {
+  const keys = Object.keys(p.prices)
+  const cheapest = keys.reduce((a, b) => (p.prices[b] < p.prices[a] ? b : a), keys[0])
+  const where = (labels && labels[cheapest]) || 'סניף'
+  const sub = keys.length > 1 ? `הכי זול ב${where} · מתוך ${keys.length} סניפים` : where
   return (
     <button onClick={() => onAdd(p)} className="list-item"
       style={{ width: '100%', border: 'none', textAlign: 'start', fontFamily: 'inherit' }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 500 }}>{p.name}</div>
-        <div style={{ fontSize: 12, color: 'var(--c-text2)' }}>{n > 1 ? `נמצא ב-${n} סניפים` : 'סניף אחד'}{p.unit ? ` · ${p.unit}` : ''}</div>
+        <div style={{ fontSize: 12, color: 'var(--c-text2)' }}>{sub}</div>
       </div>
       <div style={{ textAlign: 'end' }}>
-        <div style={{ fontSize: 11, color: 'var(--c-text2)' }}>החל מ-</div>
+        {keys.length > 1 && <div style={{ fontSize: 11, color: 'var(--c-text2)' }}>החל מ-</div>}
         <div style={{ fontSize: 15, fontWeight: 700 }}>{money(p.min, cur)}</div>
       </div>
       <Plus size={18} color="var(--c-primary)" strokeWidth={2.4} />
@@ -185,7 +188,7 @@ export default function BasketCompare({ onClose, onAddToList }) {
                 {!searching && results && !results.length && !err && (
                   <div style={{ fontSize: 13, color: 'var(--c-text2)' }}>לא נמצא מוצר כזה בסניפים שבחרת. נסה מילה אחרת.</div>
                 )}
-                {results?.length > 0 && <div className="card-list">{results.map(p => <ResultRow key={p.code} p={p} cur={cur} onAdd={add} />)}</div>}
+                {results?.length > 0 && <div className="card-list">{results.map(p => <ResultRow key={p.code} p={p} cur={cur} labels={labels} onAdd={add} />)}</div>}
               </>
             ) : (
               <>
