@@ -21,12 +21,13 @@ export default function ServerNotifications() {
   const { user } = useApp()
   const [support, setSupport] = useState('checking')
   const [on, setOn] = useState(!!currentToken() && permissionState() === 'granted')
-  const [prefs, setPrefs] = useState({ unusual: true, budget: true })
+  const [prefs, setPrefs] = useState({ unusual: true, budget: true, bigAmount: 150 })
+  const [bigInput, setBigInput] = useState('150')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
 
   useEffect(() => { pushSupport().then(setSupport) }, [])
-  useEffect(() => { if (user?.uid) loadPrefs(user.uid).then(setPrefs) }, [user?.uid])
+  useEffect(() => { if (user?.uid) loadPrefs(user.uid).then(p => { setPrefs(p); setBigInput(String(p.bigAmount || 150)) }) }, [user?.uid])
   if (!user) return null
 
   const toggle = async (v) => {
@@ -82,9 +83,20 @@ export default function ServerNotifications() {
           {on && (
             <>
               <div className="toggle-wrap">
-                <div style={{ fontSize: 14 }}>הוצאה גדולה (150₪ ומעלה) שאחר מהבית רשם</div>
+                <div style={{ fontSize: 14 }}>הוצאה גדולה שאחר מהבית רשם</div>
                 <Switch checked={prefs.unusual} onChange={v => setPref('unusual', v)} />
               </div>
+              {prefs.unusual && (
+                <div className="input-group" style={{ marginTop: -4 }}>
+                  <label className="input-label">התראה כשהוצאה מגיעה לסכום הזה או עוברת אותו</label>
+                  <input
+                    className="input-field" type="number" inputMode="decimal" min="1"
+                    value={bigInput}
+                    onChange={e => setBigInput(e.target.value)}
+                    onBlur={() => { const n = parseFloat(bigInput); if (n > 0) setPref('bigAmount', n); else setBigInput(String(prefs.bigAmount || 150)) }}
+                  />
+                </div>
+              )}
               <div className="toggle-wrap">
                 <div style={{ fontSize: 14 }}>התקרבות לתקציב או חריגה ממנו</div>
                 <Switch checked={prefs.budget} onChange={v => setPref('budget', v)} />
