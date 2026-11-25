@@ -165,3 +165,22 @@ import path2 from 'node:path'
   assert.equal(searchProducts(dir, 'טילון', ['shufersal-2'])[0].name, 'ריבת חלב טילון')   // asking for a brand still finds it
   console.log('חיפוש וסל: בדיקות עברו')
 }
+
+// on-device search index: compact, deduped, prices aligned to keys
+import { buildIndex } from './prices.js'
+{
+  const dir = fs2.mkdtempSync(path2.join(os2.tmpdir(), 'ix-'))
+  fs2.mkdirSync(path2.join(dir, 'prices'))
+  const mk = (key, items) => fs2.writeFileSync(path2.join(dir, 'prices', key + '.json'), JSON.stringify({ key, label: key, chain: 'x', store: '1', fetchedAt: Date.now(), items, promos: {} }))
+  mk('shufersal-9001', { '7290000000011': ['חלב 3% ליטר ארוך', 6.9, ''], '7290000000028': ['לחם', 8, ''] })
+  mk('sapir-9002', { '07290000000011': ['חלב 3%', 6.5, ''], '7290000000035': ['ביצים', 12, ''] })
+  const idx = buildIndex(dir, ['shufersal-9001', 'sapir-9002'])
+  assert.deepEqual(idx.keys, ['shufersal-9001', 'sapir-9002'])
+  assert.equal(idx.items.length, 3)                                  // milk deduped across the zero-padded barcode
+  const milk = idx.items.find(r => r[0] === '7290000000011')
+  assert.equal(milk[1], 'חלב 3%')                                    // shortest name kept
+  assert.deepEqual(milk[2], [6.9, 6.5])                              // one price per key, in order
+  const eggs = idx.items.find(r => r[0] === '7290000000035')
+  assert.deepEqual(eggs[2], [null, 12])                              // missing in branch 0
+  console.log('אינדקס חיפוש: בדיקות עברו')
+}

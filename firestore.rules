@@ -118,6 +118,16 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // per-household product index for instant on-device search, written by the home server only
+    match /priceIndex/{hh} {
+      allow read: if isMember(hh);
+      allow write: if false;
+      match /parts/{p} {
+        allow read: if isMember(hh);
+        allow write: if false;
+      }
+    }
+
     match /transactions/{id} {
       allow read, update, delete: if isMember(resource.data.householdId);
       allow create: if isMember(request.resource.data.householdId);

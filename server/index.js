@@ -10,7 +10,7 @@ import {
   monthLabelHe, prevMonthKey, isShabbat,
 } from './logic.js'
 import { getDueRecurring } from './recurring.js'
-import { STORES, refreshAll, lookup, loadStore, validKey, refreshCatalog, loadCatalog, catalogAge, searchProducts, compareBasket, warm } from './prices.js'
+import { STORES, refreshAll, lookup, loadStore, validKey, refreshCatalog, loadCatalog, catalogAge, searchProducts, compareBasket, warm, buildIndex } from './prices.js'
 
 const KEY_FILE = process.env.GOOGLE_APPLICATION_CREDENTIALS || '/run/secrets/firebase.json'
 const DATA_DIR = process.env.DATA_DIR || './data'
@@ -302,13 +302,54 @@ const PRICE_KEYS = (process.env.PRICE_STORES || Object.keys(STORES).join(',')).s
 let chosenKeys = new Set()
 const wantedKeys = () => [...new Set([...PRICE_KEYS.filter(() => !chosenKeys.size), ...chosenKeys])]
 const keysOfHousehold = (hh) => { const k = (hh.priceStores || []).filter(validKey); return k.length ? k : PRICE_KEYS }
+const households = new Map()   // householdId -> keys (for rebuilding each one's search index)
 function watchHouseholdBranches() {
   db.collection('households').onSnapshot(snap => {
     const set = new Set()
-    snap.forEach(d => { const hh = d.data(); if (Array.isArray(hh.priceStores) && hh.priceStores.some(validKey)) hh.priceStores.filter(validKey).forEach(k => set.add(k)) })
+    snap.forEach(d => {
+      const hh = d.data()
+      if (Array.isArray(hh.priceStores) && hh.priceStores.some(validKey)) hh.priceStores.filter(validKey).forEach(k => set.add(k))
+      households.set(d.id, keysOfHousehold(hh))
+    })
     chosenKeys = set
+    for (const [id, keys] of households) writeHouseholdIndex(id, keys).catch(() => {})
   }, e => { log('האזנה לסניפים נפלה:', e.message); setTimeout(watchHouseholdBranches, 10000) })
 }
+
+// Build the household's product index and store it in Firestore, split into base64 chunks
+// (one Firestore document has a 1MB limit). A signature skips rebuilds when nothing changed.
+const indexSig = new Map()
+let indexBusy = new Set()
+async function writeHouseholdIndex(hh, keys) {
+  const have = keys.filter(k => loadStore(DATA_DIR, k))
+  if (!have.length || indexBusy.has(hh)) return
+  const sig = have.map(k => `${k}:${loadStore(DATA_DIR, k).fetchedAt}`).sort().join('|')
+  if (indexSig.get(hh) === sig) return
+  indexBusy.add(hh)
+  try {
+    const t = Date.now()
+    const idx = buildIndex(DATA_DIR, have)
+    const bytes = Buffer.from(JSON.stringify(idx.items), 'utf8')
+    const SIZE = 600 * 1024
+    const parts = []
+    for (let i = 0; i < bytes.length; i += SIZE) parts.push(bytes.subarray(i, i + SIZE).toString('base64'))
+    const base = db.collection('priceIndex').doc(hh)
+    const prev = (await base.get()).data() || {}
+    const batch = db.batch()
+    parts.forEach((p2, i) => batch.set(base.collection('parts').doc(String(i)), { s: p2 }))
+    for (let i = parts.length; i < (prev.chunks || 0); i++) batch.delete(base.collection('parts').doc(String(i)))
+    batch.set(base, {
+      v: sig, chunks: parts.length, n: idx.items.length, bytes: bytes.length,
+      keys: have, labels: Object.fromEntries(have.map(k => [k, loadStore(DATA_DIR, k).label])),
+      updatedAt: FieldValue.serverTimestamp(),
+    })
+    await batch.commit()
+    indexSig.set(hh, sig)
+    log(`אינדקס חיפוש נבנה (${hh.slice(0, 6)}): ${idx.items.length} מוצרים, ${parts.length} חלקים, ${(bytes.length / 1024).toFixed(0)}KB (${Date.now() - t}ms)`)
+  } catch (e) { log('בניית אינדקס נכשלה:', e.message) }
+  finally { indexBusy.delete(hh) }
+}
+async function rebuildAllIndexes() { for (const [id, keys] of households) await writeHouseholdIndex(id, keys).catch(() => {}) }
 let catalogBusy = false
 async function runCatalog() {
   if (catalogBusy) return
@@ -327,7 +368,7 @@ let pricesRunning = false
 async function runPrices() {
   if (pricesRunning) return
   pricesRunning = true
-  try { await refreshAll(DATA_DIR, log, wantedKeys()); await warm(DATA_DIR, wantedKeys(), log) } finally { pricesRunning = false }
+  try { await refreshAll(DATA_DIR, log, wantedKeys()); await warm(DATA_DIR, wantedKeys(), log); await rebuildAllIndexes() } finally { pricesRunning = false }
 }
 
 function watchPriceLookups() {
@@ -337,7 +378,7 @@ function watchPriceLookups() {
       const q = ch.doc.data()
       try {
         let keys = PRICE_KEYS
-        if (q.householdId) keys = keysOfHousehold((await db.doc(`households/${q.householdId}`).get()).data() || {})
+        if (q.householdId) { keys = keysOfHousehold((await db.doc(`households/${q.householdId}`).get()).data() || {}); households.set(q.householdId, keys); writeHouseholdIndex(q.householdId, keys).catch(() => {}) }
         if (q.type === 'search' || q.type === 'basket') {
           const have = keys.filter(k => loadStore(DATA_DIR, k))
           const base = { status: 'done', preparing: have.length < keys.length, branches: have.length, labels: Object.fromEntries(have.map(k => [k, loadStore(DATA_DIR, k).label])), answeredAt: FieldValue.serverTimestamp() }
