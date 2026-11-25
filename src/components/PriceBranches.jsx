@@ -6,6 +6,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useApp } from '../contexts/AppContext'
 import useScrollLock from '../hooks/useScrollLock'
+import useVisibleViewport from '../hooks/useVisibleViewport'
 import InfoHeading from './InfoHeading'
 
 const DEFAULTS = ['shufersal-190', 'sapir-21']
@@ -38,15 +39,7 @@ const Row = memo(function Row({ s, on, onToggle }) {
 function Picker({ catalog, selected, onSave, onClose }) {
   useScrollLock()
   const [q, setQ] = useState('')
-  // follow the visible area (it shrinks when the iPhone keyboard opens) so the sheet ends above the keyboard
-  const [vv, setVv] = useState(() => ({ h: window.visualViewport?.height || window.innerHeight, top: window.visualViewport?.offsetTop || 0 }))
-  useEffect(() => {
-    const v = window.visualViewport
-    if (!v) return
-    const sync = () => setVv({ h: v.height, top: v.offsetTop })
-    v.addEventListener('resize', sync); v.addEventListener('scroll', sync)
-    return () => { v.removeEventListener('resize', sync); v.removeEventListener('scroll', sync) }
-  }, [])
+  const vv = useVisibleViewport()
   const dq = useDeferredValue(q)                       // typing stays instant, the list catches up
   const [sel, setSel] = useState(() => new Set(selected))
   const initial = useRef(new Set(selected))            // order is fixed when the sheet opens, so rows don't jump on tap
@@ -78,7 +71,7 @@ function Picker({ catalog, selected, onSave, onClose }) {
               <Search size={16} style={{ position: 'absolute', insetInlineStart: 14, top: 15, color: 'var(--c-text2)' }} />
               <input className="input-field" style={{ paddingInlineStart: 40 }} placeholder="חיפוש סניף"
                 name="branch-filter" autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
-                inputMode="search" enterKeyHint="search" data-form-type="other" data-lpignore="true"
+                inputMode="search" enterKeyHint="search" data-form-type="other" data-lpignore="true" data-no-refocus="1"
                 value={q} onChange={e => setQ(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }} />
             </div>
