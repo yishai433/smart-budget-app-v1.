@@ -53,19 +53,16 @@ self.addEventListener('push', (event) => {
   try { p = event.data ? event.data.json() : {} } catch { p = {} }
   const d = p.data || p.notification || p
   const title = d.title || 'תקציב חכם'
-  event.waitUntil((async () => {
-    // If the app is open and in view, the app itself already shows the change.
-    const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
-    if (wins.some(w => w.visibilityState === 'visible' && w.focused)) return
-    await self.registration.showNotification(title, {
-      body: d.body || '',
-      tag: d.tag || undefined,
-      icon: `${self.registration.scope}icon.png`,
-      badge: `${self.registration.scope}icon.png`,
-      dir: 'rtl', lang: 'he',
-      data: { url: d.url || self.registration.scope },
-    })
-  })())
+  // Always show it: iOS (and some browsers) may drop the subscription if a push
+  // arrives without a visible notification.
+  event.waitUntil(self.registration.showNotification(title, {
+    body: d.body || '',
+    tag: d.tag || undefined,
+    icon: `${self.registration.scope}icon.png`,
+    badge: `${self.registration.scope}icon.png`,
+    dir: 'rtl', lang: 'he',
+    data: { url: d.url || self.registration.scope },
+  }))
 })
 
 self.addEventListener('notificationclick', (event) => {
