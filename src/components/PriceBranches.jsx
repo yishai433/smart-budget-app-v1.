@@ -52,41 +52,47 @@ function Picker({ catalog, selected, onSave, onClose }) {
   const initial = useRef(new Set(selected))            // order is fixed when the sheet opens, so rows don't jump on tap
   // searchable text built once, not on every keystroke
   const index = useMemo(() => catalog.map(s => ({ s, text: `${s.n} ${cityName(s.city)} ${s.a}` })), [catalog])
-  const shown = useMemo(() => {
+  const shownAll = useMemo(() => {
     const t = dq.trim()
     const list = (t ? index.filter(x => x.text.includes(t)) : index).map(x => x.s)
-    return list.sort((a, b) => (initial.current.has(b.k) - initial.current.has(a.k)) || cityName(a.city).localeCompare(cityName(b.city))).slice(0, 80)
+    return list.sort((a, b) => (initial.current.has(b.k) - initial.current.has(a.k)) || cityName(a.city).localeCompare(cityName(b.city)))
   }, [dq, index])
-  // scrolling the list closes the keyboard, so the whole list gets the screen
-  const dismissKeyboard = useCallback(() => { const a = document.activeElement; if (a && a.tagName === 'INPUT') a.blur() }, [])
+  const total = shownAll.length
+  const shown = useMemo(() => shownAll.slice(0, 120), [shownAll])
   const toggle = useCallback((k) => setSel(p => { const n = new Set(p); n.has(k) ? n.delete(k) : n.add(k); return n }), [])
   return createPortal((
     <>
       <motion.div className="sheet-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
       {/* stop the sheet at the top of the keyboard so the list stays visible while typing */}
       <div className="sheet-viewport" style={{ top: vv.top, bottom: 'auto', height: vv.h }}>
-        <motion.div className="sheet" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+        <motion.div className="sheet" style={{ height: 'calc(100% - var(--safe-top) - 28px)' }} initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
           transition={{ type: 'tween', duration: 0.3, ease: [0.32, 0.72, 0, 1] }}>
           <div className="sheet-handle" />
           <div className="sheet-header">
             <h2 className="sheet-title">הסניפים שלי</h2>
             <button onClick={onClose} className="btn-icon" style={{ width: 32, height: 32 }} aria-label="סגירה"><X size={17} strokeWidth={2} /></button>
           </div>
-          <div className="sheet-body" style={{ gap: 12 }}>
+          {/* search stays pinned; only the list below scrolls */}
+          <div style={{ padding: '0 20px 10px', flexShrink: 0 }}>
             <div style={{ position: 'relative' }}>
               <Search size={16} style={{ position: 'absolute', insetInlineStart: 14, top: 15, color: 'var(--c-text2)' }} />
               <input className="input-field" style={{ paddingInlineStart: 40 }} placeholder="חיפוש סניף"
                 name="branch-filter" autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
                 inputMode="search" enterKeyHint="search" data-form-type="other" data-lpignore="true"
-                value={q} onChange={e => setQ(e.target.value)} />
+                value={q} onChange={e => setQ(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }} />
             </div>
-            <div className="card-list" onTouchMove={dismissKeyboard} onWheel={dismissKeyboard}>
+            <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 8 }}>
+              {total} סניפים{total > shown.length ? ` · מוצגים ${shown.length} הראשונים, חפש עיר כדי לצמצם` : ''}
+            </div>
+          </div>
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: '0 20px 12px' }}>
+            <div className="card-list">
               {shown.map(s => <Row key={s.k} s={s} on={sel.has(s.k)} onToggle={toggle} />)}
               {!shown.length && <div style={{ padding: 16, fontSize: 13, color: 'var(--c-text2)' }}>לא נמצאו סניפים. נסה שם עיר אחר.</div>}
             </div>
-            {catalog.length > 80 && !q && <div style={{ fontSize: 12, color: 'var(--c-text2)' }}>מוצגים 80 סניפים. חפש עיר כדי לצמצם.</div>}
           </div>
-          <div className="sheet-footer">
+          <div className="sheet-footer" style={{ padding: '10px 20px calc(10px + var(--safe-bottom))' }}>
             <button className="btn btn-primary btn-full" disabled={!sel.size} style={{ opacity: sel.size ? 1 : 0.45 }}
               onClick={() => onSave([...sel])}>שמירה ({sel.size})</button>
           </div>
