@@ -386,3 +386,23 @@ export async function warm(dataDir, keys, log = console.log) {
   }
   log(`סניפים נטענו לזיכרון: ${keys.length} (${Date.now() - t}ms)`)
 }
+
+
+// A compact product index for instant on-device search. Shape:
+//   { keys: ['shufersal-190', ...], items: [[code, name, [price|null per key]], ...] }
+// Deduped by barcode (leading zeros stripped); the shortest name across branches is kept.
+export function buildIndex(dataDir, keys) {
+  const map = new Map()
+  keys.forEach((key, ki) => {
+    const d = loadStore(dataDir, key)
+    if (!d) return
+    for (const [code, v] of Object.entries(d.items)) {
+      const u = unzero(code)
+      let row = map.get(u)
+      if (!row) { row = [u, v[0], new Array(keys.length).fill(null)]; map.set(u, row) }
+      row[2][ki] = v[1]
+      if (v[0] && v[0].length < row[1].length) row[1] = v[0]
+    }
+  })
+  return { keys, items: [...map.values()] }
+}

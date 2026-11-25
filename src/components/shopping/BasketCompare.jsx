@@ -7,6 +7,7 @@ import useScrollLock from '../../hooks/useScrollLock'
 import useKeyboardHeight from '../../hooks/useVisibleViewport'
 import { formatAmount } from '../../utils/format'
 import { askPriceServer } from '../../utils/priceApi'
+import { loadPriceIndex, prepareIndex, searchLocal } from '../../utils/priceIndex'
 
 const money = (n, cur) => <span dir="ltr" className="num">{formatAmount(n, cur)}</span>
 
@@ -46,6 +47,7 @@ export default function BasketCompare({ onClose, onAddToList }) {
   const [branches, setBranches] = useState(0)
   const [preparing, setPreparing] = useState(false)
   const [open, setOpen] = useState(null)              // expanded branch key
+  const [prepared, setPrepared] = useState(null)      // on-device product index (instant search)
   const reqN = useRef(0)
   const lastResults = useRef([])                 // previous server answer, filtered locally while the next one loads
 
@@ -53,15 +55,37 @@ export default function BasketCompare({ onClose, onAddToList }) {
 
   useEffect(() => { try { localStorage.setItem(storeKey, JSON.stringify({ lines: basket, labels })) } catch { /* private mode */ } }, [basket, labels, storeKey])
 
-  // search as you type (after a short pause)
+  // download the product index once; after that every search is instant and offline
+  useEffect(() => {
+    let alive = true
+    loadPriceIndex(activeHouseholdId).then(idx => {
+      if (!alive || !idx) return
+      setPrepared(prepareIndex(idx))
+      setBranches(idx.keys.length)
+      setLabels(l => ({ ...l, ...idx.labels }))
+      // refresh the saved basket's prices from today's index, no server round-trip
+      const byCode = new Map(idx.items.map(([code, , prices]) => [code, prices]))
+      setBasket(b => b.map(x => {
+        const pr = byCode.get(x.code)
+        if (!pr) return x
+        const prices = {}
+        pr.forEach((p, i) => { if (p != null) prices[idx.keys[i]] = p })
+        return { ...x, prices }
+      }))
+    }).catch(() => {})
+    return () => { alive = false }
+  }, [activeHouseholdId])
+
+  // search as you type — instant from the on-device index, server as a fallback until it downloads
   useEffect(() => {
     const t = q.trim()
     if (t.length < 2) { setResults(null); setSearching(false); setErr(''); return }
+    if (prepared) { setSearching(false); setErr(''); setResults(searchLocal(prepared, t)); return }
     const n = ++reqN.current
     setSearching(true)
     const words = t.toLowerCase().split(/\s+/)
     const local = lastResults.current.filter(p => words.every(w => p.name.toLowerCase().includes(w)))
-    if (local.length) setResults(local)           // instant, refined by the server a moment later
+    if (local.length) setResults(local)
     const id = setTimeout(async () => {
       try {
         const d = await askPriceServer(activeHouseholdId, user?.uid, { type: 'search', q: t })
@@ -73,11 +97,11 @@ export default function BasketCompare({ onClose, onAddToList }) {
       finally { if (n === reqN.current) setSearching(false) }
     }, 200)
     return () => clearTimeout(id)
-  }, [q, activeHouseholdId, user?.uid])
+  }, [q, prepared, activeHouseholdId, user?.uid])
 
-  // once, when the sheet opens: refresh the saved prices (they may be from an earlier day)
+  // if there is no index yet (old server), refresh the saved basket's prices from the server once
   useEffect(() => {
-    if (!basket.length) return
+    if (prepared || !basket.length) return
     let alive = true
     setRefreshing(true)
     askPriceServer(activeHouseholdId, user?.uid, { type: 'basket', items: basket.map(b => ({ code: b.code, qty: 1 })) })
@@ -93,7 +117,7 @@ export default function BasketCompare({ onClose, onAddToList }) {
       .finally(() => { if (alive) setRefreshing(false) })
     return () => { alive = false }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [prepared])
 
   const add = (p) => {
     setBasket(b => b.some(x => x.code === p.code) ? b.map(x => x.code === p.code ? { ...x, qty: x.qty + 1 } : x) : [...b, { code: p.code, name: p.name, qty: 1, prices: p.prices }])
