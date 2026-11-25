@@ -29,6 +29,7 @@ import { buildAvatarUrl } from '../utils/avatar'
 import { guessShoppingCategory } from '../utils/guessCategory'
 import { getDueRecurring } from '../utils/recurring'
 import { redeemInviteCode } from '../utils/invites'
+import { needsEmailVerification } from '../utils/emailVerify'
 
 const AppContext = createContext(null)
 
@@ -85,6 +86,7 @@ export function AppProvider({ children }) {
     }
   })
   const [loading, setLoading] = useState(true)
+  const [verifyPending, setVerifyPending] = useState(false) // signed in, email not confirmed yet
   const [avatarConfig, setAvatarConfig] = useState(null)
   const [avatarUrl, setAvatarUrl] = useState(null)
   const [partnerProfile, setPartnerProfile] = useState(null) // { uid, displayName, avatarUrl }
@@ -94,10 +96,15 @@ export function AppProvider({ children }) {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u) {
         setUser(u)
+        // New accounts must confirm their email first: no household, no invite
+        // is applied until then.
+        if (needsEmailVerification(u)) { setVerifyPending(true); setLoading(false); return }
+        setVerifyPending(false)
         setActiveHouseholdId(u.uid) // set immediately so queries/mutations work right away
         await initHousehold(u.uid)  // may update to linkedHouseholdId later
       } else {
         setUser(null)
+        setVerifyPending(false)
         setHousehold(null)
         setActiveHouseholdId(null)
         setIsPro(false)
@@ -274,6 +281,24 @@ export function AppProvider({ children }) {
     } catch (e) {
       console.error('invite join error', e)
     }
+  }
+
+  // Called by the verify screen: re-read the account and, once the email is
+  // confirmed, continue into the app. Returns true when confirmed.
+  const refreshingRef = useRef(false)
+  const refreshVerification = async () => {
+    const u = auth.currentUser
+    if (!u || refreshingRef.current) return false
+    refreshingRef.current = true
+    try {
+      await u.reload()
+      if (needsEmailVerification(auth.currentUser)) return false
+      setLoading(true)
+      setVerifyPending(false)
+      setActiveHouseholdId(u.uid)
+      await initHousehold(u.uid)
+      return true
+    } finally { refreshingRef.current = false }
   }
 
   const logout = useCallback(async () => {
@@ -888,7 +913,7 @@ export function AppProvider({ children }) {
     addTransaction, deleteTransaction, updateTransaction,
     addShoppingItem, updateShoppingItem, deleteShoppingItem,
     clearShoppingList, checkoutShopping, loadShoppingTemplate,
-    changeLanguage, updateSettings, logout,
+    changeLanguage, updateSettings, logout, verifyPending, refreshVerification,
   }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>

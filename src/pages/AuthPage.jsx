@@ -4,6 +4,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
+  sendEmailVerification,
   updateProfile,
 } from 'firebase/auth'
 import { auth } from '../firebase'
@@ -23,7 +24,7 @@ const ERRORS = {
   'auth/weak-password':           'הסיסמא צריכה להיות לפחות 6 תווים',
   'auth/user-not-found':          'לא נמצא משתמש עם האימייל הזה',
   'auth/wrong-password':          'סיסמא שגויה',
-  'auth/invalid-credential':      'אימייל או סיסמא שגויים',
+  'auth/invalid-credential':      'אימייל או סיסמא שגויים. אם עוד אין לך חשבון, אפשר להירשם.',
   'auth/too-many-requests':       'יותר מדי ניסיונות, נסה שוב מאוחר יותר',
   'auth/operation-not-allowed':   '⚠️ יש להפעיל Email/Password ב-Firebase Console',
   'auth/network-request-failed':  'בעיית חיבור לאינטרנט, בדוק את החיבור שלך',
@@ -103,6 +104,7 @@ export default function AuthPage() {
       if (!email) { setError('נא להזין אימייל'); return }
       setLoading(true)
       try {
+        auth.languageCode = 'he'
         await sendPasswordResetEmail(auth, email)
         setResetSent(true)
       } catch (e) {
@@ -124,6 +126,8 @@ export default function AuthPage() {
         const { user } = await createUserWithEmailAndPassword(auth, email, password)
         if (name.trim()) await updateProfile(user, { displayName: name.trim() })
         localStorage.setItem('sb_new_user', '1')
+        // Confirmation email (Hebrew). If it fails, the verify screen has a resend button.
+        try { auth.languageCode = 'he'; await sendEmailVerification(user) } catch (e) { console.error('verify mail error:', e.code) }
       } else {
         await signInWithEmailAndPassword(auth, email, password)
       }

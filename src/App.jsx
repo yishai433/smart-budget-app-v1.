@@ -9,6 +9,7 @@ import ShoppingPage from './pages/ShoppingPage'
 import SettingsPage from './pages/SettingsPage'
 import AddTransaction from './components/budget/AddTransaction'
 import AuthPage from './pages/AuthPage'
+import VerifyEmailPage from './pages/VerifyEmailPage'
 import OnboardingIntro from './pages/OnboardingIntro'
 import ReportsPage from './pages/ReportsPage'
 import ReceiptsPage from './pages/ReceiptsPage'
@@ -143,7 +144,7 @@ function LoadingScreen() {
 }
 
 function AppInner() {
-  const { loading, user } = useApp()
+  const { loading, user, verifyPending } = useApp()
   const [showAdd, setShowAdd] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showIntro, setShowIntro] = useState(() => !localStorage.getItem('sb_intro_seen'))
@@ -226,6 +227,9 @@ function AppInner() {
     }
     return <AuthPage />
   }
+
+  // New account that has not confirmed its email yet
+  if (verifyPending) return <VerifyEmailPage />
 
   // New user → avatar onboarding
   if (showOnboarding) {
