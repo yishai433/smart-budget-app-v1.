@@ -1,13 +1,11 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '../../contexts/AppContext'
-import CategoryIcon from '../CategoryIcon'
 import useScrollLock from '../../hooks/useScrollLock'
 import useDelayedFocus from '../../hooks/useDelayedFocus'
-import { X, Pencil, Check, Plus, ShoppingCart } from 'lucide-react'
-import { formatAmount, formatNumber } from '../../utils/format'
+import { X, Check, Plus } from 'lucide-react'
+import { formatAmount } from '../../utils/format'
 
 export const SHOP_CATS = ['produce','dairy','meat','bakery','frozen','drinks','cleaning','personal','other']
 export const CAT_COLORS = {
@@ -37,103 +35,6 @@ function SheetWrap({ onClose, children }) {
       </div>
     </>
   ), document.body)
-}
-
-function AddItemSheet({ onClose }) {
-  const { t } = useTranslation()
-  const { addShoppingItem } = useApp()
-  const nameRef = useDelayedFocus()
-  const [name, setName] = useState('')
-  const [qty, setQty] = useState('')
-  const [price, setPrice] = useState('')
-  const [cat, setCat] = useState('other')
-  const [otherLabel, setOtherLabel] = useState('')
-
-  const canAdd = name.trim() && parseFloat(qty) > 0 && parseFloat(price) > 0
-
-  const handleAdd = async () => {
-    if (!canAdd) return
-    await addShoppingItem({
-      name: name.trim(),
-      quantity: parseFloat(qty),
-      estimatedPrice: parseFloat(price),
-      category: cat,
-      otherLabel: cat === 'other' ? otherLabel.trim() : '',
-    })
-    onClose()
-  }
-
-  return (
-    <SheetWrap onClose={onClose}>
-      <div className="sheet-handle" />
-      <div className="sheet-header">
-        <h2 className="sheet-title">{t('shopping.addItem')}</h2>
-        <button onClick={onClose} className="btn-icon" style={{ width: 32, height: 32 }}>
-          <X size={17} strokeWidth={2} />
-        </button>
-      </div>
-
-      <div className="sheet-body" style={{ gap: 14 }}>
-        <div className="input-group" style={{ marginBottom: 0 }}>
-          <label className="input-label">{t('shopping.itemName')}</label>
-          <input ref={nameRef} className="input-field" placeholder={t('shopping.itemName')}
-            value={name} onChange={e => setName(e.target.value)} />
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <div className="input-group" style={{ marginBottom: 0 }}>
-            <label className="input-label">מחיר (₪) *</label>
-            <input className="input-field" type="number" inputMode="decimal" placeholder="0.00"
-              value={price} onChange={e => setPrice(e.target.value)}
-              style={{ textAlign: 'center', fontWeight: 700, fontSize: 17 }} />
-          </div>
-          <div className="input-group" style={{ marginBottom: 0 }}>
-            <label className="input-label">כמות *</label>
-            <input className="input-field" type="number" inputMode="decimal" placeholder="0"
-              value={qty} onChange={e => setQty(e.target.value)}
-              style={{ textAlign: 'center', fontWeight: 700, fontSize: 17 }} />
-          </div>
-        </div>
-
-        <div className="input-group" style={{ marginBottom: 0 }}>
-          <label className="input-label">{t('transaction.category')}</label>
-          <div className="cat-grid">
-            {SHOP_CATS.map(c => (
-              <button key={c} className={`cat-btn ${cat === c ? 'selected' : ''}`}
-                onClick={() => { setCat(c); if (c !== 'other') setOtherLabel('') }}
-                style={cat === c ? { borderColor: CAT_COLORS[c], background: CAT_COLORS[c] + '18' } : {}}>
-                <div className="cat-icon" style={{ color: cat === c ? CAT_COLORS[c] : 'var(--c-text2)' }}>
-                  <CategoryIcon id={c} size={26} />
-                </div>
-                <span className="cat-label">{t(`shopping.categories.${c}`)}</span>
-              </button>
-            ))}
-          </div>
-          <AnimatePresence>
-            {cat === 'other' && (
-              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} style={{ overflow: 'hidden' }}>
-                <div style={{ marginTop: 8, position: 'relative' }}>
-                  <input className="input-field" placeholder="פירוט (אופציונלי)" value={otherLabel}
-                    onChange={e => setOtherLabel(e.target.value)} style={{ paddingInlineEnd: 38 }} />
-                  <span style={{ position: 'absolute', insetInlineEnd: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--c-text3)', pointerEvents: 'none', display: 'flex' }}>
-                    <Pencil size={15} strokeWidth={2} />
-                  </span>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-
-      <div className="sheet-footer">
-        <button className="btn btn-primary btn-full" onClick={handleAdd} disabled={!canAdd}
-          style={{ opacity: canAdd ? 1 : 0.45, transition: 'opacity 0.2s', fontSize: 15, fontWeight: 600 }}>
-          <Plus size={16} strokeWidth={2.2} /> {t('common.add')}
-        </button>
-      </div>
-    </SheetWrap>
-  )
 }
 
 function EditItemSheet({ item, cur, onSave, onClose }) {
@@ -197,163 +98,135 @@ function EditItemSheet({ item, cur, onSave, onClose }) {
 }
 
 export default function ShoppingList({ onCheckout }) {
-  const { t } = useTranslation()
-  const { shoppingItems, updateShoppingItem, deleteShoppingItem, settings } = useApp()
-  const [showAdd, setShowAdd] = useState(false)
+  const { shoppingItems, updateShoppingItem, deleteShoppingItem, addShoppingItem, settings } = useApp()
   const [editing, setEditing] = useState(null)
+  const [name, setName] = useState('')
+  const [price, setPrice] = useState('')
   const cur = settings.currency
 
-  const grouped = SHOP_CATS.reduce((acc, c) => {
-    const items = shoppingItems.filter(i => i.category === c)
-    if (items.length) acc[c] = items
-    return acc
-  }, {})
+  const lineTotal = (i) => (i.estimatedPrice || 0) * (i.quantity || 1)
+  const toBuy = shoppingItems.filter(i => !i.checked)
+  const basket = shoppingItems.filter(i => i.checked)
+  const basketTotal = basket.reduce((s, i) => s + lineTotal(i), 0)
 
-  const checkedCount = shoppingItems.filter(i => i.checked).length
-  const total = shoppingItems
-    .filter(i => i.checked)
-    .reduce((s, i) => s + (i.estimatedPrice || 0) * (i.quantity || 1), 0)
-
-  if (shoppingItems.length === 0) {
-    return (
-      <>
-        <div className="empty-state">
-          <div className="empty-icon"><ShoppingCart size={22} strokeWidth={1.8} /></div>
-          <h3>{t('shopping.noItems')}</h3>
-          <p>{t('shopping.noItemsHint')}</p>
-        </div>
-        <div style={{ padding: '0 16px' }}>
-          <button className="btn btn-primary btn-full" onClick={() => setShowAdd(true)}>
-            + {t('shopping.addItem')}
-          </button>
-        </div>
-        <AnimatePresence>
-          {showAdd && <AddItemSheet onClose={() => setShowAdd(false)} />}
-        </AnimatePresence>
-      </>
-    )
+  const handleAdd = async (e) => {
+    e.preventDefault()
+    const n = name.trim()
+    if (!n) return
+    await addShoppingItem({
+      name: n, quantity: 1, estimatedPrice: Math.max(0, parseFloat(price) || 0),
+      category: 'other', otherLabel: '',
+    })
+    setName(''); setPrice('')
   }
+
+  const priceLabel = (i) => lineTotal(i) > 0 ? formatAmount(lineTotal(i), cur) : '—'
 
   return (
     <>
-      {/* Summary — running total + progress */}
-      <div style={{ padding: '4px 16px 18px' }}>
-        <div className="hero-ink" style={{ padding: '16px 18px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-            <div>
-              <div className="t-overline" style={{ color: 'var(--c-ink-text2)' }}>
-                {t('shopping.checkout')}
-              </div>
-              <div dir="ltr" className="num" style={{ fontSize: 28, fontWeight: 700, letterSpacing: -1, marginTop: 6, textAlign: 'start' }}>
-                <span className="cur" style={{ fontSize: 18 }}>{cur}</span>{formatNumber(total)}
-              </div>
-            </div>
-            <div className="num" style={{ fontSize: 12.5, color: 'var(--c-ink-text2)' }}>
-              {checkedCount}/{shoppingItems.length} {t('shopping.myList')}
-            </div>
-          </div>
-          <div style={{ marginTop: 14, height: 5, background: 'rgba(34,31,15,0.14)', borderRadius: 999, overflow: 'hidden' }}>
-            <motion.div
-              animate={{ width: shoppingItems.length ? `${(checkedCount / shoppingItems.length) * 100}%` : '0%' }}
-              transition={{ type: 'spring', stiffness: 200, damping: 26 }}
-              style={{ height: '100%', background: 'var(--c-ink-text)', borderRadius: 999 }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Items grouped by category */}
-      {Object.entries(grouped).map(([cat, items]) => (
-        <div key={cat} style={{ marginBottom: 16 }}>
-          <div style={{ padding: '0 20px 6px', fontSize: 13, fontWeight: 600, color: 'var(--c-text2)', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ color: CAT_COLORS[cat] || 'var(--c-text2)' }}><CategoryIcon id={cat} size={15} /></span>
-            {cat === 'other' && items[0]?.otherLabel ? items[0].otherLabel : t(`shopping.categories.${cat}`)}
-          </div>
-          <div className="card-list" style={{ margin: '0 16px' }}>
-            <AnimatePresence initial={false}>
-              {items.map(item => (
-                <motion.div
-                  key={item.id}
-                  layout
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                >
-                  <div className="list-item" style={{ position: 'relative', overflow: 'hidden' }}>
-                    <div style={{
-                      position: 'absolute', right: 0, top: 0, bottom: 0,
-                      width: 4, background: CAT_COLORS[item.category] || '#8A8272',
-                    }} />
-                    <button
-                      className={`check-btn ${item.checked ? 'checked' : ''}`}
-                      onClick={() => updateShoppingItem(item.id, { checked: !item.checked })}
-                    >
-                      {item.checked && <Check size={13} strokeWidth={3} color="white" />}
-                    </button>
-
-                    {/* Tappable area → opens edit sheet */}
-                    <div style={{ flex: 1, cursor: 'pointer', minWidth: 0 }}
-                      onClick={() => setEditing(item)}>
-                      <span style={{
-                        fontSize: 15, fontWeight: 500,
-                        textDecoration: item.checked ? 'line-through' : 'none',
-                        color: item.checked ? 'var(--c-text3)' : 'var(--c-text)',
-                      }}>
-                        {item.name}
-                      </span>
-                      <div className="num" style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2 }}>
-                        {item.quantity > 1 ? `×${item.quantity}  ` : ''}
-                        {item.estimatedPrice > 0
-                          ? formatAmount(item.estimatedPrice * (item.quantity || 1), cur)
-                          : <span style={{ color: 'var(--c-danger)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                              הכנס מחיר <Pencil size={11} strokeWidth={2} />
-                            </span>
-                        }
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => deleteShoppingItem(item.id)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--c-text3)', padding: 4, display: 'flex' }}
-                      aria-label="delete item"
-                    >
-                      <X size={17} strokeWidth={2} />
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-        </div>
-      ))}
-
-      {/* Add item + Checkout */}
-      <div style={{ padding: '8px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <button className="btn btn-secondary btn-full" onClick={() => setShowAdd(true)}>
-          <Plus size={16} strokeWidth={2.2} /> {t('shopping.addItem')}
+      <form onSubmit={handleAdd} style={{ margin: '0 16px', display: 'flex', gap: 8, alignItems: 'center' }}>
+        <input
+          className="input-field" style={{ flex: 1, minWidth: 0, height: 50 }}
+          placeholder="מה צריך לקנות?" aria-label="פריט חדש"
+          value={name} onChange={e => setName(e.target.value)}
+        />
+        <input
+          className="input-field" style={{ width: 70, height: 50, padding: '0 12px', textAlign: 'center' }}
+          type="number" inputMode="decimal" placeholder={cur} aria-label="מחיר משוער"
+          value={price} onChange={e => setPrice(e.target.value)}
+        />
+        <button type="submit" aria-label="הוספה לרשימה" style={{
+          width: 50, height: 50, borderRadius: '50%', border: 'none', flexShrink: 0,
+          background: 'var(--c-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+        }}>
+          <Plus size={22} strokeWidth={2.4} />
         </button>
-        {total > 0 && (
+      </form>
+
+      <div style={{ padding: '20px 20px 8px', fontSize: 13, fontWeight: 700, color: 'var(--c-text2)' }}>
+        לקנות ({toBuy.length})
+      </div>
+      {toBuy.length > 0 ? (
+        <div className="card-list" style={{ margin: '0 16px' }}>
+          <AnimatePresence initial={false}>
+            {toBuy.map(item => (
+              <motion.div key={item.id} layout initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+                <div className="list-item" style={{ gap: 14, padding: '12px 16px' }}>
+                  <button
+                    onClick={() => updateShoppingItem(item.id, { checked: true })}
+                    aria-label={`סימון ${item.name} כנקנה`}
+                    style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid var(--c-primary)', background: 'transparent', padding: 0, flexShrink: 0, cursor: 'pointer' }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setEditing(item)}>
+                    <div style={{ fontSize: 16, fontWeight: 500 }}>{item.name}</div>
+                    {item.quantity > 1 && (
+                      <div className="num" style={{ fontSize: 13, color: 'var(--c-text2)', marginTop: 2 }}>×{item.quantity}</div>
+                    )}
+                  </div>
+                  <span dir="ltr" className="num" style={{ fontSize: 15, fontWeight: 600 }}>{priceLabel(item)}</span>
+                  <button
+                    onClick={() => deleteShoppingItem(item.id)} aria-label={`מחיקת ${item.name}`}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--c-text3)', padding: 4, display: 'flex' }}
+                  >
+                    <X size={17} strokeWidth={2} />
+                  </button>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      ) : (
+        <div style={{ margin: '0 16px', padding: 18, borderRadius: 24, background: 'var(--c-card)', textAlign: 'center', fontSize: 14, color: 'var(--c-text2)' }}>
+          אין מה לקנות כרגע. אפשר להוסיף פריט למעלה.
+        </div>
+      )}
+
+      {basket.length > 0 && (
+        <>
+          <div style={{ padding: '20px 20px 8px', fontSize: 13, fontWeight: 700, color: 'var(--c-text2)' }}>
+            כבר בסל ({basket.length})
+          </div>
+          <div style={{ margin: '0 16px', border: '1px dashed var(--c-border)', borderRadius: 24, overflow: 'hidden' }}>
+            {basket.map(item => (
+              <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 16px' }}>
+                <button
+                  onClick={() => updateShoppingItem(item.id, { checked: false })}
+                  aria-label={`החזרת ${item.name} לרשימה`}
+                  style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid var(--c-accent2-mid)', background: 'var(--c-accent2-mid)', padding: 0, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                >
+                  <Check size={14} strokeWidth={3} color="#221f0f" />
+                </button>
+                <div style={{ flex: 1, fontSize: 15, color: 'var(--c-text2)', textDecoration: 'line-through' }}>{item.name}</div>
+                <span dir="ltr" className="num" style={{ fontSize: 14, color: 'var(--c-text2)' }}>{priceLabel(item)}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <div style={{
+        position: 'sticky', bottom: 'calc(var(--nav-h) + var(--safe-bottom) + 8px)',
+        padding: '16px 16px 8px', marginTop: 8,
+        background: 'linear-gradient(to top, var(--c-bg) 70%, transparent)',
+      }}>
+        {basket.length > 0 ? (
           <motion.button
-            className="btn btn-primary btn-full"
-            whileTap={{ scale: 0.98 }}
-            onClick={() => onCheckout(total)}
+            className="btn btn-primary btn-full" whileTap={{ scale: 0.98 }}
+            style={{ height: 54, borderRadius: 27, fontSize: 16 }}
+            onClick={() => onCheckout(basketTotal)}
           >
-            {t('shopping.checkout')} · {formatAmount(total, cur)}
+            סיימתי קנייה · <span dir="ltr">{formatAmount(basketTotal, cur)}</span>
           </motion.button>
+        ) : (
+          <div style={{ height: 54, borderRadius: 27, background: 'var(--c-card)', color: 'var(--c-text2)', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            סמנו פריטים שנכנסו לסל
+          </div>
         )}
       </div>
 
       <AnimatePresence>
-        {showAdd && <AddItemSheet onClose={() => setShowAdd(false)} />}
-      </AnimatePresence>
-      <AnimatePresence>
         {editing && (
-          <EditItemSheet
-            item={editing}
-            cur={cur}
-            onSave={updateShoppingItem}
-            onClose={() => setEditing(null)}
-          />
+          <EditItemSheet item={editing} cur={cur} onSave={updateShoppingItem} onClose={() => setEditing(null)} />
         )}
       </AnimatePresence>
     </>

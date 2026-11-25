@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Server } from 'lucide-react'
+import InfoHeading from './InfoHeading'
 import { useApp } from '../contexts/AppContext'
 import { db } from '../firebase'
 import { doc, setDoc } from 'firebase/firestore'
@@ -68,9 +69,9 @@ export default function ServerNotifications() {
 
   return (
     <>
-      <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text2)', padding: '0 4px 8px', letterSpacing: 0.5 }}>
+      <InfoHeading tip={'כשזה דלוק, תקבל הודעה לטלפון כש: נרשמה הוצאה גדולה (לפי הסכום שבחרת), קטגוריה מתקרבת לסוף התקציב או עוברת אותו, או מגיע סיכום ההוצאות. את ההוצאות שרשמת בעצמך לא תקבל בהודעה.'}>
         התראות מהשרת הביתי
-      </h3>
+      </InfoHeading>
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="card-inner" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div className="toggle-wrap">
@@ -96,7 +97,8 @@ export default function ServerNotifications() {
               </div>
               {prefs.unusual && (
                 <div className="input-group" style={{ marginTop: -4 }}>
-                  <label className="input-label">סכום הוצאה גדולה לחשבון (התראה כשהוצאה מגיעה אליו או עוברת אותו)</label>
+                  <label className="input-label">סכום הוצאה גדולה לחשבון</label>
+                  <div style={{ fontSize: 12, color: 'var(--c-text2)' }}>כל הוצאה מעל הסכום הזה נחשבת "הוצאה גדולה", ואם ההתראות דלוקות תקבל עליה הודעה.</div>
                   <input
                     className="input-field" type="number" inputMode="decimal" min="1"
                     value={bigInput}

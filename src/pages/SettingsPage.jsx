@@ -14,6 +14,7 @@ import { monthLabel } from '../utils/months'
 import { buildSeries } from '../utils/recurring'
 import { createInviteCode, redeemInviteCode } from '../utils/invites'
 import ActivityRows from '../components/budget/ActivityRows'
+import InfoHeading from '../components/InfoHeading'
 import ServerNotifications from '../components/ServerNotifications'
 
 function SettingRow({ icon, label, subtitle, right, onClick, danger }) {
@@ -211,9 +212,9 @@ export default function SettingsPage() {
         </div>
 
         {/* Appearance — light (default), dark, or follow the device */}
-        <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text2)', padding: '0 4px 8px', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+        <InfoHeading tip="בוחרים איך האפליקציה נראית: בהיר, כהה, או אוטומטי, שמתחלף לבד לפי ההגדרה של הטלפון." style={{ textTransform: 'uppercase' }}>
           {settings.language === 'he' ? 'מראה' : 'Appearance'}
-        </h3>
+        </InfoHeading>
         <div className="card" style={{ marginBottom: 20 }}>
           <div className="card-inner">
             <div className="segment">
@@ -235,9 +236,9 @@ export default function SettingsPage() {
         </div>
 
         {/* Language */}
-        <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text2)', padding: '0 4px 8px', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+        <InfoHeading tip="השפה של כל הכפתורים והטקסטים באפליקציה." style={{ textTransform: 'uppercase' }}>
           {t('settings.language')}
-        </h3>
+        </InfoHeading>
         <div className="card" style={{ marginBottom: 20 }}>
           <div className="card-inner">
             <div className="segment">
@@ -258,9 +259,9 @@ export default function SettingsPage() {
         </div>
 
         {/* Currency */}
-        <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text2)', padding: '0 4px 8px', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+        <InfoHeading tip="המטבע שבו מוצגים כל הסכומים: הוצאות, הכנסות ותקציבים." style={{ textTransform: 'uppercase' }}>
           {t('settings.currency')}
-        </h3>
+        </InfoHeading>
         <div className="card" style={{ marginBottom: 20 }}>
           <div className="card-inner">
             <div className="segment">
@@ -310,9 +311,9 @@ export default function SettingsPage() {
         </div>
 
         {/* Notifications */}
-        <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text2)', padding: '0 4px 8px', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+        <InfoHeading tip="כל ערב בשעה שתבחר תקפוץ הודעה שמזכירה לרשום את ההוצאות של היום, כדי שלא תשכח אף הוצאה." style={{ textTransform: 'uppercase' }}>
           {t('settings.notifications')}
-        </h3>
+        </InfoHeading>
         <div className="card" style={{ marginBottom: 20 }}>
           <div className="card-inner" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="toggle-wrap">

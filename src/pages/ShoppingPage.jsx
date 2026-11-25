@@ -97,7 +97,10 @@ function CheckoutModal({ total, onConfirm, onCancel }) {
 
 export default function ShoppingPage() {
   const { t } = useTranslation()
-  const { checkoutShopping, clearShoppingList, loadShoppingTemplate, shoppingItems, household } = useApp()
+  const { checkoutShopping, clearShoppingList, loadShoppingTemplate, shoppingItems, household, settings } = useApp()
+  const left = shoppingItems.filter(i => !i.checked)
+  const toBuyLeft = left.length
+  const toBuyTotal = left.reduce((s, i) => s + (i.estimatedPrice || 0) * (i.quantity || 1), 0)
   const [checkoutTotal, setCheckoutTotal] = useState(null)
   const [showLaterList, setShowLaterList] = useState(false)
   const hasTemplate = !!(household?.shoppingTemplate?.length > 0 || localStorage.getItem('sb_shopping_template'))
@@ -134,10 +137,7 @@ export default function ShoppingPage() {
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <p className="page-eyebrow">
-              {shoppingItems.length} {t('shopping.myList').toLowerCase()}
-            </p>
-            <h1 className="page-title">{t('shopping.title')}</h1>
+            <h1 className="page-title">רשימת קניות</h1>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button
@@ -160,6 +160,12 @@ export default function ShoppingPage() {
             )}
             <UserAvatar />
           </div>
+        </div>
+
+        <div style={{ fontSize: 14, color: 'var(--c-text2)', marginTop: 4 }}>
+          {shoppingItems.length === 0 ? 'הרשימה ריקה'
+            : toBuyLeft === 0 ? 'הכל בסל!'
+            : `נשארו ${toBuyLeft} ${toBuyLeft === 1 ? 'פריט' : 'פריטים'} לקנות · בערך ${formatAmount(toBuyTotal, settings.currency)}`}
         </div>
 
         {/* Load template button — inside header, below title */}
