@@ -21,7 +21,7 @@ export default function ServerNotifications() {
   const { user } = useApp()
   const [support, setSupport] = useState('checking')
   const [on, setOn] = useState(!!currentToken() && permissionState() === 'granted')
-  const [prefs, setPrefs] = useState({ unusual: true, budget: true })
+  const [prefs, setPrefs] = useState({ every: true, unusual: true, budget: true })
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
 
@@ -82,7 +82,11 @@ export default function ServerNotifications() {
           {on && (
             <>
               <div className="toggle-wrap">
-                <div style={{ fontSize: 14 }}>הוצאה חריגה שאחר מהבית רשם</div>
+                <div style={{ fontSize: 14 }}>כל הוצאה חדשה שאחר מהבית רשם</div>
+                <Switch checked={prefs.every} onChange={v => setPref('every', v)} />
+              </div>
+              <div className="toggle-wrap">
+                <div style={{ fontSize: 14 }}>הוצאה חריגה במיוחד</div>
                 <Switch checked={prefs.unusual} onChange={v => setPref('unusual', v)} />
               </div>
               <div className="toggle-wrap">

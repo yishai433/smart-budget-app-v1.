@@ -62,8 +62,8 @@ export async function disablePush(uid) {
 export async function loadPrefs(uid) {
   try {
     const s = await getDoc(doc(db, 'pushTokens', uid))
-    return { unusual: true, budget: true, ...(s.exists() ? s.data().prefs : {}) }
-  } catch { return { unusual: true, budget: true } }
+    return { every: true, unusual: true, budget: true, ...(s.exists() ? s.data().prefs : {}) }
+  } catch { return { every: true, unusual: true, budget: true } }
 }
 export const savePrefs = (uid, prefs) => setDoc(doc(db, 'pushTokens', uid), { prefs }, { merge: true })
 
