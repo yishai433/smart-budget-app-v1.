@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { X, Search, Plus, Minus, ChevronDown, Trophy } from 'lucide-react'
 import { useApp } from '../../contexts/AppContext'
 import useScrollLock from '../../hooks/useScrollLock'
-import useVisibleViewport from '../../hooks/useVisibleViewport'
+import useKeyboardHeight from '../../hooks/useVisibleViewport'
 import { formatAmount } from '../../utils/format'
 import { askPriceServer } from '../../utils/priceApi'
 
@@ -49,7 +49,7 @@ export default function BasketCompare({ onClose, onAddToList }) {
   const reqN = useRef(0)
   const lastResults = useRef([])                 // previous server answer, filtered locally while the next one loads
 
-  const vv = useVisibleViewport()
+  const kb = useKeyboardHeight()
 
   useEffect(() => { try { localStorage.setItem(storeKey, JSON.stringify({ lines: basket, labels })) } catch { /* private mode */ } }, [basket, labels, storeKey])
 
@@ -131,7 +131,7 @@ export default function BasketCompare({ onClose, onAddToList }) {
   return createPortal((
     <>
       <motion.div className="sheet-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
-      <div className="sheet-viewport" style={{ top: vv.top, bottom: 'auto', height: vv.h }}>
+      <div className="sheet-viewport">
         <motion.div className="sheet" style={{ height: 'calc(100% - var(--safe-top) - 28px)' }}
           initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'tween', duration: 0.3, ease: [0.32, 0.72, 0, 1] }}>
           <div className="sheet-handle" />
@@ -151,7 +151,7 @@ export default function BasketCompare({ onClose, onAddToList }) {
             </div>
           </div>
 
-          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: '0 20px 12px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: `0 20px ${kb + 90}px`, display: 'flex', flexDirection: 'column', gap: 14 }}>
             {err && <div style={{ fontSize: 13, color: 'var(--c-danger, #b3261e)' }}>{err}</div>}
             {preparing && <div style={{ fontSize: 12, color: 'var(--c-text2)' }}>מחירי חלק מהסניפים שבחרת עדיין נטענים בשרת. התוצאות יתעדכנו בעוד כדקה.</div>}
 
@@ -232,7 +232,7 @@ export default function BasketCompare({ onClose, onAddToList }) {
           </div>
 
           {basket.length > 0 && q.trim().length < 2 && (
-            <div className="sheet-footer" style={{ padding: '10px 20px calc(10px + var(--safe-bottom))' }}>
+            <div className="sheet-footer" style={{ padding: `10px 20px ${kb ? 10 : 'calc(10px + var(--safe-bottom))'}`, transform: `translateY(${-kb}px)`, position: 'relative', zIndex: 2 }}>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="btn btn-secondary" onClick={() => setBasket([])}>נקה סל</button>
                 <button className="btn btn-primary" style={{ flex: 1, opacity: best ? 1 : 0.45 }} disabled={!best} onClick={addAll}>
