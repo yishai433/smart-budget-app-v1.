@@ -10,7 +10,7 @@ import {
   monthLabelHe, prevMonthKey, isShabbat,
 } from './logic.js'
 import { getDueRecurring } from './recurring.js'
-import { STORES, refreshAll, lookup, loadStore, validKey, refreshCatalog, loadCatalog, catalogAge, searchProducts, compareBasket } from './prices.js'
+import { STORES, refreshAll, lookup, loadStore, validKey, refreshCatalog, loadCatalog, catalogAge, searchProducts, compareBasket, warm } from './prices.js'
 
 const KEY_FILE = process.env.GOOGLE_APPLICATION_CREDENTIALS || '/run/secrets/firebase.json'
 const DATA_DIR = process.env.DATA_DIR || './data'
@@ -327,7 +327,7 @@ let pricesRunning = false
 async function runPrices() {
   if (pricesRunning) return
   pricesRunning = true
-  try { await refreshAll(DATA_DIR, log, wantedKeys()) } finally { pricesRunning = false }
+  try { await refreshAll(DATA_DIR, log, wantedKeys()); await warm(DATA_DIR, wantedKeys(), log) } finally { pricesRunning = false }
 }
 
 function watchPriceLookups() {
@@ -349,6 +349,7 @@ function watchPriceLookups() {
         const preparing = keys.some(k => !loadStore(DATA_DIR, k))     // a newly picked branch is still downloading
         await ch.doc.ref.update({ status: 'done', results, preparing, answeredAt: FieldValue.serverTimestamp(), stale: pricesTooOld() })
       } catch (e) {
+        if (e.code === 5) return            // the app already gave up and deleted the request
         log('חיפוש מחיר נכשל:', e.message)
         await ch.doc.ref.update({ status: 'error', error: e.message }).catch(() => {})
       }
@@ -387,6 +388,7 @@ setTimeout(tick, 5000)
 
 watchHouseholdBranches()
 watchPriceLookups()
+setTimeout(() => warm(DATA_DIR, wantedKeys(), log).catch(e => log('טעינת סניפים נכשלה:', e.message)), 5000)
 watchTransactions()
 watchTests()
 log('השרת פועל. פרויקט:', admin.app().options.credential ? 'ok' : '?')
