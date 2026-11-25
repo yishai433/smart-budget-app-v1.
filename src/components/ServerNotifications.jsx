@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Server } from 'lucide-react'
-import InfoHeading from './InfoHeading'
+import InfoHeading, { InfoRow } from './InfoHeading'
 import { useApp } from '../contexts/AppContext'
 import { db } from '../firebase'
 import { doc, setDoc } from 'firebase/firestore'
 import {
   pushConfigured, pushSupport, currentToken, permissionState,
-  enablePush, disablePush, loadPrefs, savePrefs, requestTestPush,
+  enablePush, disablePush, loadPrefs, savePrefs,
 } from '../utils/push'
 
 function Switch({ checked, onChange, disabled }) {
@@ -37,7 +37,10 @@ export default function ServerNotifications() {
   const toggle = async (v) => {
     setBusy(true); setMsg('')
     try {
-      if (v) { await enablePush(user.uid); setOn(true); setMsg('ההתראות הופעלו במכשיר הזה. לחץ "שלח בדיקה" כדי לוודא.') }
+      if (v) { await enablePush(user.uid); setOn(true)
+        const all = { unusual: true, budget: true, summary: true, pace: true, recurring: true, duplicate: true }
+        setPrefs(all); savePrefs(user.uid, all).catch(() => {})
+        setMsg('ההתראות הופעלו במכשיר הזה. אפשר לכבות כל סוג בנפרד.') }
       else { await disablePush(user.uid); setOn(false) }
     } catch (e) {
       setOn(false)
@@ -52,11 +55,6 @@ export default function ServerNotifications() {
     if (!activeHouseholdId) return
     setDoc(doc(db, 'households', activeHouseholdId), { bigExpenseAmount: n }, { merge: true }).catch(() => setMsg('שמירת הסכום נכשלה.'))
   }
-  const test = async () => {
-    setMsg('')
-    try { await requestTestPush(user.uid); setMsg('נשלחה בקשה לשרת. ההתראה אמורה להגיע בתוך שניות.') }
-    catch { setMsg('שליחת הבקשה נכשלה.') }
-  }
 
   const blocked = permissionState() === 'denied'
   const note =
@@ -70,66 +68,57 @@ export default function ServerNotifications() {
   return (
     <>
       <InfoHeading tip={'כשזה דלוק, תקבל הודעה לטלפון כש: נרשמה הוצאה גדולה (לפי הסכום שבחרת), קטגוריה מתקרבת לסוף התקציב או עוברת אותו, מגיע סיכום ההוצאות, או נרשמה הוצאה קבועה אוטומטית. את ההוצאות שרשמת בעצמך לא תקבל בהודעה.'}>
-        התראות מהשרת הביתי
+        התראות מהשרת
       </InfoHeading>
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="card-inner" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div className="toggle-wrap">
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 15, display: 'flex', alignItems: 'center', gap: 7 }}>
-                <Server size={16} strokeWidth={2} style={{ color: 'var(--c-text2)' }} />
-                התראות במכשיר הזה
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2 }}>
-                הוצאות גדולות וחריגה מהתקציב, גם כשהאפליקציה סגורה
-              </div>
-            </div>
+          <InfoRow
+            icon={<Server size={16} strokeWidth={2} style={{ color: 'var(--c-text2)' }} />}
+            label="התראות במכשיר הזה"
+            sub="גם כשהאפליקציה סגורה"
+            tip="מפעיל או מכבה את כל ההתראות שמגיעות מהשרת, רק במכשיר הזה. בכל מכשיר אפשר לבחור לבד."
+          >
             <Switch checked={on} disabled={!can || busy} onChange={toggle} />
-          </div>
+          </InfoRow>
 
           {note && <div style={{ fontSize: 12.5, color: 'var(--c-text2)', lineHeight: 1.5 }}>{note}</div>}
 
-          {on && (
-            <>
-              <div className="toggle-wrap">
-                <div style={{ fontSize: 14 }}>הוצאה גדולה שאחר מהבית רשם</div>
-                <Switch checked={prefs.unusual} onChange={v => setPref('unusual', v)} />
-              </div>
-              {prefs.unusual && (
-                <div className="input-group" style={{ marginTop: -4 }}>
-                  <label className="input-label">סכום הוצאה גדולה לחשבון</label>
-                  <div style={{ fontSize: 12, color: 'var(--c-text2)' }}>כל הוצאה מעל הסכום הזה נחשבת "הוצאה גדולה", ואם ההתראות דלוקות תקבל עליה הודעה.</div>
-                  <input
-                    className="input-field" type="number" inputMode="decimal" min="1"
-                    value={bigInput}
-                    onChange={e => setBigInput(e.target.value)}
-                    onBlur={() => { const n = parseFloat(bigInput); if (n > 0) saveBig(n); else setBigInput(String(household?.bigExpenseAmount > 0 ? household.bigExpenseAmount : 150)) }}
-                  />
-                </div>
-              )}
-              <div className="toggle-wrap">
-                <div style={{ fontSize: 14 }}>התקרבות לתקציב או חריגה ממנו</div>
-                <Switch checked={prefs.budget} onChange={v => setPref('budget', v)} />
-              </div>
-              <div className="toggle-wrap">
-                <div style={{ fontSize: 14 }}>סיכום שבועי וסיכום חודשי</div>
-                <Switch checked={prefs.summary !== false} onChange={v => setPref('summary', v)} />
-              </div>
-              <div className="toggle-wrap">
-                <div style={{ fontSize: 14 }}>קצב הוצאות גבוה וקטגוריה שקפצה</div>
-                <Switch checked={prefs.pace !== false} onChange={v => setPref('pace', v)} />
-              </div>
-              <div className="toggle-wrap">
-                <div style={{ fontSize: 14 }}>הוצאה קבועה שנרשמה אוטומטית</div>
-                <Switch checked={prefs.recurring !== false} onChange={v => setPref('recurring', v)} />
-              </div>
-              <div className="toggle-wrap">
-                <div style={{ fontSize: 14 }}>הוצאה כפולה חשודה</div>
-                <Switch checked={prefs.duplicate !== false} onChange={v => setPref('duplicate', v)} />
-              </div>
-              <button className="btn btn-secondary" onClick={test} style={{ alignSelf: 'flex-start' }}>שלח בדיקה</button>
-            </>
-          )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, opacity: on ? 1 : 0.5 }}>
+            <InfoRow label="הוצאה גדולה שאחר מהבית רשם"
+              tip="כשמישהו אחר מהבית רושם הוצאה גדולה, תקבל הודעה. הוצאות שרשמת בעצמך לא יישלחו אליך.">
+              <Switch checked={prefs.unusual} disabled={!on} onChange={v => setPref('unusual', v)} />
+            </InfoRow>
+            <div className="input-group" style={{ marginTop: -4 }}>
+              <label className="input-label">סכום הוצאה גדולה לחשבון</label>
+              <div style={{ fontSize: 12, color: 'var(--c-text2)' }}>כל הוצאה מעל הסכום הזה נחשבת "הוצאה גדולה", ואם ההתראות דלוקות תקבל עליה הודעה.</div>
+              <input
+                className="input-field" type="number" inputMode="decimal" min="1" disabled={!on}
+                value={bigInput}
+                onChange={e => setBigInput(e.target.value)}
+                onBlur={() => { const n = parseFloat(bigInput); if (n > 0) saveBig(n); else setBigInput(String(household?.bigExpenseAmount > 0 ? household.bigExpenseAmount : 150)) }}
+              />
+            </div>
+            <InfoRow label="התקרבות לתקציב או חריגה ממנו"
+              tip="הודעה כשקטגוריה מגיעה ל-80% מהתקציב שלה, ועוד אחת כשהיא עוברת אותו.">
+              <Switch checked={prefs.budget} disabled={!on} onChange={v => setPref('budget', v)} />
+            </InfoRow>
+            <InfoRow label="סיכום שבועי וסיכום חודשי"
+              tip="סיכום קצר של ההוצאות: ביום ראשון בבוקר על השבוע שעבר, ובתחילת כל חודש על החודש שעבר.">
+              <Switch checked={prefs.summary !== false} disabled={!on} onChange={v => setPref('summary', v)} />
+            </InfoRow>
+            <InfoRow label="קצב הוצאות גבוה וקטגוריה שקפצה"
+              tip="הודעה כשההוצאות החודש מתקדמות מהר מהתקציב, או כשקטגוריה הוצאה הרבה יותר מהרגיל.">
+              <Switch checked={prefs.pace !== false} disabled={!on} onChange={v => setPref('pace', v)} />
+            </InfoRow>
+            <InfoRow label="הוצאה קבועה שנרשמה אוטומטית"
+              tip="הודעה כשהוצאה קבועה, למשל מנוי, נרשמת לבד בתאריך שלה.">
+              <Switch checked={prefs.recurring !== false} disabled={!on} onChange={v => setPref('recurring', v)} />
+            </InfoRow>
+            <InfoRow label="הוצאה כפולה חשודה"
+              tip="הודעה כשנרשמות שתי הוצאות זהות, באותו סכום ובאותה קטגוריה, בהפרש של כמה דקות. כך אפשר לתפוס רישום כפול.">
+              <Switch checked={prefs.duplicate !== false} disabled={!on} onChange={v => setPref('duplicate', v)} />
+            </InfoRow>
+          </div>
           {msg && <div style={{ fontSize: 12.5, color: 'var(--c-primary-dark)' }}>{msg}</div>}
         </div>
       </div>
