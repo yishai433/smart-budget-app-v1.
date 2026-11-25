@@ -36,8 +36,10 @@ function Picker({ catalog, selected, onSave, onClose }) {
   const shown = useMemo(() => {
     const t = dq.trim()
     const list = (t ? index.filter(x => x.text.includes(t)) : index).map(x => x.s)
-    return list.sort((a, b) => (initial.current.has(b.k) - initial.current.has(a.k)) || (a.city || '').localeCompare(b.city || '')).slice(0, 40)
+    return list.sort((a, b) => (initial.current.has(b.k) - initial.current.has(a.k)) || (a.city || '').localeCompare(b.city || '')).slice(0, 80)
   }, [dq, index])
+  // scrolling the list closes the keyboard, so the whole list gets the screen
+  const dismissKeyboard = useCallback(() => { const a = document.activeElement; if (a && a.tagName === 'INPUT') a.blur() }, [])
   const toggle = useCallback((k) => setSel(p => { const n = new Set(p); n.has(k) ? n.delete(k) : n.add(k); return n }), [])
   return createPortal((
     <>
@@ -59,11 +61,11 @@ function Picker({ catalog, selected, onSave, onClose }) {
                 inputMode="search" enterKeyHint="search" data-form-type="other" data-lpignore="true"
                 value={q} onChange={e => setQ(e.target.value)} />
             </div>
-            <div className="card-list">
+            <div className="card-list" onTouchMove={dismissKeyboard} onWheel={dismissKeyboard}>
               {shown.map(s => <Row key={s.k} s={s} on={sel.has(s.k)} onToggle={toggle} />)}
               {!shown.length && <div style={{ padding: 16, fontSize: 13, color: 'var(--c-text2)' }}>לא נמצאו סניפים. נסה שם עיר אחר.</div>}
             </div>
-            {catalog.length > 40 && !q && <div style={{ fontSize: 12, color: 'var(--c-text2)' }}>מוצגים 40 סניפים. חפש עיר כדי לצמצם.</div>}
+            {catalog.length > 80 && !q && <div style={{ fontSize: 12, color: 'var(--c-text2)' }}>מוצגים 80 סניפים. חפש עיר כדי לצמצם.</div>}
           </div>
           <div className="sheet-footer">
             <button className="btn btn-primary btn-full" disabled={!sel.size} style={{ opacity: sel.size ? 1 : 0.45 }}
