@@ -42,7 +42,8 @@ function Picker({ catalog, selected, onSave, onClose }) {
   return createPortal((
     <>
       <motion.div className="sheet-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
-      <div className="sheet-viewport">
+      {/* stop the sheet at the top of the keyboard so the list stays visible while typing */}
+      <div className="sheet-viewport" style={{ bottom: 'auto', height: 'calc(var(--kb-height, 100dvh))' }}>
         <motion.div className="sheet" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
           transition={{ type: 'tween', duration: 0.3, ease: [0.32, 0.72, 0, 1] }}>
           <div className="sheet-handle" />
@@ -53,13 +54,16 @@ function Picker({ catalog, selected, onSave, onClose }) {
           <div className="sheet-body" style={{ gap: 12 }}>
             <div style={{ position: 'relative' }}>
               <Search size={16} style={{ position: 'absolute', insetInlineStart: 14, top: 15, color: 'var(--c-text2)' }} />
-              <input className="input-field" style={{ paddingInlineStart: 40 }} placeholder="חפש לפי עיר או שם סניף" value={q} onChange={e => setQ(e.target.value)} />
+              <input className="input-field" style={{ paddingInlineStart: 40 }} placeholder="חיפוש סניף"
+                name="branch-filter" autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
+                inputMode="search" enterKeyHint="search" data-form-type="other" data-lpignore="true"
+                value={q} onChange={e => setQ(e.target.value)} />
             </div>
             <div className="card-list">
               {shown.map(s => <Row key={s.k} s={s} on={sel.has(s.k)} onToggle={toggle} />)}
               {!shown.length && <div style={{ padding: 16, fontSize: 13, color: 'var(--c-text2)' }}>לא נמצאו סניפים. נסה שם עיר אחר.</div>}
             </div>
-            {catalog.length > 40 && !q && <div style={{ fontSize: 12, color: 'var(--c-text2)' }}>מוצגים 40 סניפים. הקלד עיר כדי לצמצם.</div>}
+            {catalog.length > 40 && !q && <div style={{ fontSize: 12, color: 'var(--c-text2)' }}>מוצגים 40 סניפים. חפש עיר כדי לצמצם.</div>}
           </div>
           <div className="sheet-footer">
             <button className="btn btn-primary btn-full" disabled={!sel.size} style={{ opacity: sel.size ? 1 : 0.45 }}
