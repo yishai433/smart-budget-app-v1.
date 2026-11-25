@@ -155,7 +155,7 @@ const lastTry = new Map()
 export async function refreshAll(dataDir, log = console.log, keys = Object.keys(STORES)) {
   for (const k of keys) {
     const d = loadStore(dataDir, k)
-    if (d && Date.now() - d.fetchedAt < 26 * 3600 * 1000) continue          // already fresh
+    if (d && new Date(d.fetchedAt).toDateString() === new Date().toDateString()) continue   // already downloaded today
     if (Date.now() - (lastTry.get(k) || 0) < 10 * 60 * 1000) continue       // failed recently: wait 10 min
     lastTry.set(k, Date.now())
     try { await refreshStore(dataDir, k, log) } catch (e) { log('עדכון מחירים נכשל:', k, e.message) }
