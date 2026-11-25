@@ -11,10 +11,9 @@ import { formatAmount } from '../../utils/format'
 const ZXING = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/+esm'
 const FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e']
 
-// The camera is requested once and kept for a few minutes after the scanner closes, so reopening it
-// doesn't trigger the iOS permission prompt again. Each use gets a clone, so stopping a scan never kills it.
+// The camera is released as soon as the scanner closes, so the camera indicator never stays on in other screens.
 let shared = null          // { stream, timer }
-const KEEP_MS = 3 * 60 * 1000
+const KEEP_MS = 0
 async function acquireCamera() {
   if (shared) {
     clearTimeout(shared.timer)
@@ -30,7 +29,8 @@ function releaseCamera() {
   if (!shared) return
   clearTimeout(shared.timer)
   const mine = shared
-  shared.timer = setTimeout(() => { mine.stream.getTracks().forEach(t => t.stop()); if (shared === mine) shared = null }, KEEP_MS)
+  mine.stream.getTracks().forEach(t => t.stop())
+  shared = null
 }
 
 function promoText(p, cur) {
