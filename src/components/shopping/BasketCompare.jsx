@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
 import { X, Search, Plus, Minus, ChevronDown, Trophy } from 'lucide-react'
@@ -18,9 +18,9 @@ const ResultRow = memo(function ResultRow({ p, cur, labels, onAdd }) {
   const sub = keys.length > 1 ? `הכי זול ב${where} · מתוך ${keys.length} סניפים` : where
   return (
     <button onClick={() => onAdd(p)} className="list-item"
-      style={{ width: '100%', border: 'none', textAlign: 'start', fontFamily: 'inherit' }}>
+      style={{ width: '100%', border: 'none', textAlign: 'start', fontFamily: 'inherit', padding: '10px 14px' }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 500 }}>{p.name}</div>
+        <div style={{ fontSize: 14, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
         <div style={{ fontSize: 12, color: 'var(--c-text2)' }}>{sub}</div>
       </div>
       <div style={{ textAlign: 'end' }}>
@@ -122,11 +122,11 @@ export default function BasketCompare({ onClose, onAddToList }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prepared])
 
-  const add = (p) => {
+  const add = useCallback((p) => {
     setBasket(b => b.some(x => x.code === p.code) ? b.map(x => x.code === p.code ? { ...x, qty: x.qty + 1 } : x) : [...b, { code: p.code, name: p.name, qty: 1, prices: p.prices }])
     setQ(''); setResults(null)
     document.activeElement?.blur?.()
-  }
+  }, [])
   const setQty = (code, d) => setBasket(b => b.flatMap(x => x.code !== code ? [x] : (x.qty + d <= 0 ? [] : [{ ...x, qty: Math.min(99, x.qty + d) }])))
   const remove = (code) => setBasket(b => b.filter(x => x.code !== code))
 
@@ -176,6 +176,17 @@ export default function BasketCompare({ onClose, onAddToList }) {
                 value={q} onChange={e => setQ(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }} />
             </div>
+            {q.trim().length >= 2 && results?.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 12, color: 'var(--c-text2)' }}>
+                <span style={{ flex: 1 }}>נמצאו {results.length} מוצרים{results.length > 3 ? ' · גלול למטה לעוד' : ''}</span>
+                {kb > 0 && (
+                  <button onClick={() => document.activeElement?.blur?.()} className="btn btn-secondary"
+                    style={{ padding: '5px 10px', fontSize: 12, minHeight: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <ChevronDown size={14} /> הסתר מקלדת
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: `0 20px ${kb + 90}px`, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', alignContent: 'start', gap: 14 }}>
