@@ -1,0 +1,10 @@
+{
+  "name": "smart-budget-home-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "שרת ביתי לתקציב חכם: מקשיב ל-Firestore ושולח התראות Push",
+  "scripts": { "start": "node index.js", "test": "node test.js" },
+  "dependencies": { "firebase-admin": "^12.7.0" },
+  "engines": { "node": ">=20" }
+}

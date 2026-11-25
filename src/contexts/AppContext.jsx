@@ -425,6 +425,8 @@ export function AppProvider({ children }) {
         ...data,
         ...split,
         householdId: activeHouseholdId,
+        createdBy: user.uid,
+        createdByName: (actorName || '').split(' ')[0],
         createdAt: serverTimestamp(),
       })
       logActivity({ kind: 'add', txId: docRef.id, after: txSnap(data) })
@@ -433,7 +435,7 @@ export function AppProvider({ children }) {
       console.error('addTransaction error:', err.code, err.message)
       throw err
     }
-  }, [user, activeHouseholdId, logActivity, household])
+  }, [user, activeHouseholdId, logActivity, household, actorName])
 
   // Put back a transaction that was just deleted (same id and data).
   const restoreTransaction = useCallback(async (tx) => {
