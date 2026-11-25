@@ -53,6 +53,9 @@ async function tryUser(user) {
     names.forEach(n => { const k = String(n).replace(/[-_.].*$/, ''); kinds[k] = (kinds[k] || 0) + 1 })
     log('by type:', JSON.stringify(kinds))
     log('examples:', names.slice(0, 3).join(' | '))
+    const ids = new Set(names.filter(n => /^PriceFull/i.test(n)).map(n => (n.match(/-0*(\d+)-\d{8}-/) || [])[1]))
+    log('distinct stores with a PriceFull file:', ids.size)
+    log('all Stores files:', names.filter(n => /^Stores/i.test(n)).join(' | '))
     const stores = names.filter(n => /^Stores/i.test(n)).sort().pop()
     log('newest Stores file:', stores || '(none)')
   } catch { log(text.slice(0, 300)) }
