@@ -16,6 +16,7 @@ import { createInviteCode, redeemInviteCode } from '../utils/invites'
 import ActivityRows from '../components/budget/ActivityRows'
 import InfoHeading from '../components/InfoHeading'
 import ServerNotifications from '../components/ServerNotifications'
+import PriceBranches from '../components/PriceBranches'
 
 function SettingRow({ icon, label, subtitle, right, onClick, danger }) {
   return (
@@ -368,6 +369,8 @@ export default function SettingsPage() {
         </div>
 
         <ServerNotifications />
+
+        <PriceBranches />
 
         {/* Shared Household */}
         <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text2)', padding: '0 4px 8px', letterSpacing: 0.5, textTransform: 'uppercase' }}>

@@ -10,7 +10,7 @@ import {
   monthLabelHe, prevMonthKey, isShabbat,
 } from './logic.js'
 import { getDueRecurring } from './recurring.js'
-import { STORES, refreshAll, lookup, loadStore } from './prices.js'
+import { STORES, refreshAll, lookup, loadStore, validKey, refreshCatalog, loadCatalog, catalogAge } from './prices.js'
 
 const KEY_FILE = process.env.GOOGLE_APPLICATION_CREDENTIALS || '/run/secrets/firebase.json'
 const DATA_DIR = process.env.DATA_DIR || './data'
@@ -298,12 +298,32 @@ let lastRecurring = 0
 
 // ── supermarket prices: refreshed every morning, looked up when the app scans a barcode ──
 const PRICE_KEYS = (process.env.PRICE_STORES || Object.keys(STORES).join(',')).split(',').map(x => x.trim()).filter(Boolean)
-const pricesStale = () => PRICE_KEYS.some(k => { const d = loadStore(DATA_DIR, k); return !d || Date.now() - d.fetchedAt > 26 * 3600 * 1000 })
+// branches to keep downloaded = everything any household picked (or the defaults for households that never picked)
+let chosenKeys = new Set()
+const wantedKeys = () => [...new Set([...PRICE_KEYS.filter(() => !chosenKeys.size), ...chosenKeys])]
+const keysOfHousehold = (hh) => { const k = (hh.priceStores || []).filter(validKey); return k.length ? k : PRICE_KEYS }
+function watchHouseholdBranches() {
+  db.collection('households').onSnapshot(snap => {
+    const set = new Set()
+    snap.forEach(d => { const hh = d.data(); if (Array.isArray(hh.priceStores) && hh.priceStores.some(validKey)) hh.priceStores.filter(validKey).forEach(k => set.add(k)) })
+    chosenKeys = set
+  }, e => { log('האזנה לסניפים נפלה:', e.message); setTimeout(watchHouseholdBranches, 10000) })
+}
+let catalogBusy = false
+async function runCatalog() {
+  if (catalogBusy) return
+  catalogBusy = true
+  try {
+    const stores = await refreshCatalog(DATA_DIR, log)
+    await db.doc('priceCatalog/stores').set({ stores, updatedAt: FieldValue.serverTimestamp() })
+  } finally { catalogBusy = false }
+}
+const pricesStale = () => wantedKeys().some(k => { const d = loadStore(DATA_DIR, k); return !d || Date.now() - d.fetchedAt > 26 * 3600 * 1000 })
 let pricesRunning = false
 async function runPrices() {
   if (pricesRunning) return
   pricesRunning = true
-  try { await refreshAll(DATA_DIR, log, PRICE_KEYS) } finally { pricesRunning = false }
+  try { await refreshAll(DATA_DIR, log, wantedKeys()) } finally { pricesRunning = false }
 }
 
 function watchPriceLookups() {
@@ -313,12 +333,10 @@ function watchPriceLookups() {
       const q = ch.doc.data()
       try {
         let keys = PRICE_KEYS
-        if (q.householdId) {
-          const hh = (await db.doc(`households/${q.householdId}`).get()).data() || {}
-          if (Array.isArray(hh.priceStores) && hh.priceStores.length) keys = hh.priceStores.filter(k => PRICE_KEYS.includes(k))
-        }
+        if (q.householdId) keys = keysOfHousehold((await db.doc(`households/${q.householdId}`).get()).data() || {})
         const results = lookup(DATA_DIR, q.barcode, keys)
-        await ch.doc.ref.update({ status: 'done', results, answeredAt: FieldValue.serverTimestamp(), stale: pricesStale() })
+        const preparing = keys.some(k => !loadStore(DATA_DIR, k))     // a newly picked branch is still downloading
+        await ch.doc.ref.update({ status: 'done', results, preparing, answeredAt: FieldValue.serverTimestamp(), stale: pricesStale() })
       } catch (e) {
         log('חיפוש מחיר נכשל:', e.message)
         await ch.doc.ref.update({ status: 'error', error: e.message }).catch(() => {})
@@ -334,7 +352,8 @@ function watchPriceLookups() {
 }
 
 function tick() {
-  if ((new Date().getHours() >= 6 || PRICE_KEYS.some(k => !loadStore(DATA_DIR, k))) && pricesStale()) runPrices().catch(e => log('מחירים נכשלו:', e.message))
+  if (!catalogBusy && catalogAge(DATA_DIR) > 7 * 24 * 3600 * 1000) runCatalog().catch(e => log('קטלוג סניפים נכשל:', e.message))
+  if ((new Date().getHours() >= 6 || wantedKeys().some(k => !loadStore(DATA_DIR, k))) && pricesStale()) runPrices().catch(e => log('מחירים נכשלו:', e.message))
   if (Date.now() - lastRecurring > 60 * 60 * 1000) {
     lastRecurring = Date.now()
     runRecurring().catch(e => log('הוצאות קבועות נכשלו:', e.message))
@@ -355,6 +374,7 @@ function tick() {
 setInterval(tick, 60000)
 setTimeout(tick, 5000)
 
+watchHouseholdBranches()
 watchPriceLookups()
 watchTransactions()
 watchTests()

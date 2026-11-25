@@ -112,6 +112,12 @@ service cloud.firestore {
       allow read, delete: if isMember(resource.data.householdId);
     }
 
+    // list of supermarket branches, written by the home server only
+    match /priceCatalog/{id} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
     match /transactions/{id} {
       allow read, update, delete: if isMember(resource.data.householdId);
       allow create: if isMember(request.resource.data.householdId);

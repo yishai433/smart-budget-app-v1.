@@ -14,6 +14,18 @@ export const STORES = {
   'sapir-21': { chain: 'sapir', store: '21', label: 'סופר ספיר חצור' },
 }
 
+// any "<chain>-<storeId>" key is a branch; its label comes from the catalog when known
+const KEY_RE = /^(shufersal|sapir)-(\d+)$/
+export const validKey = (k) => KEY_RE.test(String(k || ''))
+let catalogCache = null
+function storeDef(key, dataDir) {
+  if (STORES[key]) return STORES[key]
+  const m = KEY_RE.exec(key)
+  if (!m) return null
+  const hit = (catalogCache || (dataDir && loadCatalog(dataDir)) || []).find(x => x.k === key)
+  return { chain: m[1], store: m[2], label: hit ? hit.n : key }
+}
+
 // ── XML helpers (the files are plain XML, sometimes UTF-16) ──
 export function decodeText(buf) {
   if (buf[0] === 0xff && buf[1] === 0xfe) return buf.toString('utf16le').replace(/^﻿/, '')
@@ -120,7 +132,7 @@ const fileOf = (dataDir, key) => path.join(dirOf(dataDir), `${key}.json`)
 const cache = new Map()
 
 export async function refreshStore(dataDir, key, log = console.log) {
-  const def = STORES[key]
+  const def = storeDef(key, dataDir)
   if (!def) throw new Error('סניף לא מוכר: ' + key)
   const files = await fetchers[def.chain](def.store)
   const items = parseItems(files.PriceFull.text)
@@ -169,4 +181,45 @@ export function lookup(dataDir, barcode, keys = Object.keys(STORES), now = new D
     })
   }
   return results
+}
+
+
+// ── branch catalog: every branch we can read, for the "pick your branches by city" screen ──
+const catFile = (dataDir) => path.join(dirOf(dataDir), 'catalog.json')
+export function loadCatalog(dataDir) {
+  if (catalogCache) return catalogCache
+  try { catalogCache = JSON.parse(fs.readFileSync(catFile(dataDir), 'utf8')).stores; return catalogCache } catch { return null }
+}
+export const catalogAge = (dataDir) => { try { return Date.now() - fs.statSync(catFile(dataDir)).mtimeMs } catch { return Infinity } }
+
+export function parseStoreList(xml) {
+  return blocks(xml, 'STORE').map(b => ({ id: tag(b, 'STOREID'), name: tag(b, 'STORENAME'), a: tag(b, 'ADDRESS'), city: tag(b, 'CITY') })).filter(x => x.id)
+}
+
+export async function refreshCatalog(dataDir, log = console.log) {
+  const out = []
+  try {
+    const html = (await getBuf('https://prices.shufersal.co.il/FileObject/UpdateCategory?catID=5&storeId=0&sort=Time&sortdir=DESC&page=1')).toString('utf8')
+    const link = [...html.matchAll(/href="([^"]+)"/gi)].map(m => m[1].replace(/&amp;/g, '&')).find(h => /blob\.core|\.gz/i.test(h))
+    if (link) for (const x of parseStoreList(gunzipText(await getBuf(link)))) {
+      const id = String(parseInt(x.id, 10))
+      if (id !== 'NaN') out.push({ k: `shufersal-${id}`, c: 'shufersal', n: x.name, city: x.city, a: x.a })
+    }
+  } catch (e) { log('קטלוג שופרסל נכשל:', e.message) }
+  try {
+    const list = JSON.parse((await getBuf('https://supersapir.binaprojects.com/MainIO_Hok.aspx')).toString('utf8'))
+    const seen = new Set()
+    for (const f of list) {
+      const m = /^\s*(\d+)\s*(.*)$/.exec(f.Store || '')
+      if (!m || seen.has(m[1])) continue
+      seen.add(m[1])
+      out.push({ k: `sapir-${parseInt(m[1], 10)}`, c: 'sapir', n: `ספיר ${m[2].trim()}`.trim(), city: m[2].trim(), a: '' })
+    }
+  } catch (e) { log('קטלוג ספיר נכשל:', e.message) }
+  if (!out.length) throw new Error('לא נמצאו סניפים')
+  fs.mkdirSync(dirOf(dataDir), { recursive: true })
+  fs.writeFileSync(catFile(dataDir), JSON.stringify({ stores: out, at: Date.now() }))
+  catalogCache = out
+  log(`קטלוג סניפים עודכן: ${out.length} סניפים`)
+  return out
 }
