@@ -11,7 +11,7 @@ import { Bell, Users, User, UserPlus, LogIn, Copy, Share2, Check, Download } fro
 import { getThemePref, setThemePref } from '../utils/theme'
 import { buildCsv, downloadCsv } from '../utils/exportCsv'
 import { monthLabel } from '../utils/months'
-import { buildSeries } from '../utils/recurring'
+import { buildSeries, intervalLabel } from '../utils/recurring'
 import { createInviteCode, redeemInviteCode } from '../utils/invites'
 import ActivityRows from '../components/budget/ActivityRows'
 import InfoHeading from '../components/InfoHeading'
@@ -601,7 +601,7 @@ export default function SettingsPage() {
           <SettingRow
             icon="🔁"
             label={settings.language === 'he' ? 'הוספה אוטומטית' : 'Add automatically'}
-            subtitle={settings.language === 'he' ? 'הוצאה קבועה נרשמת בתאריך שלה כשפותחים את האפליקציה' : 'Recurring expenses are booked on their date when the app opens'}
+            subtitle={settings.language === 'he' ? 'הוצאה קבועה נרשמת אוטומטית בתאריך שלה, גם כשהאפליקציה סגורה' : 'Recurring expenses are booked on their date when the app opens'}
             right={<Toggle checked={!recurringOff} onChange={on => setRecurringOff(!on)} />}
           />
           {recurringSeries.map(s => {
@@ -613,7 +613,7 @@ export default function SettingsPage() {
                     {s.name || t(`categories.${s.category}`)}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2 }}>
-                    {t(`transaction.${s.frequency}`)}{stopped ? (settings.language === 'he' ? ' · הופסקה' : ' · stopped') : ''}
+                    {intervalLabel(s.frequency, s.interval, settings.language === 'he') || t(`transaction.${s.frequency}`)}{stopped ? (settings.language === 'he' ? ' · הופסקה' : ' · stopped') : ''}
                   </div>
                 </div>
                 <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: 13 }}
