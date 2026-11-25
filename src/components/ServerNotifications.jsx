@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Server } from 'lucide-react'
 import { useApp } from '../contexts/AppContext'
+import { db } from '../firebase'
+import { doc, setDoc } from 'firebase/firestore'
 import {
   pushConfigured, pushSupport, currentToken, permissionState,
   enablePush, disablePush, loadPrefs, savePrefs, requestTestPush,
@@ -18,16 +20,17 @@ function Switch({ checked, onChange, disabled }) {
 
 // Settings card: turn on notifications from the home server for THIS device.
 export default function ServerNotifications() {
-  const { user } = useApp()
+  const { user, household, activeHouseholdId } = useApp()
   const [support, setSupport] = useState('checking')
   const [on, setOn] = useState(!!currentToken() && permissionState() === 'granted')
-  const [prefs, setPrefs] = useState({ unusual: true, budget: true, bigAmount: 150 })
+  const [prefs, setPrefs] = useState({ unusual: true, budget: true })
   const [bigInput, setBigInput] = useState('150')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
 
   useEffect(() => { pushSupport().then(setSupport) }, [])
-  useEffect(() => { if (user?.uid) loadPrefs(user.uid).then(p => { setPrefs(p); setBigInput(String(p.bigAmount || 150)) }) }, [user?.uid])
+  useEffect(() => { if (user?.uid) loadPrefs(user.uid).then(setPrefs) }, [user?.uid])
+  useEffect(() => { setBigInput(String(household?.bigExpenseAmount > 0 ? household.bigExpenseAmount : 150)) }, [household?.bigExpenseAmount])
   if (!user) return null
 
   const toggle = async (v) => {
@@ -43,6 +46,11 @@ export default function ServerNotifications() {
     } finally { setBusy(false) }
   }
   const setPref = (k, v) => { const p = { ...prefs, [k]: v }; setPrefs(p); savePrefs(user.uid, p).catch(() => {}) }
+  // One amount for the whole account (shared or not).
+  const saveBig = (n) => {
+    if (!activeHouseholdId) return
+    setDoc(doc(db, 'households', activeHouseholdId), { bigExpenseAmount: n }, { merge: true }).catch(() => setMsg('שמירת הסכום נכשלה.'))
+  }
   const test = async () => {
     setMsg('')
     try { await requestTestPush(user.uid); setMsg('נשלחה בקשה לשרת. ההתראה אמורה להגיע בתוך שניות.') }
@@ -88,12 +96,12 @@ export default function ServerNotifications() {
               </div>
               {prefs.unusual && (
                 <div className="input-group" style={{ marginTop: -4 }}>
-                  <label className="input-label">התראה כשהוצאה מגיעה לסכום הזה או עוברת אותו</label>
+                  <label className="input-label">סכום הוצאה גדולה לחשבון (התראה כשהוצאה מגיעה אליו או עוברת אותו)</label>
                   <input
                     className="input-field" type="number" inputMode="decimal" min="1"
                     value={bigInput}
                     onChange={e => setBigInput(e.target.value)}
-                    onBlur={() => { const n = parseFloat(bigInput); if (n > 0) setPref('bigAmount', n); else setBigInput(String(prefs.bigAmount || 150)) }}
+                    onBlur={() => { const n = parseFloat(bigInput); if (n > 0) saveBig(n); else setBigInput(String(household?.bigExpenseAmount > 0 ? household.bigExpenseAmount : 150)) }}
                   />
                 </div>
               )}

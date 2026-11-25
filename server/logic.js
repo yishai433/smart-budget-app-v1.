@@ -73,10 +73,9 @@ export function budgetStatus(transactions, hh, key, category) {
   return out
 }
 
-// Each person sets their own "big expense" amount (prefs.bigAmount). This says
-// whether an expense of `amount` reaches it; `fallback` applies when not set.
-export function reachesBigAmount(prefs, amount, fallback = 150) {
-  const own = Number(prefs?.bigAmount)
-  const limit = own > 0 ? own : fallback
-  return amount >= limit
+// The account (household) sets one "big expense" amount: household.bigExpenseAmount.
+// An expense that reaches it or goes over counts. `fallback` applies when not set.
+export function reachesBigAmount(limit, amount, fallback = 150) {
+  const l = Number(limit) > 0 ? Number(limit) : fallback
+  return amount >= l
 }
