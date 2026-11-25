@@ -38,6 +38,15 @@ const Row = memo(function Row({ s, on, onToggle }) {
 function Picker({ catalog, selected, onSave, onClose }) {
   useScrollLock()
   const [q, setQ] = useState('')
+  // follow the visible area (it shrinks when the iPhone keyboard opens) so the sheet ends above the keyboard
+  const [vv, setVv] = useState(() => ({ h: window.visualViewport?.height || window.innerHeight, top: window.visualViewport?.offsetTop || 0 }))
+  useEffect(() => {
+    const v = window.visualViewport
+    if (!v) return
+    const sync = () => setVv({ h: v.height, top: v.offsetTop })
+    v.addEventListener('resize', sync); v.addEventListener('scroll', sync)
+    return () => { v.removeEventListener('resize', sync); v.removeEventListener('scroll', sync) }
+  }, [])
   const dq = useDeferredValue(q)                       // typing stays instant, the list catches up
   const [sel, setSel] = useState(() => new Set(selected))
   const initial = useRef(new Set(selected))            // order is fixed when the sheet opens, so rows don't jump on tap
@@ -55,7 +64,7 @@ function Picker({ catalog, selected, onSave, onClose }) {
     <>
       <motion.div className="sheet-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
       {/* stop the sheet at the top of the keyboard so the list stays visible while typing */}
-      <div className="sheet-viewport" style={{ bottom: 'auto', height: 'calc(var(--kb-height, 100dvh))' }}>
+      <div className="sheet-viewport" style={{ top: vv.top, bottom: 'auto', height: vv.h }}>
         <motion.div className="sheet" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
           transition={{ type: 'tween', duration: 0.3, ease: [0.32, 0.72, 0, 1] }}>
           <div className="sheet-handle" />
