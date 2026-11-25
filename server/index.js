@@ -340,7 +340,7 @@ function watchPriceLookups() {
         if (q.householdId) keys = keysOfHousehold((await db.doc(`households/${q.householdId}`).get()).data() || {})
         if (q.type === 'search' || q.type === 'basket') {
           const have = keys.filter(k => loadStore(DATA_DIR, k))
-          const base = { status: 'done', preparing: have.length < keys.length, branches: have.length, answeredAt: FieldValue.serverTimestamp() }
+          const base = { status: 'done', preparing: have.length < keys.length, branches: have.length, labels: Object.fromEntries(have.map(k => [k, loadStore(DATA_DIR, k).label])), answeredAt: FieldValue.serverTimestamp() }
           if (q.type === 'search') await ch.doc.ref.update({ ...base, products: searchProducts(DATA_DIR, String(q.q || '').slice(0, 60), have) })
           else await ch.doc.ref.update({ ...base, compare: compareBasket(DATA_DIR, (q.items || []).slice(0, 60).map(i => ({ code: String(i.code), qty: Math.max(1, Math.min(99, Number(i.qty) || 1)) })), have) })
           return

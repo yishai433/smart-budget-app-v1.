@@ -34,21 +34,24 @@ export default function BasketCompare({ onClose, onAddToList }) {
   const { activeHouseholdId, user, settings } = useApp()
   const cur = settings.currency
   const storeKey = `sb-basket-${activeHouseholdId}`
-  const [basket, setBasket] = useState(() => { try { return JSON.parse(localStorage.getItem(storeKey)) || [] } catch { return [] } })
+  const saved = useRef((() => { try { return JSON.parse(localStorage.getItem(storeKey)) || {} } catch { return {} } })())
+  // each line keeps every branch's price, so the totals are computed here, instantly
+  const [basket, setBasket] = useState(() => Array.isArray(saved.current.lines) ? saved.current.lines : [])
+  const [labels, setLabels] = useState(() => saved.current.labels || {})
   const [q, setQ] = useState('')
   const [results, setResults] = useState(null)       // null = not searched yet
   const [searching, setSearching] = useState(false)
   const [err, setErr] = useState('')
-  const [compare, setCompare] = useState(null)
-  const [comparing, setComparing] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const [branches, setBranches] = useState(0)
   const [preparing, setPreparing] = useState(false)
   const [open, setOpen] = useState(null)              // expanded branch key
   const reqN = useRef(0)
+  const lastResults = useRef([])                 // previous server answer, filtered locally while the next one loads
 
   const vv = useVisibleViewport()
 
-  useEffect(() => { try { localStorage.setItem(storeKey, JSON.stringify(basket)) } catch { /* private mode */ } }, [basket, storeKey])
+  useEffect(() => { try { localStorage.setItem(storeKey, JSON.stringify({ lines: basket, labels })) } catch { /* private mode */ } }, [basket, labels, storeKey])
 
   // search as you type (after a short pause)
   useEffect(() => {
@@ -56,51 +59,68 @@ export default function BasketCompare({ onClose, onAddToList }) {
     if (t.length < 2) { setResults(null); setSearching(false); setErr(''); return }
     const n = ++reqN.current
     setSearching(true)
+    const words = t.toLowerCase().split(/\s+/)
+    const local = lastResults.current.filter(p => words.every(w => p.name.toLowerCase().includes(w)))
+    if (local.length) setResults(local)           // instant, refined by the server a moment later
     const id = setTimeout(async () => {
       try {
         const d = await askPriceServer(activeHouseholdId, user?.uid, { type: 'search', q: t })
         if (n !== reqN.current) return
+        lastResults.current = d.products || []
         setResults(d.products || []); setBranches(d.branches || 0); setPreparing(!!d.preparing); setErr('')
+        if (d.labels) setLabels(l => ({ ...l, ...d.labels }))
       } catch { if (n === reqN.current) { setErr('השרת הביתי לא ענה בזמן. בדוק שהוא פועל.'); setResults([]) } }
       finally { if (n === reqN.current) setSearching(false) }
-    }, 450)
+    }, 200)
     return () => clearTimeout(id)
   }, [q, activeHouseholdId, user?.uid])
 
-  // price the whole basket whenever it changes
-  const sig = useMemo(() => basket.map(b => `${b.code}x${b.qty}`).join(','), [basket])
+  // once, when the sheet opens: refresh the saved prices (they may be from an earlier day)
   useEffect(() => {
-    if (!basket.length) { setCompare(null); return }
+    if (!basket.length) return
     let alive = true
-    setComparing(true)
-    const id = setTimeout(async () => {
-      try {
-        const d = await askPriceServer(activeHouseholdId, user?.uid, { type: 'basket', items: basket.map(b => ({ code: b.code, qty: b.qty })) })
-        if (alive) { setCompare(d.compare || []); setPreparing(!!d.preparing); setErr('') }
-      } catch { if (alive) setErr('השרת הביתי לא ענה בזמן. בדוק שהוא פועל.') }
-      finally { if (alive) setComparing(false) }
-    }, 500)
-    return () => { alive = false; clearTimeout(id) }
+    setRefreshing(true)
+    askPriceServer(activeHouseholdId, user?.uid, { type: 'basket', items: basket.map(b => ({ code: b.code, qty: 1 })) })
+      .then(d => {
+        if (!alive) return
+        const fresh = {}
+        for (const r of d.compare || []) for (const [code, price] of Object.entries(r.prices || {})) (fresh[code] ||= {})[r.key] = price
+        setBasket(b => b.map(x => ({ ...x, prices: fresh[x.code] || {} })))
+        if (d.labels) setLabels(d.labels)
+        setPreparing(!!d.preparing)
+      })
+      .catch(() => {})
+      .finally(() => { if (alive) setRefreshing(false) })
+    return () => { alive = false }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sig, activeHouseholdId, user?.uid])
+  }, [])
 
   const add = (p) => {
-    setBasket(b => b.some(x => x.code === p.code) ? b.map(x => x.code === p.code ? { ...x, qty: x.qty + 1 } : x) : [...b, { code: p.code, name: p.name, qty: 1 }])
+    setBasket(b => b.some(x => x.code === p.code) ? b.map(x => x.code === p.code ? { ...x, qty: x.qty + 1 } : x) : [...b, { code: p.code, name: p.name, qty: 1, prices: p.prices }])
     setQ(''); setResults(null)
     document.activeElement?.blur?.()
   }
   const setQty = (code, d) => setBasket(b => b.flatMap(x => x.code !== code ? [x] : (x.qty + d <= 0 ? [] : [{ ...x, qty: Math.min(99, x.qty + d) }])))
   const remove = (code) => setBasket(b => b.filter(x => x.code !== code))
 
-  // complete baskets first (cheapest on top), then partial ones
+  // totals per branch, computed right here from the prices saved with each line
   const ranked = useMemo(() => {
-    if (!compare) return []
-    return [...compare].sort((a, b) => (a.missing.length - b.missing.length) || (a.total - b.total))
-  }, [compare])
+    const keys = Object.keys(labels).filter(k => basket.some(b => b.prices?.[k] != null))
+    return keys.map(key => {
+      let total = 0
+      const prices = {}, missing = []
+      for (const b of basket) {
+        const pr = b.prices?.[key]
+        if (pr == null) { missing.push(b.code); continue }
+        prices[b.code] = pr
+        total += pr * b.qty
+      }
+      return { key, label: labels[key], total: Math.round(total * 100) / 100, missing, prices }
+    }).sort((a, b) => (a.missing.length - b.missing.length) || (a.total - b.total))
+  }, [basket, labels])
   const complete = ranked.filter(r => r.missing.length === 0)
   const best = complete[0]
   const worst = complete.length > 1 ? complete[complete.length - 1] : null
-  const nameOf = (code) => basket.find(b => b.code === code)?.name || code
 
   const addAll = () => {
     if (!best) return
@@ -170,7 +190,7 @@ export default function BasketCompare({ onClose, onAddToList }) {
                 {basket.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text2)' }}>
-                      איפה זול יותר {comparing && <span style={{ fontWeight: 400 }}>· מחשב…</span>}
+                      איפה זול יותר {refreshing && <span style={{ fontWeight: 400 }}>· מעדכן מחירים…</span>}
                     </div>
                     {ranked.map(r => {
                       const isBest = best && r.key === best.key
@@ -203,7 +223,7 @@ export default function BasketCompare({ onClose, onAddToList }) {
                         </div>
                       )
                     })}
-                    {!ranked.length && !comparing && !err && <div style={{ fontSize: 13, color: 'var(--c-text2)' }}>אין עדיין מחירים בסניפים שבחרת.</div>}
+                    {!ranked.length && !refreshing && !err && <div style={{ fontSize: 13, color: 'var(--c-text2)' }}>אין עדיין מחירים בסניפים שבחרת.</div>}
                     <div style={{ fontSize: 12, color: 'var(--c-text2)' }}>המחירים לפי קובץ הבוקר של כל סניף, בלי מבצעי מועדון. מחיר המדף בחנות הוא הקובע.</div>
                   </div>
                 )}
@@ -214,7 +234,7 @@ export default function BasketCompare({ onClose, onAddToList }) {
           {basket.length > 0 && q.trim().length < 2 && (
             <div className="sheet-footer" style={{ padding: '10px 20px calc(10px + var(--safe-bottom))' }}>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-secondary" onClick={() => { setBasket([]); setCompare(null) }}>נקה סל</button>
+                <button className="btn btn-secondary" onClick={() => setBasket([])}>נקה סל</button>
                 <button className="btn btn-primary" style={{ flex: 1, opacity: best ? 1 : 0.45 }} disabled={!best} onClick={addAll}>
                   הוסף לרשימה לפי {best ? best.label : 'הסניף הזול'}
                 </button>
