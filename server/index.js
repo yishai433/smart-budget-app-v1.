@@ -318,7 +318,11 @@ async function runCatalog() {
     await db.doc('priceCatalog/stores').set({ stores, updatedAt: FieldValue.serverTimestamp() })
   } finally { catalogBusy = false }
 }
-const pricesStale = () => wantedKeys().some(k => { const d = loadStore(DATA_DIR, k); return !d || Date.now() - d.fetchedAt > 26 * 3600 * 1000 })
+// prices are "fresh" when they were downloaded today (Israel time); the daily refresh starts after 06:00
+const sameDay = (t) => new Date(t).toDateString() === new Date().toDateString()
+const pricesStale = () => wantedKeys().some(k => { const d = loadStore(DATA_DIR, k); return !d || !sameDay(d.fetchedAt) })
+// the "not updated today" warning in the app only after the morning refresh should already have happened
+const pricesTooOld = () => wantedKeys().some(k => { const d = loadStore(DATA_DIR, k); return !d || Date.now() - d.fetchedAt > 36 * 3600 * 1000 })
 let pricesRunning = false
 async function runPrices() {
   if (pricesRunning) return
@@ -336,7 +340,7 @@ function watchPriceLookups() {
         if (q.householdId) keys = keysOfHousehold((await db.doc(`households/${q.householdId}`).get()).data() || {})
         const results = lookup(DATA_DIR, q.barcode, keys)
         const preparing = keys.some(k => !loadStore(DATA_DIR, k))     // a newly picked branch is still downloading
-        await ch.doc.ref.update({ status: 'done', results, preparing, answeredAt: FieldValue.serverTimestamp(), stale: pricesStale() })
+        await ch.doc.ref.update({ status: 'done', results, preparing, answeredAt: FieldValue.serverTimestamp(), stale: pricesTooOld() })
       } catch (e) {
         log('חיפוש מחיר נכשל:', e.message)
         await ch.doc.ref.update({ status: 'error', error: e.message }).catch(() => {})
