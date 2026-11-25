@@ -31,6 +31,7 @@
   --c-text:          #201e1d;
   --c-text2:         #6b6255;
   --c-text3:         #a19786;
+  --c-remaining:     #8a6100;
   --c-border:        rgba(32,30,29,0.14);
   --c-sep:           rgba(32,30,29,0.09);
 
@@ -91,6 +92,7 @@
   --c-text:          #f1e7d6;
   --c-text2:         #b9ac96;
   --c-text3:         #857a69;
+  --c-remaining:     #E0B74E;
   --c-border:        rgba(241,231,214,0.14);
   --c-sep:           rgba(241,231,214,0.09);
 
