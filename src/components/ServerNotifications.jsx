@@ -69,7 +69,7 @@ export default function ServerNotifications() {
 
   return (
     <>
-      <InfoHeading tip={'כשזה דלוק, תקבל הודעה לטלפון כש: נרשמה הוצאה גדולה (לפי הסכום שבחרת), קטגוריה מתקרבת לסוף התקציב או עוברת אותו, או מגיע סיכום ההוצאות. את ההוצאות שרשמת בעצמך לא תקבל בהודעה.'}>
+      <InfoHeading tip={'כשזה דלוק, תקבל הודעה לטלפון כש: נרשמה הוצאה גדולה (לפי הסכום שבחרת), קטגוריה מתקרבת לסוף התקציב או עוברת אותו, מגיע סיכום ההוצאות, או נרשמה הוצאה קבועה אוטומטית. את ההוצאות שרשמת בעצמך לא תקבל בהודעה.'}>
         התראות מהשרת הביתי
       </InfoHeading>
       <div className="card" style={{ marginBottom: 20 }}>
@@ -118,6 +118,10 @@ export default function ServerNotifications() {
               <div className="toggle-wrap">
                 <div style={{ fontSize: 14 }}>קצב הוצאות גבוה וקטגוריה שקפצה</div>
                 <Switch checked={prefs.pace !== false} onChange={v => setPref('pace', v)} />
+              </div>
+              <div className="toggle-wrap">
+                <div style={{ fontSize: 14 }}>הוצאה קבועה שנרשמה אוטומטית</div>
+                <Switch checked={prefs.recurring !== false} onChange={v => setPref('recurring', v)} />
               </div>
               <div className="toggle-wrap">
                 <div style={{ fontSize: 14 }}>הוצאה כפולה חשודה</div>
