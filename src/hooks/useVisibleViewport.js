@@ -1,20 +1,20 @@
 import { useEffect, useState } from 'react'
 
-// The part of the screen that is actually visible: on iPhone it shrinks when the keyboard opens.
-// Updates once per frame and only when the size really changed, so the sheet doesn't jitter.
-export default function useVisibleViewport() {
-  const read = () => ({ h: Math.round(window.visualViewport?.height || window.innerHeight), top: Math.round(window.visualViewport?.offsetTop || 0) })
-  const [vv, setVv] = useState(read)
+// How tall the iPhone keyboard is right now (0 when closed). The sheet itself never resizes or moves,
+// so the search field stays put and the keyboard can't flicker; only the list/footer use this number.
+export default function useKeyboardHeight() {
+  const read = () => {
+    const v = window.visualViewport
+    return v ? Math.max(0, Math.round(window.innerHeight - v.height - v.offsetTop)) : 0
+  }
+  const [kb, setKb] = useState(read)
   useEffect(() => {
     const v = window.visualViewport
     if (!v) return
     let raf = 0
-    const sync = () => {
-      cancelAnimationFrame(raf)
-      raf = requestAnimationFrame(() => setVv(p => { const n = read(); return Math.abs(n.h - p.h) < 2 && Math.abs(n.top - p.top) < 2 ? p : n }))
-    }
+    const sync = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => setKb(p => { const n = read(); return Math.abs(n - p) < 2 ? p : n })) }
     v.addEventListener('resize', sync); v.addEventListener('scroll', sync)
     return () => { cancelAnimationFrame(raf); v.removeEventListener('resize', sync); v.removeEventListener('scroll', sync) }
   }, [])
-  return vv
+  return kb
 }

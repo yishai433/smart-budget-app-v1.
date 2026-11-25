@@ -6,7 +6,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useApp } from '../contexts/AppContext'
 import useScrollLock from '../hooks/useScrollLock'
-import useVisibleViewport from '../hooks/useVisibleViewport'
+import useKeyboardHeight from '../hooks/useVisibleViewport'
 import InfoHeading from './InfoHeading'
 
 const DEFAULTS = ['shufersal-190', 'sapir-21']
@@ -39,7 +39,7 @@ const Row = memo(function Row({ s, on, onToggle }) {
 function Picker({ catalog, selected, onSave, onClose }) {
   useScrollLock()
   const [q, setQ] = useState('')
-  const vv = useVisibleViewport()
+  const kb = useKeyboardHeight()
   const dq = useDeferredValue(q)                       // typing stays instant, the list catches up
   const [sel, setSel] = useState(() => new Set(selected))
   const initial = useRef(new Set(selected))            // order is fixed when the sheet opens, so rows don't jump on tap
@@ -57,7 +57,7 @@ function Picker({ catalog, selected, onSave, onClose }) {
     <>
       <motion.div className="sheet-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
       {/* stop the sheet at the top of the keyboard so the list stays visible while typing */}
-      <div className="sheet-viewport" style={{ top: vv.top, bottom: 'auto', height: vv.h }}>
+      <div className="sheet-viewport">
         <motion.div className="sheet" style={{ height: 'calc(100% - var(--safe-top) - 28px)' }} initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
           transition={{ type: 'tween', duration: 0.3, ease: [0.32, 0.72, 0, 1] }}>
           <div className="sheet-handle" />
@@ -79,13 +79,13 @@ function Picker({ catalog, selected, onSave, onClose }) {
               {total} סניפים{total > shown.length ? ` · מוצגים ${shown.length} הראשונים, חפש עיר כדי לצמצם` : ''}
             </div>
           </div>
-          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: '0 20px 12px' }}>
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: `0 20px ${kb + 90}px` }}>
             <div className="card-list">
               {shown.map(s => <Row key={s.k} s={s} on={sel.has(s.k)} onToggle={toggle} />)}
               {!shown.length && <div style={{ padding: 16, fontSize: 13, color: 'var(--c-text2)' }}>לא נמצאו סניפים. נסה שם עיר אחר.</div>}
             </div>
           </div>
-          <div className="sheet-footer" style={{ padding: '10px 20px calc(10px + var(--safe-bottom))' }}>
+          <div className="sheet-footer" style={{ padding: `10px 20px ${kb ? 10 : 'calc(10px + var(--safe-bottom))'}`, transform: `translateY(${-kb}px)`, position: 'relative', zIndex: 2 }}>
             <button className="btn btn-primary btn-full" disabled={!sel.size} style={{ opacity: sel.size ? 1 : 0.45 }}
               onClick={() => onSave([...sel])}>שמירה ({sel.size})</button>
           </div>
