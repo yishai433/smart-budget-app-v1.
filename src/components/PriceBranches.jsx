@@ -9,7 +9,7 @@ import useScrollLock from '../hooks/useScrollLock'
 import InfoHeading from './InfoHeading'
 
 const DEFAULTS = ['shufersal-190', 'sapir-21']
-const CHAIN = { shufersal: 'שופרסל', sapir: 'ספיר', osherad: 'אושר עד' }
+const CHAIN = { shufersal: 'שופרסל', sapir: 'ספיר', osherad: 'אושר עד', ramilevi: 'רמי לוי', yohananof: 'יוחננוף', tivtaam: 'טיב טעם', freshmarket: 'פרשמרקט', stopmarket: 'סטופ מרקט', keshet: 'קשת טעמים' }
 // Shufersal's file gives the city as a national city code (not a name). Major cities:
 const CITY_BY_CODE = {
   3000: 'ירושלים', 5000: 'תל אביב-יפו', 4000: 'חיפה', 70: 'אשדוד', 7100: 'אשקלון', 9000: 'באר שבע', 6100: 'בני ברק',
