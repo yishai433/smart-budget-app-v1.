@@ -15,7 +15,11 @@ export const STORES = {
 }
 
 // any "<chain>-<storeId>" key is a branch; its label comes from the catalog when known
-const KEY_RE = /^(shufersal|sapir)-(\d+)$/
+// chains published through Cerberus (url.publishedprices.co.il): the chain's own user name, empty password
+export const CERBERUS = {
+  osherad: { user: 'osherad', label: 'אושר עד' },
+}
+const KEY_RE = new RegExp(`^(shufersal|sapir|${Object.keys(CERBERUS).join('|')})-(\\d+)$`)
 export const validKey = (k) => KEY_RE.test(String(k || ''))
 let catalogCache = null
 function storeDef(key, dataDir) {
@@ -93,6 +97,51 @@ async function getBuf(url) {
 const gunzipText = (buf) => { try { return decodeText(zlib.gunzipSync(buf)) } catch { return decodeText(buf) } }
 const stamp = (name) => (name.match(/-(\d{8})-(\d{6})\./) || []).slice(1).join('')   // 20261125030000
 
+// ── Cerberus: log in (user name only), list the chain's files, download one ──
+const CB = 'https://url.publishedprices.co.il'
+const sessions = new Map()      // chain -> { cookie, at, files }
+async function cbFetch(chain, path, opt = {}, cookie = '') {
+  const r = await fetch(CB + path, { redirect: 'manual', signal: AbortSignal.timeout(120000), ...opt, headers: { 'user-agent': 'Mozilla/5.0 smart-budget', cookie, ...(opt.headers || {}) } })
+  return r
+}
+const cookieOf = (jar, res) => { for (const c of res.headers.getSetCookie?.() || []) { const [kv] = c.split(';'); const i = kv.indexOf('='); jar.set(kv.slice(0, i), kv.slice(i + 1)) } return [...jar].map(([k, v]) => `${k}=${v}`).join('; ') }
+const metaToken = (html) => ((html.match(/<meta[^>]*name=["']csrftoken["'][^>]*>/i) || [''])[0].match(/content\s*=\s*["']([^"']+)["']/i) || [])[1]
+async function cerberusSession(chain) {
+  const old = sessions.get(chain)
+  if (old && Date.now() - old.at < 20 * 60 * 1000) return old
+  const jar = new Map()
+  let r = await cbFetch(chain, '/login')
+  let cookie = cookieOf(jar, r)
+  const token = metaToken(await r.text())
+  if (!token) throw new Error('Cerberus: אין אסימון בדף ההתחברות')
+  r = await cbFetch(chain, '/login/user', { method: 'POST', body: new URLSearchParams({ username: CERBERUS[chain].user, password: '', csrftoken: token, r: '' }), headers: { 'content-type': 'application/x-www-form-urlencoded' } }, cookie)
+  cookie = cookieOf(jar, r)
+  if (r.status !== 302) throw new Error(`Cerberus: התחברות נכשלה (${r.status})`)
+  r = await cbFetch(chain, '/file', {}, cookie)
+  cookie = cookieOf(jar, r)
+  const t2 = metaToken(await r.text()) || token
+  r = await cbFetch(chain, '/file/json/dir', { method: 'POST', body: new URLSearchParams({ sEcho: '1', iColumns: '5', sColumns: ',,,,', iDisplayStart: '0', iDisplayLength: '100000', mDataProp_0: 'fname', sSearch: '', iSortingCols: '0', cd: '/', csrftoken: t2 }), headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-csrftoken': t2 } }, cookie)
+  const rows = JSON.parse(await r.text()).aaData || []
+  const files = rows.map(x => x.fname || x.name || x[0]).filter(Boolean).map(String)
+  if (!files.length) throw new Error('Cerberus: רשימת קבצים ריקה')
+  const sess = { cookie, at: Date.now(), files }
+  sessions.set(chain, sess)
+  return sess
+}
+const cerberusList = async (chain) => (await cerberusSession(chain)).files
+async function cerberusDownload(chain, name) {
+  const { cookie } = await cerberusSession(chain)
+  let last
+  for (let i = 0; i < 3; i++) {
+    try {
+      const r = await cbFetch(chain, '/file/d/' + encodeURIComponent(name), {}, cookie)
+      if (!r.ok) throw new Error(`HTTP ${r.status} ${name}`)
+      return Buffer.from(await r.arrayBuffer())
+    } catch (e) { last = e; await new Promise(res => setTimeout(res, 2000 * (i + 1))) }
+  }
+  throw last
+}
+
 const fetchers = {
   async shufersal(store) {
     const cats = { PriceFull: 2, PromoFull: 4 }
@@ -103,6 +152,17 @@ const fetchers = {
       if (!links.length) throw new Error(`שופרסל: אין קובץ ${kind} לסניף ${store}`)
       const name = decodeURIComponent(links[0].split('?')[0].split('/').pop())
       out[kind] = { name, text: gunzipText(await getBuf(links[0])) }
+    }
+    return out
+  },
+  async cerberus(store, chain) {
+    const out = {}
+    const files = await cerberusList(chain)
+    for (const kind of ['PriceFull', 'PromoFull']) {
+      const mine = files.filter(n => n.startsWith(kind) && new RegExp(`-0*${Number(store)}-\\d{8}-`).test(n))
+        .sort((a, b) => stamp(b).localeCompare(stamp(a)))
+      if (!mine.length) throw new Error(`${CERBERUS[chain].label}: אין קובץ ${kind} לסניף ${store}`)
+      out[kind] = { name: mine[0], text: gunzipText(await cerberusDownload(chain, mine[0])) }
     }
     return out
   },
@@ -134,7 +194,7 @@ const cache = new Map()
 export async function refreshStore(dataDir, key, log = console.log) {
   const def = storeDef(key, dataDir)
   if (!def) throw new Error('סניף לא מוכר: ' + key)
-  const files = await fetchers[def.chain](def.store)
+  const files = def.chain in CERBERUS ? await fetchers.cerberus(def.store, def.chain) : await fetchers[def.chain](def.store)
   const items = parseItems(files.PriceFull.text)
   const promos = parsePromos(files.PromoFull.text)
   const data = { key, label: def.label, chain: def.chain, store: def.store, fetchedAt: Date.now(),
@@ -190,7 +250,10 @@ export function loadCatalog(dataDir) {
   if (catalogCache) return catalogCache
   try { catalogCache = JSON.parse(fs.readFileSync(catFile(dataDir), 'utf8')).stores; return catalogCache } catch { return null }
 }
-export const catalogAge = (dataDir) => { try { return Date.now() - fs.statSync(catFile(dataDir)).mtimeMs } catch { return Infinity } }
+const CATALOG_V = 2     // bump to force every server to rebuild the branch list (new chains added)
+export const catalogAge = (dataDir) => {
+  try { if (JSON.parse(fs.readFileSync(catFile(dataDir), 'utf8')).v !== CATALOG_V) return Infinity; return Date.now() - fs.statSync(catFile(dataDir)).mtimeMs } catch { return Infinity }
+}
 
 export function parseStoreList(xml) {
   return blocks(xml, 'STORE').map(b => ({ id: tag(b, 'STOREID'), name: tag(b, 'STORENAME'), a: tag(b, 'ADDRESS'), city: tag(b, 'CITY') })).filter(x => x.id)
@@ -216,9 +279,23 @@ export async function refreshCatalog(dataDir, log = console.log) {
       out.push({ k: `sapir-${parseInt(m[1], 10)}`, c: 'sapir', n: `ספיר ${m[2].trim()}`.trim(), city: m[2].trim(), a: '' })
     }
   } catch (e) { log('קטלוג ספיר נכשל:', e.message) }
+  for (const [chain, def] of Object.entries(CERBERUS)) {
+    try {
+      const files = await cerberusList(chain)
+      const sf = files.filter(n => /^Stores/i.test(n)).sort((a, b) => stamp(b).localeCompare(stamp(a)) || b.localeCompare(a))[0]
+      if (!sf) throw new Error('אין קובץ סניפים')
+      const seen = new Set()
+      for (const x of parseStoreList(gunzipText(await cerberusDownload(chain, sf)))) {
+        const id = String(parseInt(x.id, 10))
+        if (id === 'NaN' || seen.has(id)) continue
+        seen.add(id)
+        out.push({ k: `${chain}-${id}`, c: chain, n: `${def.label} ${x.name}`.trim(), city: x.city, a: x.a })
+      }
+    } catch (e) { log(`קטלוג ${def.label} נכשל:`, e.message) }
+  }
   if (!out.length) throw new Error('לא נמצאו סניפים')
   fs.mkdirSync(dirOf(dataDir), { recursive: true })
-  fs.writeFileSync(catFile(dataDir), JSON.stringify({ stores: out, at: Date.now() }))
+  fs.writeFileSync(catFile(dataDir), JSON.stringify({ stores: out, at: Date.now(), v: CATALOG_V }))
   catalogCache = out
   log(`קטלוג סניפים עודכן: ${out.length} סניפים`)
   return out
