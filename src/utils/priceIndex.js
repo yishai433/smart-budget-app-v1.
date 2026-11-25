@@ -68,6 +68,10 @@ function tier(row, words) {
   return words.every(w => row.joined.includes(w)) ? 2 : 9
 }
 
+// Preserved/processed variants of a product (pickled cucumbers when you looked for cucumbers).
+// They still show up, but after the plain product.
+const VARIANT = /(^| )(ב?מלח|ב?חומץ|ב?סוכר|ב?ציר|ב?שמן|כבוש\S*|חמוץ|חמוצ\S*|משומר\S*|מעושן|מיובש\S*|מרוכז\S*|קפוא\S*|מוקפא\S*|מרק|סלט|ממרח|תחליף|טעם|בטעם|אבקת|אבקה|רסק|ריבת|ריבה|שימורי|שימורים)( |$)/
+
 export function searchLocal(prepared, query, limit = 30) {
   if (!prepared) return null
   const words = norm(query).split(' ').filter(Boolean)
@@ -76,7 +80,6 @@ export function searchLocal(prepared, query, limit = 30) {
   for (const row of prepared.rows) {
     const t = tier(row, words)
     if (t === 0) t0.push(row); else if (t === 1) t1.push(row); else if (t === 2) t2.push(row)
-    if (t0.length >= limit) break                 // enough perfect matches: stop early
   }
   let pool = t0
   if (pool.length < 8) pool = pool.concat(t1)
@@ -87,8 +90,11 @@ export function searchLocal(prepared, query, limit = 30) {
       const prices = {}
       let min = Infinity
       r.prices.forEach((p, i) => { if (p != null) { prices[keys[i]] = p; if (p < min) min = p } })
-      return { code: r.code, name: r.name, prices, min, n: Object.keys(prices).length, _len: r.name.length }
+      const extra = r.toks.filter(t => !words.includes(t)).length
+      // 0 = the plain product, 1 = a longer / more specific name, 2 = a processed variant
+      const group = VARIANT.test(r.joined) && !words.some(w => VARIANT.test(w)) ? 2 : extra <= 2 ? 0 : 1
+      return { code: r.code, name: r.name, prices, min, n: Object.keys(prices).length, _g: group }
     })
-    .sort((a, b) => b.n - a.n || a._len - b._len || a.min - b.min)
+    .sort((a, b) => a._g - b._g || a.min - b.min || a.name.length - b.name.length)
     .slice(0, limit)
 }
