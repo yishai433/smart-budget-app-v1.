@@ -22,10 +22,15 @@ async function tryUser(user) {
   }
   const page = await get('/login')
   const html = await page.text()
-  const token = (html.match(/name="csrftoken"[^>]*value="([^"]+)"/) || html.match(/value="([^"]+)"[^>]*name="csrftoken"/) || [])[1]
+  // the token may be a form field or a <meta> tag, in either attribute order
+  const tags = html.match(/<(input|meta|form)\b[^>]*>/gi) || []
+  const tokenTag = tags.find(t => /csrf|token/i.test(t))
+  const token = tokenTag && (tokenTag.match(/(?:value|content)\s*=\s*["']([^"']+)["']/i) || [])[1]
   log(`\n=== ${user} ===  login page ${page.status}, csrf token: ${token ? 'found' : 'MISSING'}`)
-  if (!token) { log(html.slice(0, 300)); return }
-  const body = new URLSearchParams({ username: user, password: '', csrftoken: token, r: '' })
+  if (!token || process.argv[3] === 'debug') { log('form fields on the page:'); tags.filter(t => !/viewport|charset|http-equiv/i.test(t)).forEach(t => log('  ' + t.replace(/\s+/g, ' ').slice(0, 200))) }
+  if (!token) return
+  const tokenName = ((tokenTag.match(/(?:name|id)\s*=\s*["']([^"']+)["']/i) || [])[1]) || 'csrftoken'
+  const body = new URLSearchParams({ username: user, password: '', [tokenName]: token, r: '' })
   const login = await get('/login/user', { method: 'POST', body, headers: { 'content-type': 'application/x-www-form-urlencoded' } })
   log(`login POST: ${login.status} -> ${login.headers.get('location') || '(no redirect)'}`)
   const list = await get('/file/json/dir', {
