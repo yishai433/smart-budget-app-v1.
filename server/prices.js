@@ -229,7 +229,7 @@ export async function refreshAll(dataDir, log = console.log, keys = Object.keys(
 }
 
 // barcodes may be stored without a leading zero (EAN-13 vs UPC) — try both
-const variants = (c) => [...new Set([c, c.replace(/^0+/, ''), c.padStart(13, '0')])]
+const variants = (c) => { const u = c.replace(/^0+/, ''); return [...new Set([c, u, u.padStart(12, '0'), u.padStart(13, '0'), u.padStart(14, '0')])] }
 
 export function lookup(dataDir, barcode, keys = Object.keys(STORES), now = new Date()) {
   const code = String(barcode || '').replace(/\D/g, '')
@@ -304,5 +304,59 @@ export async function refreshCatalog(dataDir, log = console.log) {
   fs.writeFileSync(catFile(dataDir), JSON.stringify({ stores: out, at: Date.now(), v: CATALOG_V }))
   catalogCache = out
   log(`קטלוג סניפים עודכן: ${out.length} סניפים`)
+  return out
+}
+
+
+// ── product search by name + basket comparison across the chosen branches ──
+const norm = (t) => String(t || '').toLowerCase().replace(/["'`׳״]/g, '').replace(/[-–_.,/()]/g, ' ').replace(/\s+/g, ' ').trim()
+const unzero = (c) => String(c).replace(/^0+/, '')
+const normCache = new WeakMap()
+function normIndex(d) {
+  let idx = normCache.get(d)
+  if (!idx) { idx = Object.entries(d.items).map(([code, v]) => [code, norm(v[0])]); normCache.set(d, idx) }
+  return idx
+}
+const findItem = (d, code) => { const v = variants(String(code)).find(x => d.items[x]); return v ? d.items[v] : null }
+
+// products whose name contains every word of the query; one row per barcode, with each branch's price
+export function searchProducts(dataDir, query, keys, limit = 25) {
+  const words = norm(query).split(' ').filter(Boolean)
+  if (!words.length) return []
+  const found = new Map()      // unzero(code) -> { code, name, prices: {key: price} }
+  for (const key of keys) {
+    const d = loadStore(dataDir, key)
+    if (!d) continue
+    for (const [code, n] of normIndex(d)) {
+      if (!words.every(w => n.includes(w))) continue
+      const u = unzero(code)
+      let row = found.get(u)
+      if (!row) { row = { code: u, name: d.items[code][0], unit: d.items[code][2] || '', prices: {} }; found.set(u, row) }
+      row.prices[key] = d.items[code][1]
+    }
+  }
+  return [...found.values()]
+    .map(r => ({ ...r, n: Object.keys(r.prices).length, min: Math.min(...Object.values(r.prices)) }))
+    .sort((a, b) => b.n - a.n || a.name.length - b.name.length)
+    .slice(0, limit)
+    .map(({ code, name, unit, prices, min }) => ({ code, name, unit, prices, min }))
+}
+
+// items: [{ code, qty }] -> one total per branch, plus what that branch is missing
+export function compareBasket(dataDir, items, keys) {
+  const out = []
+  for (const key of keys) {
+    const d = loadStore(dataDir, key)
+    if (!d) continue
+    let total = 0
+    const prices = {}, missing = []
+    for (const it of items) {
+      const hit = findItem(d, it.code)
+      if (!hit) { missing.push(it.code); continue }
+      prices[it.code] = hit[1]
+      total += hit[1] * (it.qty || 1)
+    }
+    out.push({ key, chain: d.chain, label: d.label, total: Math.round(total * 100) / 100, found: items.length - missing.length, missing, prices })
+  }
   return out
 }

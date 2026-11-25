@@ -4,8 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '../../contexts/AppContext'
 import useScrollLock from '../../hooks/useScrollLock'
 import useDelayedFocus from '../../hooks/useDelayedFocus'
-import { X, Check, Plus, ScanLine } from 'lucide-react'
+import { X, Check, Plus, ScanLine, Scale } from 'lucide-react'
 import BarcodeSheet from './BarcodeSheet'
+import BasketCompare from './BasketCompare'
 import { formatAmount } from '../../utils/format'
 
 export const SHOP_CATS = ['produce','dairy','meat','bakery','frozen','drinks','cleaning','personal','other']
@@ -102,6 +103,7 @@ export default function ShoppingList({ onCheckout }) {
   const { shoppingItems, updateShoppingItem, deleteShoppingItem, addShoppingItem, settings } = useApp()
   const [editing, setEditing] = useState(null)
   const [scanning, setScanning] = useState(false)
+  const [comparing, setComparing] = useState(false)
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
   const cur = settings.currency
@@ -150,6 +152,13 @@ export default function ShoppingList({ onCheckout }) {
           <Plus size={22} strokeWidth={2.4} />
         </button>
       </form>
+      <button type="button" onClick={() => setComparing(true)} style={{
+        margin: '10px 16px 0', width: 'calc(100% - 32px)', height: 46, borderRadius: 14, border: '1px solid var(--c-border)',
+        background: 'var(--c-card)', color: 'var(--c-primary)', fontFamily: 'inherit', fontSize: 14, fontWeight: 600,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer',
+      }}>
+        <Scale size={18} strokeWidth={2.2} /> השוואת מחירי סל בין סניפים
+      </button>
 
       <div style={{ padding: '20px 20px 8px', fontSize: 13, fontWeight: 700, color: 'var(--c-text2)' }}>
         לקנות ({toBuy.length})
@@ -232,6 +241,17 @@ export default function ShoppingList({ onCheckout }) {
         )}
       </div>
 
+      <AnimatePresence>
+        {comparing && (
+          <BasketCompare onClose={() => setComparing(false)}
+            onAddToList={async (items) => {
+              for (const it of items) {
+                await addShoppingItem({ name: it.name, quantity: it.qty, estimatedPrice: it.price, category: 'other', otherLabel: '', checked: false })
+              }
+              window.dispatchEvent(new CustomEvent('sb-toast', { detail: `${items.length} מוצרים נוספו לרשימה` }))
+            }} />
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {scanning && <BarcodeSheet onClose={() => setScanning(false)} />}
       </AnimatePresence>

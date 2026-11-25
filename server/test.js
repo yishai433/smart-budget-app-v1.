@@ -135,3 +135,24 @@ assert.ok(validKey('osherad-12') && validKey('shufersal-190') && !validKey('oshe
 const cb = parseStoreList('<Root><SubChains><SubChain><Stores><Store><StoreId>12</StoreId><StoreName>קרית שמונה</StoreName><Address>הרצל 1</Address><City>קרית שמונה</City></Store></Stores></SubChain></SubChains></Root>')
 assert.equal(cb[0].id, '12'); assert.equal(cb[0].city, 'קרית שמונה')
 console.log('Cerberus: בדיקות עברו')
+
+// product search + basket comparison
+import { searchProducts, compareBasket } from './prices.js'
+import fs2 from 'node:fs'
+import os2 from 'node:os'
+import path2 from 'node:path'
+{
+  const dir = fs2.mkdtempSync(path2.join(os2.tmpdir(), 'pr-'))
+  fs2.mkdirSync(path2.join(dir, 'prices'))
+  const mk = (key, label, items) => fs2.writeFileSync(path2.join(dir, 'prices', key + '.json'), JSON.stringify({ key, label, chain: 'x', store: '1', fetchedAt: Date.now(), items, promos: {} }))
+  mk('shufersal-1', 'שופרסל א', { '7290000000011': ['חלב תנובה 3% 1 ליטר', 6.9, ''], '7290000000028': ['לחם אחיד פרוס', 8, ''] })
+  mk('sapir-1', 'ספיר ב', { '07290000000011': ['חלב תנובה 3%', 6.5, ''], '7290000000035': ['חלב טרה 3%', 5.9, ''] })
+  const r = searchProducts(dir, "חלב 3%", ['shufersal-1', 'sapir-1'])
+  assert.equal(r[0].code, '7290000000011')                  // leading zero unified, sold in both
+  assert.equal(Object.keys(r[0].prices).length, 2)
+  assert.equal(r.length, 2)
+  const c = compareBasket(dir, [{ code: '7290000000011', qty: 2 }, { code: '7290000000028', qty: 1 }], ['shufersal-1', 'sapir-1'])
+  assert.equal(c[0].total, 21.8); assert.equal(c[0].missing.length, 0)
+  assert.equal(c[1].total, 13); assert.deepEqual(c[1].missing, ['7290000000028'])
+  console.log('חיפוש וסל: בדיקות עברו')
+}
