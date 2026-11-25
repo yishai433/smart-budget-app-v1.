@@ -64,9 +64,19 @@ export function parsePromos(xml, now = new Date()) {
 
 // ── downloading ──
 async function getBuf(url) {
-  const r = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 smart-budget' } })
-  if (!r.ok) throw new Error(`HTTP ${r.status} ${url.split('?')[0]}`)
-  return Buffer.from(await r.arrayBuffer())
+  let last
+  for (let i = 0; i < 3; i++) {
+    try {
+      const r = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 smart-budget' }, signal: AbortSignal.timeout(120000) })
+      if (!r.ok) throw new Error(`HTTP ${r.status} ${url.split('?')[0]}`)
+      return Buffer.from(await r.arrayBuffer())
+    } catch (e) {
+      const c = e.cause ? ` (${e.cause.code || e.cause.message})` : ''
+      last = new Error(`${e.message}${c} ${url.split('?')[0]}`)
+      await new Promise(r => setTimeout(r, 2000 * (i + 1)))
+    }
+  }
+  throw last
 }
 const gunzipText = (buf) => { try { return decodeText(zlib.gunzipSync(buf)) } catch { return decodeText(buf) } }
 const stamp = (name) => (name.match(/-(\d{8})-(\d{6})\./) || []).slice(1).join('')   // 20261125030000
@@ -129,8 +139,13 @@ export function loadStore(dataDir, key) {
   try { const d = JSON.parse(fs.readFileSync(fileOf(dataDir, key), 'utf8')); cache.set(key, d); return d } catch { return null }
 }
 
+const lastTry = new Map()
 export async function refreshAll(dataDir, log = console.log, keys = Object.keys(STORES)) {
   for (const k of keys) {
+    const d = loadStore(dataDir, k)
+    if (d && Date.now() - d.fetchedAt < 26 * 3600 * 1000) continue          // already fresh
+    if (Date.now() - (lastTry.get(k) || 0) < 10 * 60 * 1000) continue       // failed recently: wait 10 min
+    lastTry.set(k, Date.now())
     try { await refreshStore(dataDir, k, log) } catch (e) { log('עדכון מחירים נכשל:', k, e.message) }
   }
 }
