@@ -11,6 +11,28 @@ import { formatAmount } from '../../utils/format'
 const ZXING = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/+esm'
 const FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e']
 
+// The camera is requested once and kept for a few minutes after the scanner closes, so reopening it
+// doesn't trigger the iOS permission prompt again. Each use gets a clone, so stopping a scan never kills it.
+let shared = null          // { stream, timer }
+const KEEP_MS = 3 * 60 * 1000
+async function acquireCamera() {
+  if (shared) {
+    clearTimeout(shared.timer)
+    const t = shared.stream.getVideoTracks()[0]
+    if (t && t.readyState === 'live') return shared.stream.clone()
+    shared = null
+  }
+  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
+  shared = { stream, timer: 0 }
+  return stream.clone()
+}
+function releaseCamera() {
+  if (!shared) return
+  clearTimeout(shared.timer)
+  const mine = shared
+  shared.timer = setTimeout(() => { mine.stream.getTracks().forEach(t => t.stop()); if (shared === mine) shared = null }, KEEP_MS)
+}
+
 function promoText(p, cur) {
   const price = p.price ? `${p.minQty > 1 ? `${p.minQty} ב-` : 'ב-'}${formatAmount(p.price, cur)}` : p.rate ? `${p.rate}% הנחה` : ''
   return `${p.text || 'מבצע'}${price && !(p.text || '').includes(String(p.price)) ? ` · ${price}` : ''}${p.club ? ' · למועדון' : ''}`
@@ -46,8 +68,8 @@ export default function BarcodeSheet({ onClose }) {
         if (!navigator.mediaDevices?.getUserMedia) throw new Error('no-camera')
         if ('BarcodeDetector' in window) {
           const det = new window.BarcodeDetector({ formats: FORMATS })
-          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
-          if (stopped) { stream.getTracks().forEach(t => t.stop()); return }
+          const stream = await acquireCamera()
+          if (stopped) { stream.getTracks().forEach(t => t.stop()); releaseCamera(); return }
           videoRef.current.srcObject = stream
           await videoRef.current.play().catch(() => {})
           stopRef.current = () => stream.getTracks().forEach(t => t.stop())
@@ -61,15 +83,16 @@ export default function BarcodeSheet({ onClose }) {
           // Safari/iPhone has no BarcodeDetector: load a decoder library on demand
           const { BrowserMultiFormatReader } = await import(/* @vite-ignore */ ZXING)
           const reader = new BrowserMultiFormatReader()
-          stopRef.current = () => reader.reset()
-          await reader.decodeFromConstraints({ video: { facingMode: { ideal: 'environment' } }, audio: false }, videoRef.current,
-            (res) => { if (res) handle(res.getText()) })
+          const stream = await acquireCamera()
+          if (stopped) { stream.getTracks().forEach(t => t.stop()); releaseCamera(); return }
+          stopRef.current = () => { try { reader.reset() } catch { /* ignore */ } stream.getTracks().forEach(t => t.stop()) }
+          await reader.decodeFromStream(stream, videoRef.current, (res) => { if (res) handle(res.getText()) })
         }
       } catch (e) {
         setCameraMsg(e?.name === 'NotAllowedError' ? 'אין הרשאה למצלמה. אפשר להקליד את הברקוד.' : 'לא הצלחנו לפתוח את המצלמה. אפשר להקליד את הברקוד.')
       }
     })()
-    return () => { stopped = true; try { stopRef.current() } catch { /* ignore */ } }
+    return () => { stopped = true; try { stopRef.current() } catch { /* ignore */ } releaseCamera() }
   }, [stage])
 
   // ── ask the home server ──
@@ -77,6 +100,7 @@ export default function BarcodeSheet({ onClose }) {
     const clean = String(code).replace(/\D/g, '')
     if (clean.length < 6) { busy.current = false; return }
     try { stopRef.current() } catch { /* ignore */ }
+    releaseCamera()
     setBarcode(clean); setStage('looking')
     try {
       const ref = await addDoc(collection(db, 'priceLookups'), {
