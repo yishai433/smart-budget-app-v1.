@@ -319,25 +319,39 @@ function normIndex(d) {
 }
 const findItem = (d, code) => { const v = variants(String(code)).find(x => d.items[x]); return v ? d.items[v] : null }
 
-// products whose name contains every word of the query; one row per barcode, with each branch's price
+// Relevance: 0 = the name STARTS with the searched word(s) ("חלב 3%" for "חלב"),
+// 1 = the word is a whole word elsewhere in the name ("ריבת חלב"), 2 = only part of a longer word ("חלבון").
+function tierOf(name, words) {
+  const toks = norm(name).split(' ')
+  if (!words.every(w => toks.includes(w))) return words.every(w => norm(name).includes(w)) ? 2 : 9
+  return toks[0] === words[0] ? 0 : 1
+}
+
 export function searchProducts(dataDir, query, keys, limit = 25) {
   const words = norm(query).split(' ').filter(Boolean)
   if (!words.length) return []
-  const found = new Map()      // unzero(code) -> { code, name, prices: {key: price} }
+  const found = new Map()      // unzero(code) -> { code, name, prices: {key: price}, tier }
   for (const key of keys) {
     const d = loadStore(dataDir, key)
     if (!d) continue
     for (const [code, n] of normIndex(d)) {
       if (!words.every(w => n.includes(w))) continue
       const u = unzero(code)
+      const name = d.items[code][0]
       let row = found.get(u)
-      if (!row) { row = { code: u, name: d.items[code][0], unit: d.items[code][2] || '', prices: {} }; found.set(u, row) }
+      if (!row) { row = { code: u, name, unit: d.items[code][2] || '', prices: {}, tier: 9 }; found.set(u, row) }
+      row.tier = Math.min(row.tier, tierOf(name, words))
       row.prices[key] = d.items[code][1]
     }
   }
-  return [...found.values()]
-    .map(r => ({ ...r, n: Object.keys(r.prices).length, min: Math.min(...Object.values(r.prices)) }))
-    .sort((a, b) => b.n - a.n || a.name.length - b.name.length)
+  const rows = [...found.values()].map(r => ({ ...r, n: Object.keys(r.prices).length, min: Math.min(...Object.values(r.prices)) }))
+  // start with the best matches; only reach for weaker ones when there are too few
+  const t0 = rows.filter(r => r.tier === 0), t1 = rows.filter(r => r.tier === 1), t2 = rows.filter(r => r.tier === 2)
+  let pool = t0
+  if (pool.length < 6) pool = pool.concat(t1)
+  if (pool.length < 3) pool = pool.concat(t2)
+  return pool
+    .sort((a, b) => a.tier - b.tier || b.n - a.n || a.name.length - b.name.length)
     .slice(0, limit)
     .map(({ code, name, unit, prices, min }) => ({ code, name, unit, prices, min }))
 }

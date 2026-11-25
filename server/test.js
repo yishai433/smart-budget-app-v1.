@@ -154,5 +154,14 @@ import path2 from 'node:path'
   const c = compareBasket(dir, [{ code: '7290000000011', qty: 2 }, { code: '7290000000028', qty: 1 }], ['shufersal-1', 'sapir-1'])
   assert.equal(c[0].total, 21.8); assert.equal(c[0].missing.length, 0)
   assert.equal(c[1].total, 13); assert.deepEqual(c[1].missing, ['7290000000028'])
+  // relevance: plain milk first, "ריבת חלב" / protein bars only when there is too little else
+  mk('shufersal-2', 'שופרסל ב', {
+    '1': ['חלב 3% 1 ליטר', 6.9, ''], '2': ['חלב שקדים 1 ליטר', 12, ''], '3': ['ריבת חלב טילון', 9, ''], '4': ['מטרנה אבקת חלב', 40, ''],
+    '5': ['חלב טרי 1% 1 ליטר', 6.5, ''], '6': ['חלב מועשר 3%', 7, ''], '7': ['חלב סויה', 11, ''], '8': ['חלב עיזים', 15, ''], '9': ['חלב עמיד 3%', 5, ''], '10': ['שוקולית חלב', 4, ''],
+  })
+  const m = searchProducts(dir, 'חלב', ['shufersal-2'])
+  assert.ok(m.every(x => !/ריבת|מטרנה|שוקולית/.test(x.name)), 'weak matches are hidden when there are enough good ones')
+  assert.equal(m[0].name.startsWith('חלב'), true)
+  assert.equal(searchProducts(dir, 'טילון', ['shufersal-2'])[0].name, 'ריבת חלב טילון')   // asking for a brand still finds it
   console.log('חיפוש וסל: בדיקות עברו')
 }
