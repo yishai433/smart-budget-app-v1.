@@ -9,6 +9,7 @@ import {
   weeklySummary, monthlySummary, paceWarning, categoryJumps, findDuplicate,
   monthLabelHe, prevMonthKey, isShabbat,
 } from './logic.js'
+import { getDueRecurring } from './recurring.js'
 
 const KEY_FILE = process.env.GOOGLE_APPLICATION_CREDENTIALS || '/run/secrets/firebase.json'
 const DATA_DIR = process.env.DATA_DIR || './data'
@@ -238,7 +239,42 @@ async function runDaily(now) {
   })
 }
 
+// ── recurring expenses: book occurrences whose date has arrived ──
+// Same logic as the app (server/recurring.js is a copy of src/utils/recurring.js)
+// and the same deterministic ids, so an app that opens at the same moment
+// cannot create a duplicate.
+async function runRecurring() {
+  const snap = await db.collection('transactions').where('isRecurring', '==', true).get()
+  const byHousehold = new Map()
+  snap.docs.forEach(d => {
+    const t = { id: d.id, ...d.data() }
+    if (!t.householdId) return
+    if (!byHousehold.has(t.householdId)) byHousehold.set(t.householdId, [])
+    byHousehold.get(t.householdId).push(t)
+  })
+  let booked = 0
+  for (const [hid, txs] of byHousehold) {
+    try {
+      const hh = (await db.doc(`households/${hid}`).get()).data() || {}
+      if (hh.recurringOff) continue
+      const due = getDueRecurring(txs, new Date(), { stopped: hh.recurringStopped || {}, skipped: hh.recurringSkipped || {} })
+      for (const { id, data } of due) {
+        try {
+          await db.doc(`transactions/${id}`).create({ ...data, householdId: hid, createdAt: FieldValue.serverTimestamp() })
+          booked++
+        } catch (e) { if (e.code !== 6) log('רישום הוצאה קבועה נכשל:', id, e.message) } // 6 = already exists
+      }
+    } catch (e) { log('הוצאות קבועות, משק בית', hid, e.message) }
+  }
+  if (booked) log(`נרשמו ${booked} הוצאות קבועות`)
+}
+let lastRecurring = 0
+
 function tick() {
+  if (Date.now() - lastRecurring > 60 * 60 * 1000) {
+    lastRecurring = Date.now()
+    runRecurring().catch(e => log('הוצאות קבועות נכשלו:', e.message))
+  }
   const now = new Date()
   if (SKIP_SHABBAT && isShabbat(now)) return
   const h = now.getHours(), today = dayStr(now)

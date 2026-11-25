@@ -58,6 +58,7 @@ export default function AddTransaction({ onClose }) {
   const [date, setDate] = useState(() => localDate())
   const [isRecurring, setIsRecurring] = useState(false)
   const [frequency, setFrequency] = useState('monthly')
+  const [interval, setIntervalN] = useState('1')
   const [otherNote, setOtherNote] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -114,12 +115,13 @@ export default function AddTransaction({ onClose }) {
         date,
         isRecurring,
         frequency: isRecurring ? frequency : null,
+        ...(isRecurring ? { interval: Math.max(1, Math.min(365, parseInt(interval, 10) || 1)) } : {}),
         ...(splitEnabled && type === 'expense' ? { paidBy, scope: personal ? 'personal' : 'shared' } : {}),
       })
       if (addAnother === true) {
         // keep the sheet open for the next one; date and type stay
         setAmountStr(''); setDescription(''); setCategory(''); setOtherNote('')
-        setIsRecurring(false); setPersonal(false); setAutoPicked(false); categoryTouched.current = false
+        setIsRecurring(false); setIntervalN('1'); setPersonal(false); setAutoPicked(false); categoryTouched.current = false
         window.dispatchEvent(new CustomEvent('sb-toast', { detail: he ? '✅ נשמר, אפשר להוסיף עוד' : '✅ Saved, add another' }))
         setTimeout(() => amountRef.current?.focus({ preventScroll: true }), 50)
       } else if (settings.receiptsEnabled && isPro) {
@@ -361,6 +363,20 @@ export default function AddTransaction({ onClose }) {
                         {t(`transaction.${f}`)}
                       </button>
                     ))}
+                  </div>
+                </div>
+                <div className="input-group" style={{ marginBottom: 0, marginTop: 12 }}>
+                  <label className="input-label">{he ? 'כל כמה זמן' : 'Repeat every'}</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <input
+                      className="input-field" type="number" inputMode="numeric" min="1" max="365"
+                      value={interval} onChange={e => setIntervalN(e.target.value.replace(/[^0-9]/g, ''))}
+                      onBlur={() => { if (!(parseInt(interval, 10) >= 1)) setIntervalN('1') }}
+                      style={{ width: 80, textAlign: 'center', fontWeight: 700 }} aria-label={he ? 'כל כמה' : 'Every'}
+                    />
+                    <span style={{ fontSize: 14, color: 'var(--c-text2)' }}>
+                      {{ daily: he ? 'ימים' : 'days', weekly: he ? 'שבועות' : 'weeks', monthly: he ? 'חודשים' : 'months', yearly: he ? 'שנים' : 'years' }[frequency]}
+                    </span>
                   </div>
                 </div>
               </motion.div>
