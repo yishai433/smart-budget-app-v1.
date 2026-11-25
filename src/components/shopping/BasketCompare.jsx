@@ -55,15 +55,7 @@ export default function BasketCompare({ onClose, onAddToList }) {
   const lastResults = useRef([])                 // previous server answer, filtered locally while the next one loads
 
   const kb = useKeyboardHeight()
-  // Like native apps: dragging the results closes the keyboard, so the whole list is visible and scrolls normally.
-  // (With the keyboard open, iOS pans the page instead of scrolling the list.)
   const inputRef = useRef(null)
-  const touchY = useRef(null)
-  const onListTouchStart = (e) => { touchY.current = e.touches[0]?.clientY ?? null }
-  const onListTouchMove = (e) => {
-    if (touchY.current == null || document.activeElement !== inputRef.current) return
-    if (Math.abs((e.touches[0]?.clientY ?? 0) - touchY.current) > 8) { touchY.current = null; inputRef.current?.blur() }
-  }
 
   useEffect(() => { try { localStorage.setItem(storeKey, JSON.stringify({ lines: basket, labels })) } catch { /* private mode */ } }, [basket, labels, storeKey])
 
@@ -167,7 +159,7 @@ export default function BasketCompare({ onClose, onAddToList }) {
   return createPortal((
     <>
       <motion.div className="sheet-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
-      <div className="sheet-viewport">
+      <div className="sheet-viewport" style={{ bottom: kb }}>
         <motion.div className="sheet" style={{ height: 'calc(100% - var(--safe-top) - 28px)' }}
           initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'tween', duration: 0.3, ease: [0.32, 0.72, 0, 1] }}>
           <div className="sheet-handle" />
@@ -187,7 +179,7 @@ export default function BasketCompare({ onClose, onAddToList }) {
             </div>
             {q.trim().length >= 2 && results?.length > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 12, color: 'var(--c-text2)' }}>
-                <span style={{ flex: 1 }}>נמצאו {results.length} מוצרים{results.length > 3 ? ' · גרור את הרשימה לראות עוד' : ''}</span>
+                <span style={{ flex: 1 }}>נמצאו {results.length} מוצרים{results.length > 3 ? ' · גלול למטה לעוד' : ''}</span>
                 {kb > 0 && (
                   <button onClick={() => document.activeElement?.blur?.()} className="btn btn-secondary"
                     style={{ padding: '5px 10px', fontSize: 12, minHeight: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -198,8 +190,7 @@ export default function BasketCompare({ onClose, onAddToList }) {
             )}
           </div>
 
-          <div onTouchStart={onListTouchStart} onTouchMove={onListTouchMove}
-            style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: `0 20px ${kb + 90}px`, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', alignContent: 'start', gap: 14 }}>
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: `0 20px ${kb ? 24 : 90}px`, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', alignContent: 'start', gap: 14 }}>
             {err && <div style={{ fontSize: 13, color: 'var(--c-danger, #b3261e)' }}>{err}</div>}
             {preparing && <div style={{ fontSize: 12, color: 'var(--c-text2)' }}>מחירי חלק מהסניפים שבחרת עדיין נטענים בשרת. התוצאות יתעדכנו בעוד כדקה.</div>}
 
@@ -280,7 +271,7 @@ export default function BasketCompare({ onClose, onAddToList }) {
           </div>
 
           {basket.length > 0 && q.trim().length < 2 && (
-            <div className="sheet-footer" style={{ padding: `10px 20px ${kb ? 10 : 'calc(10px + var(--safe-bottom))'}`, transform: `translateY(${-kb}px)`, position: 'relative', zIndex: 2 }}>
+            <div className="sheet-footer" style={{ padding: `10px 20px ${kb ? 10 : 'calc(10px + var(--safe-bottom))'}`, position: 'relative', zIndex: 2 }}>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="btn btn-secondary" onClick={() => setBasket([])}>נקה סל</button>
                 <button className="btn btn-primary" style={{ flex: 1, opacity: best ? 1 : 0.45 }} disabled={!best} onClick={addAll}>
