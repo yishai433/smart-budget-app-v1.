@@ -10,7 +10,7 @@ import {
   monthLabelHe, prevMonthKey, isShabbat,
 } from './logic.js'
 import { getDueRecurring } from './recurring.js'
-import { STORES, refreshAll, lookup, loadStore, validKey, refreshCatalog, loadCatalog, catalogAge } from './prices.js'
+import { STORES, refreshAll, lookup, loadStore, validKey, refreshCatalog, loadCatalog, catalogAge, searchProducts, compareBasket } from './prices.js'
 
 const KEY_FILE = process.env.GOOGLE_APPLICATION_CREDENTIALS || '/run/secrets/firebase.json'
 const DATA_DIR = process.env.DATA_DIR || './data'
@@ -338,6 +338,13 @@ function watchPriceLookups() {
       try {
         let keys = PRICE_KEYS
         if (q.householdId) keys = keysOfHousehold((await db.doc(`households/${q.householdId}`).get()).data() || {})
+        if (q.type === 'search' || q.type === 'basket') {
+          const have = keys.filter(k => loadStore(DATA_DIR, k))
+          const base = { status: 'done', preparing: have.length < keys.length, branches: have.length, answeredAt: FieldValue.serverTimestamp() }
+          if (q.type === 'search') await ch.doc.ref.update({ ...base, products: searchProducts(DATA_DIR, String(q.q || '').slice(0, 60), have) })
+          else await ch.doc.ref.update({ ...base, compare: compareBasket(DATA_DIR, (q.items || []).slice(0, 60).map(i => ({ code: String(i.code), qty: Math.max(1, Math.min(99, Number(i.qty) || 1)) })), have) })
+          return
+        }
         const results = lookup(DATA_DIR, q.barcode, keys)
         const preparing = keys.some(k => !loadStore(DATA_DIR, k))     // a newly picked branch is still downloading
         await ch.doc.ref.update({ status: 'done', results, preparing, answeredAt: FieldValue.serverTimestamp(), stale: pricesTooOld() })
