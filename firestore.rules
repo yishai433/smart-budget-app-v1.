@@ -46,6 +46,12 @@ service cloud.firestore {
       allow write: if isSignedIn() && request.auth.uid == uid;
     }
 
+    // Push-notification devices and preferences: private to the owner. The home
+    // server reads them with its admin key, which bypasses these rules.
+    match /pushTokens/{uid} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+    }
+
     // One-time invite codes. A code can be fetched only by its exact id (so it
     // works like a password) and never listed. Redeeming marks it as used.
     match /invites/{code} {

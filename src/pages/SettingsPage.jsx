@@ -14,6 +14,7 @@ import { monthLabel } from '../utils/months'
 import { buildSeries } from '../utils/recurring'
 import { createInviteCode, redeemInviteCode } from '../utils/invites'
 import ActivityRows from '../components/budget/ActivityRows'
+import ServerNotifications from '../components/ServerNotifications'
 
 function SettingRow({ icon, label, subtitle, right, onClick, danger }) {
   return (
@@ -364,6 +365,8 @@ export default function SettingsPage() {
             </AnimatePresence>
           </div>
         </div>
+
+        <ServerNotifications />
 
         {/* Shared Household */}
         <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text2)', padding: '0 4px 8px', letterSpacing: 0.5, textTransform: 'uppercase' }}>

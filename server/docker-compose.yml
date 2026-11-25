@@ -1,0 +1,17 @@
+services:
+  budget-server:
+    build: .
+    container_name: smart-budget-server
+    restart: unless-stopped          # עולה מחדש לבד אחרי הפסקת חשמל / ריסטארט
+    environment:
+      TZ: Asia/Jerusalem
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/firebase.json
+      APP_URL: https://yishai433.github.io/smart-budget-app-v1./
+      UNUSUAL_MIN: "150"             # לא מסמנים הוצאה כחריגה מתחת לסכום הזה
+      UNUSUAL_RATIO: "3"             # חריגה = פי 3 (ויותר) מהסכום הרגיל בקטגוריה
+    volumes:
+      - ./firebase-key.json:/run/secrets/firebase.json:ro
+      - ./data:/app/data
+    logging:
+      driver: json-file
+      options: { max-size: "5m", max-file: "3" }
