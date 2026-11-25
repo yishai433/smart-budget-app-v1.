@@ -55,6 +55,15 @@ export default function BasketCompare({ onClose, onAddToList }) {
   const lastResults = useRef([])                 // previous server answer, filtered locally while the next one loads
 
   const kb = useKeyboardHeight()
+  // Like native apps: dragging the results closes the keyboard, so the whole list is visible and scrolls normally.
+  // (With the keyboard open, iOS pans the page instead of scrolling the list.)
+  const inputRef = useRef(null)
+  const touchY = useRef(null)
+  const onListTouchStart = (e) => { touchY.current = e.touches[0]?.clientY ?? null }
+  const onListTouchMove = (e) => {
+    if (touchY.current == null || document.activeElement !== inputRef.current) return
+    if (Math.abs((e.touches[0]?.clientY ?? 0) - touchY.current) > 8) { touchY.current = null; inputRef.current?.blur() }
+  }
 
   useEffect(() => { try { localStorage.setItem(storeKey, JSON.stringify({ lines: basket, labels })) } catch { /* private mode */ } }, [basket, labels, storeKey])
 
@@ -170,7 +179,7 @@ export default function BasketCompare({ onClose, onAddToList }) {
           <div style={{ padding: '0 20px 10px', flexShrink: 0 }}>
             <div style={{ position: 'relative' }}>
               <Search size={16} style={{ position: 'absolute', insetInlineStart: 14, top: 15, color: 'var(--c-text2)' }} />
-              <input className="input-field" style={{ paddingInlineStart: 40 }} placeholder="הוסף מוצר, למשל חלב"
+              <input ref={inputRef} className="input-field" style={{ paddingInlineStart: 40 }} placeholder="הוסף מוצר, למשל חלב"
                 name="basket-product" autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
                 inputMode="search" enterKeyHint="search" data-form-type="other" data-lpignore="true" data-no-refocus="1"
                 value={q} onChange={e => setQ(e.target.value)}
@@ -178,7 +187,7 @@ export default function BasketCompare({ onClose, onAddToList }) {
             </div>
             {q.trim().length >= 2 && results?.length > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 12, color: 'var(--c-text2)' }}>
-                <span style={{ flex: 1 }}>נמצאו {results.length} מוצרים{results.length > 3 ? ' · גלול למטה לעוד' : ''}</span>
+                <span style={{ flex: 1 }}>נמצאו {results.length} מוצרים{results.length > 3 ? ' · גרור את הרשימה לראות עוד' : ''}</span>
                 {kb > 0 && (
                   <button onClick={() => document.activeElement?.blur?.()} className="btn btn-secondary"
                     style={{ padding: '5px 10px', fontSize: 12, minHeight: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -189,7 +198,8 @@ export default function BasketCompare({ onClose, onAddToList }) {
             )}
           </div>
 
-          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: `0 20px ${kb + 90}px`, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', alignContent: 'start', gap: 14 }}>
+          <div onTouchStart={onListTouchStart} onTouchMove={onListTouchMove}
+            style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: `0 20px ${kb + 90}px`, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', alignContent: 'start', gap: 14 }}>
             {err && <div style={{ fontSize: 13, color: 'var(--c-danger, #b3261e)' }}>{err}</div>}
             {preparing && <div style={{ fontSize: 12, color: 'var(--c-text2)' }}>מחירי חלק מהסניפים שבחרת עדיין נטענים בשרת. התוצאות יתעדכנו בעוד כדקה.</div>}
 
