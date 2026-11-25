@@ -151,7 +151,7 @@ export default function BasketCompare({ onClose, onAddToList }) {
             </div>
           </div>
 
-          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: `0 20px ${kb + 90}px`, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: `0 20px ${kb + 90}px`, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', alignContent: 'start', gap: 14 }}>
             {err && <div style={{ fontSize: 13, color: 'var(--c-danger, #b3261e)' }}>{err}</div>}
             {preparing && <div style={{ fontSize: 12, color: 'var(--c-text2)' }}>מחירי חלק מהסניפים שבחרת עדיין נטענים בשרת. התוצאות יתעדכנו בעוד כדקה.</div>}
 
