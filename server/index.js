@@ -306,9 +306,11 @@ const households = new Map()   // householdId -> keys (for rebuilding each one's
 function watchHouseholdBranches() {
   db.collection('households').onSnapshot(snap => {
     const set = new Set()
+    households.clear()
     snap.forEach(d => {
       const hh = d.data()
-      if (Array.isArray(hh.priceStores) && hh.priceStores.some(validKey)) hh.priceStores.filter(validKey).forEach(k => set.add(k))
+      if (!(Array.isArray(hh.priceStores) && hh.priceStores.some(validKey))) return   // only households that picked branches
+      hh.priceStores.filter(validKey).forEach(k => set.add(k))
       households.set(d.id, keysOfHousehold(hh))
     })
     chosenKeys = set
@@ -378,7 +380,11 @@ function watchPriceLookups() {
       const q = ch.doc.data()
       try {
         let keys = PRICE_KEYS
-        if (q.householdId) { keys = keysOfHousehold((await db.doc(`households/${q.householdId}`).get()).data() || {}); households.set(q.householdId, keys); writeHouseholdIndex(q.householdId, keys).catch(() => {}) }
+        if (q.householdId) {
+          const hh = (await db.doc(`households/${q.householdId}`).get()).data() || {}
+          keys = keysOfHousehold(hh)
+          if (Array.isArray(hh.priceStores) && hh.priceStores.some(validKey)) { households.set(q.householdId, keys); writeHouseholdIndex(q.householdId, keys).catch(() => {}) }
+        }
         if (q.type === 'search' || q.type === 'basket') {
           const have = keys.filter(k => loadStore(DATA_DIR, k))
           const base = { status: 'done', preparing: have.length < keys.length, branches: have.length, labels: Object.fromEntries(have.map(k => [k, loadStore(DATA_DIR, k).label])), answeredAt: FieldValue.serverTimestamp() }
