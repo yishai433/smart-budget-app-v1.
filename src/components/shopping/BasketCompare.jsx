@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { X, Search, Plus, Minus, ChevronDown, Trophy } from 'lucide-react'
 import { useApp } from '../../contexts/AppContext'
 import useScrollLock from '../../hooks/useScrollLock'
+import useVisibleViewport from '../../hooks/useVisibleViewport'
 import { formatAmount } from '../../utils/format'
 import { askPriceServer } from '../../utils/priceApi'
 
@@ -45,15 +46,7 @@ export default function BasketCompare({ onClose, onAddToList }) {
   const [open, setOpen] = useState(null)              // expanded branch key
   const reqN = useRef(0)
 
-  // follow the visible area so the keyboard never covers the list
-  const [vv, setVv] = useState(() => ({ h: window.visualViewport?.height || window.innerHeight, top: window.visualViewport?.offsetTop || 0 }))
-  useEffect(() => {
-    const v = window.visualViewport
-    if (!v) return
-    const sync = () => setVv({ h: v.height, top: v.offsetTop })
-    v.addEventListener('resize', sync); v.addEventListener('scroll', sync)
-    return () => { v.removeEventListener('resize', sync); v.removeEventListener('scroll', sync) }
-  }, [])
+  const vv = useVisibleViewport()
 
   useEffect(() => { try { localStorage.setItem(storeKey, JSON.stringify(basket)) } catch { /* private mode */ } }, [basket, storeKey])
 
@@ -132,7 +125,7 @@ export default function BasketCompare({ onClose, onAddToList }) {
               <Search size={16} style={{ position: 'absolute', insetInlineStart: 14, top: 15, color: 'var(--c-text2)' }} />
               <input className="input-field" style={{ paddingInlineStart: 40 }} placeholder="הוסף מוצר, למשל חלב"
                 name="basket-product" autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
-                inputMode="search" enterKeyHint="search" data-form-type="other" data-lpignore="true"
+                inputMode="search" enterKeyHint="search" data-form-type="other" data-lpignore="true" data-no-refocus="1"
                 value={q} onChange={e => setQ(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }} />
             </div>

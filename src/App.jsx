@@ -209,7 +209,8 @@ function AppInner() {
       // guard skips predictive-bar toggles and scroll jitter.
       if (delta > 60) {
         const active = document.activeElement
-        if (active?.tagName === 'INPUT') {
+        // inputs inside sheets that resize with the keyboard opt out: the blur/focus would flash the keyboard
+        if (active?.tagName === 'INPUT' && !active.dataset.noRefocus) {
           requestAnimationFrame(() => {
             if (document.activeElement === active) {
               active.blur()
