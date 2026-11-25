@@ -3,8 +3,8 @@
 // <html data-theme="light|dark"> so CSS variables can switch.
 const KEY = 'sb_theme'
 export const THEMES = ['auto', 'light', 'dark']
-const LIGHT_BAR = '#F4F5F1'
-const DARK_BAR = '#151916'
+const LIGHT_BAR = '#c67139'
+const DARK_BAR = '#1d1915'
 
 export function getThemePref() {
   try {

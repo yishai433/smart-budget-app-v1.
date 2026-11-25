@@ -6,7 +6,6 @@ import { createPortal } from 'react-dom'
 import { ArrowDownLeft, ArrowUpRight, Wallet, X, Receipt } from 'lucide-react'
 import { formatNumber, formatAmount, formatMoney } from '../../utils/format'
 import { monthLabel } from '../../utils/months'
-import { cumulativeByDay } from '../../utils/insights'
 import CategoryIcon from '../CategoryIcon'
 import useScrollLock from '../../hooks/useScrollLock'
 import useDelayedFocus from '../../hooks/useDelayedFocus'
@@ -251,8 +250,7 @@ function BudgetPromptSheet({ lang, cur, onSave, onClose }) {
   ), document.body)
 }
 
-// showKpis: the saved / expenses / income tiles (off on the home screen to keep it calm)
-export default function SummaryCard({ showKpis = false }) {
+export default function SummaryCard() {
   const { t } = useTranslation()
   const { totalIncome, totalExpenses, settings, monthTransactions, CATEGORIES, monthlyBudget, setMonthlyBudget, household, isCurrentMonth, monthKey } = useApp()
   const cur = settings.currency
@@ -268,6 +266,7 @@ export default function SummaryCard({ showKpis = false }) {
   const overAmount = hasBudget ? totalExpenses - monthlyBudget : 0
   const overBudget = overAmount > 0
   // Under/at budget → show how much was used. Over budget → show the overage as a negative number.
+  const heroValue = overBudget ? overAmount : totalExpenses
 
   const money = (v) => `${v < 0 ? '−' : ''}${formatAmount(v, cur)}`
 
@@ -284,99 +283,61 @@ export default function SummaryCard({ showKpis = false }) {
   const forecastDiff = showForecast && hasBudget ? forecast - monthlyBudget : 0 // >0 = over budget
   const forecastOver = forecastDiff > 0
 
-  // Hero number: what's left of the budget, the overage, or (no budget) what was spent
-  const remaining = hasBudget ? Math.max(0, monthlyBudget - totalExpenses) : 0
-  const heroAmount = overBudget ? overAmount : hasBudget ? remaining : totalExpenses
-  const daysLeft = daysInMonth - daysElapsed + 1
-  const perDayLeft = isCurrentMonth && hasBudget && !overBudget ? Math.round(remaining / daysLeft) : 0
-
-  // Pace chart: cumulative spending per day (right to left in Hebrew, day 1 on the
-  // reading side) against a straight line from 0 to the budget.
-  const pace = (() => {
-    const cum = cumulativeByDay(monthTransactions, monthKey)
-    const upto = isCurrentMonth ? Math.min(daysElapsed, cum.length) : cum.length
-    if (upto < 2 || cum[upto - 1] <= 0) return {}
-    const W = 300, H = 70, PAD = 6
-    const max = Math.max(hasBudget ? monthlyBudget : 0, cum[upto - 1]) * 1.05
-    const rtl = lang === 'he'
-    const xOf = (i) => { const f = cum.length > 1 ? i / (cum.length - 1) : 0; return rtl ? W - f * W : f * W }
-    const yOf = (v) => H - PAD - (v / max) * (H - PAD * 2)
-    const pts = cum.slice(0, upto).map((v, i) => [Math.round(xOf(i) * 10) / 10, Math.round(yOf(v) * 10) / 10])
-    return {
-      points: pts.map(p => p.join(',')).join(' '),
-      last: pts[pts.length - 1],
-      budgetLine: hasBudget ? { x1: xOf(0), y1: yOf(0), x2: xOf(cum.length - 1), y2: yOf(monthlyBudget) } : null,
-    }
-  })()
-
   return (
     <div style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-      {/* Hero — what's left to spend, big and centred, with the month's pace under it */}
+      {/* Ink hero — how much we've spent this month, unmistakable in one second */}
       <motion.div
         className="hero-ink"
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ type: 'tween', duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
-        style={{ textAlign: 'center' }}
+        transition={{ type: 'spring', stiffness: 280, damping: 28 }}
       >
-        <div style={{ fontSize: 13, color: 'var(--c-ink-text2)' }}>
-          {overBudget
-            ? (lang === 'he' ? 'חרגנו מהתקציב ב' : 'Over budget by')
-            : hasBudget
-              ? (isCurrentMonth ? (lang === 'he' ? 'נשאר להוציא החודש' : 'Left to spend this month') : (lang === 'he' ? `נשאר מהתקציב ב${monthLabel(monthKey, lang)}` : `Left from the budget in ${monthLabel(monthKey, lang)}`))
-              : (isCurrentMonth ? (lang === 'he' ? 'הוצאנו החודש' : 'Spent this month') : (lang === 'he' ? `הוצאנו ב${monthLabel(monthKey, lang)}` : `Spent in ${monthLabel(monthKey, lang)}`))}
-        </div>
-        <div dir="ltr" className="num" style={{
-          fontSize: 56, fontWeight: 600, letterSpacing: -1.5, lineHeight: 1.05, marginTop: 6,
-          color: overBudget ? 'var(--c-hero-over)' : 'var(--c-ink-text)',
-        }}>
-          <span style={{ fontSize: 30, fontWeight: 500, opacity: 0.75, marginInlineEnd: 2 }}>{overBudget ? '−' : ''}{cur}</span>
-          <AnimatedNumber value={heroAmount} />
-        </div>
-        <div className="num" style={{ fontSize: 13, color: 'var(--c-ink-text2)', marginTop: 6 }}>
-          {hasBudget
-            ? <>{lang === 'he' ? 'מתוך' : 'of'} <b style={{ color: 'var(--c-ink-text)', fontWeight: 600 }}>{money(monthlyBudget)}</b>
-                {perDayLeft > 0 && <> · {money(perDayLeft)} {lang === 'he' ? 'ליום' : 'a day'}</>}
-                {!isCurrentMonth && <> · {lang === 'he' ? 'הוצאתם' : 'spent'} {money(totalExpenses)}</>}</>
-            : (isCurrentMonth
-                ? (lang === 'he' ? 'עוד לא הוגדר תקציב לחודש' : 'No budget set for this month yet')
-                : (lang === 'he' ? 'לא הוגדר תקציב לחודש זה' : 'No budget was set for this month'))}
-        </div>
-
-        {pace.points && (
-          <div style={{ marginTop: 14 }}>
-            <svg viewBox="0 0 300 70" width="100%" height="70" role="img"
-              aria-label={lang === 'he' ? 'קצב ההוצאות מתחילת החודש מול קצב התקציב' : 'Spending so far this month against the budget pace'}
-              style={{ display: 'block', overflow: 'visible' }}>
-              {pace.budgetLine && <line {...pace.budgetLine} stroke="var(--c-ink-line-strong)" strokeWidth="1.2" strokeDasharray="3 5" />}
-              <polyline points={pace.points} fill="none" stroke="var(--c-pace)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-              <circle cx={pace.last[0]} cy={pace.last[1]} r="5" fill="var(--c-pace)" stroke="var(--c-ink)" strokeWidth="2" />
-            </svg>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11.5, color: 'var(--c-ink-text2)', marginTop: 4 }}>
-              <span>{lang === 'he' ? '1 בחודש' : 'Day 1'}</span>
-              {pace.budgetLine && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 12, borderTop: '1.5px dashed var(--c-ink-line-strong)' }} />
-                  {lang === 'he' ? 'קצב התקציב' : 'Budget pace'}
-                </span>
-              )}
-              <span>{isCurrentMonth ? (lang === 'he' ? 'היום' : 'Today') : (lang === 'he' ? 'סוף החודש' : 'Month end')}</span>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+          <div style={{ minWidth: 0 }}>
+            <div className="t-overline" style={{ color: 'var(--c-ink-text2)' }}>
+              {overBudget
+                ? (lang === 'he' ? 'חרגנו מהתקציב ב' : 'Over budget by')
+                : isCurrentMonth
+                  ? (lang === 'he' ? 'הוצאנו החודש' : 'Spent this month')
+                  : (lang === 'he' ? `הוצאנו ב${monthLabel(monthKey, lang)}` : `Spent in ${monthLabel(monthKey, lang)}`)}
+            </div>
+            <div dir="ltr" className="t-display" style={{
+              color: overBudget ? 'var(--c-danger)' : 'var(--c-ink-text)',
+              marginTop: 8, textAlign: 'start',
+            }}>
+              <span className="cur" style={{ fontSize: 24 }}>{overBudget ? '−' : ''}{cur}</span>
+              <AnimatedNumber value={heroValue} />
             </div>
           </div>
-        )}
+          <StateRing pct={spentPct} />
+        </div>
+
+        {/* Small budget line, bottom-left as requested */}
+        <div dir="ltr" style={{
+          marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--c-ink-line)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          fontSize: 13, color: 'var(--c-ink-text2)',
+        }}>
+          <span className="num" style={{ direction: 'rtl' }}>
+            {hasBudget
+              ? <>{lang === 'he' ? 'מתוך תקציב של' : 'of a budget of'} <b style={{ color: 'var(--c-ink-text)', fontWeight: 700 }}>{money(monthlyBudget)}</b></>
+              : (isCurrentMonth
+                  ? (lang === 'he' ? 'לא הוגדר תקציב לחודש' : 'No budget set for this month')
+                  : (lang === 'he' ? 'לא הוגדר תקציב לחודש זה' : 'No budget was set for this month'))}
+          </span>
+        </div>
 
         {/* End-of-month forecast at the current daily pace */}
-        {showForecast && forecastOver && (
+        {showForecast && (
           <div className="num" style={{
-            marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--c-ink-line)',
-            fontSize: 13, lineHeight: 1.5,
-            color: forecastOver ? 'var(--c-hero-over)' : 'var(--c-ink-text2)',
-            fontWeight: forecastOver ? 600 : 400,
+            marginTop: 10, fontSize: 13, lineHeight: 1.5,
+            color: forecastOver ? 'var(--c-danger)' : 'var(--c-ink-text2)',
+            fontWeight: forecastOver ? 600 : 500,
           }}>
             {lang === 'he'
-              ? <>בקצב הנוכחי תסיימו את החודש על <b dir="ltr" style={{ color: forecastOver ? 'var(--c-hero-over)' : 'var(--c-ink-text)', fontWeight: 600 }}>{money(forecast)}</b></>
-              : <>At this pace you'll end the month at <b style={{ color: forecastOver ? 'var(--c-hero-over)' : 'var(--c-ink-text)', fontWeight: 600 }}>{money(forecast)}</b></>}
+              ? <>בקצב הנוכחי תסיימו את החודש על <b dir="ltr" style={{ color: forecastOver ? 'var(--c-danger)' : 'var(--c-ink-text)', fontWeight: 700 }}>{money(forecast)}</b></>
+              : <>At this pace you'll end the month at <b style={{ color: forecastOver ? 'var(--c-danger)' : 'var(--c-ink-text)', fontWeight: 700 }}>{money(forecast)}</b></>}
             {hasBudget && forecastDiff !== 0 && (
               lang === 'he'
                 ? <> · {money(Math.abs(forecastDiff))} {forecastOver ? 'מעל התקציב' : 'מתחת לתקציב'}</>
@@ -387,7 +348,6 @@ export default function SummaryCard({ showKpis = false }) {
       </motion.div>
 
       {/* KPI row */}
-      {showKpis && (
       <motion.div
         className="kpi-row"
         initial={{ opacity: 0, y: 10 }}
@@ -404,7 +364,6 @@ export default function SummaryCard({ showKpis = false }) {
           {money(totalIncome)}
         </Kpi>
       </motion.div>
-      )}
 
       <AnimatePresence>
         {filterOpen && (
