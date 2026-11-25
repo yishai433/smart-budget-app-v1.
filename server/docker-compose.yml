@@ -7,7 +7,7 @@ services:
       TZ: Asia/Jerusalem
       GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/firebase.json
       APP_URL: https://yishai433.github.io/smart-budget-app-v1./
-      UNUSUAL_MIN: "150"             # הוצאה בסכום הזה ומעלה שולחת התראה לשאר בני הבית
+      UNUSUAL_MIN: "150"             # ברירת מחדל לסכום "הוצאה גדולה" (כל משתמש קובע לעצמו באפליקציה)
     volumes:
       - ./firebase-key.json:/run/secrets/firebase.json:ro
       - ./data:/app/data
