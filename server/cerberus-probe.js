@@ -33,16 +33,21 @@ async function tryUser(user) {
   const body = new URLSearchParams({ username: user, password: '', [tokenName]: token, r: '' })
   const login = await get('/login/user', { method: 'POST', body, headers: { 'content-type': 'application/x-www-form-urlencoded' } })
   log(`login POST: ${login.status} -> ${login.headers.get('location') || '(no redirect)'}`)
+  // after login the site hands out a fresh token on the files page
+  const filePage = await (await get('/file')).text()
+  const t2 = ((filePage.match(/<meta[^>]*name=["']csrftoken["'][^>]*>/i) || [''])[0].match(/content\s*=\s*["']([^"']+)["']/i) || [])[1] || token
+  log(`files page token: ${t2 === token ? 'same as before' : 'new'}`)
   const list = await get('/file/json/dir', {
     method: 'POST',
-    body: new URLSearchParams({ sEcho: '1', iColumns: '5', sColumns: ',,,,', iDisplayStart: '0', iDisplayLength: '100000', mDataProp_0: 'fname', sSearch: '', iSortingCols: '0', cd: '/', csrftoken: token }),
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ sEcho: '1', iColumns: '5', sColumns: ',,,,', iDisplayStart: '0', iDisplayLength: '100000', mDataProp_0: 'fname', sSearch: '', iSortingCols: '0', cd: '/', csrftoken: t2 }),
+    headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-csrftoken': t2 },
   })
   const text = await list.text()
   log(`file list: ${list.status}, ${text.length} bytes`)
   try {
     const rows = JSON.parse(text).aaData || []
     log(`files: ${rows.length}`)
+    if (!rows.length) log('raw answer:', text)
     const names = rows.map(r => r.fname || r.name || r[0]).filter(Boolean)
     const kinds = {}
     names.forEach(n => { const k = String(n).replace(/[-_.].*$/, ''); kinds[k] = (kinds[k] || 0) + 1 })
