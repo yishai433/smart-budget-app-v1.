@@ -36,10 +36,12 @@ export default function App() {
       <NavigationContainer theme={navTheme}>
         <Tab.Navigator screenOptions={{
           headerShown: false,
+          animation: 'fade',
           tabBarActiveTintColor: c.primary,
           tabBarInactiveTintColor: c.text3,
           tabBarStyle: { backgroundColor: c.bg, borderTopColor: c.sep, height: 58 + (Platform.OS === 'ios' ? 20 : 0), paddingTop: 6 },
-          tabBarLabelStyle: { fontSize: 11 },
+          tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+          tabBarItemStyle: { paddingTop: 2 },
         }}>
           {TABS.map(({ name, title, Icon, Page }) => (
             <Tab.Screen key={name} name={name} component={Page}

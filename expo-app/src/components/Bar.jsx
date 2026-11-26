@@ -1,11 +1,17 @@
-import { View } from 'react-native'
+import { useRef, useEffect } from 'react'
+import { View, Animated } from 'react-native'
 
-// Thin progress bar for a category (spent vs its budget).
-export default function Bar({ pct, color, track }) {
-  const w = Math.max(0, Math.min(100, pct))
+// Thin category progress bar that fills in from zero on mount.
+export default function Bar({ pct, color, track, delay = 0, height = 6 }) {
+  const target = Math.max(0, Math.min(100, pct))
+  const a = useRef(new Animated.Value(0)).current
+  useEffect(() => {
+    Animated.timing(a, { toValue: target, duration: 650, delay, useNativeDriver: false }).start()
+  }, [target])
+  const width = a.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] })
   return (
-    <View style={{ height: 6, borderRadius: 999, backgroundColor: track, overflow: 'hidden' }}>
-      <View style={{ width: `${w}%`, height: '100%', borderRadius: 999, backgroundColor: color }} />
+    <View style={{ height, borderRadius: 999, backgroundColor: track, overflow: 'hidden' }}>
+      <Animated.View style={{ width, height: '100%', borderRadius: 999, backgroundColor: color }} />
     </View>
   )
 }
