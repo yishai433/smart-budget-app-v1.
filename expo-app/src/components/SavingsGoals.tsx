@@ -7,7 +7,7 @@ import { formatAmount, displayCurrency } from '../lib/money'
 import Bar from './Bar'
 import Touchable from './Touchable'
 import FadeIn from './FadeIn'
-import BottomSheet from './BottomSheet'
+import BottomSheet, { SHEET_MIN_HEIGHT } from './BottomSheet'
 import NumPad, { applyKey } from './NumPad'
 import type { SavingsGoal } from '../types'
 
@@ -92,14 +92,14 @@ function DepositGoal({ goal, onClose }: { goal: SavingsGoal | null; onClose: () 
   const doDeposit = async (sign: number) => { if (!goal || !(n > 0)) return; setBusy(true); try { await depositGoal(goal.id, sign * n); setAmount(''); onClose() } catch { setBusy(false) } }
   const remove = async () => { if (!goal) return; setBusy(true); try { await deleteGoal(goal.id); onClose() } catch { setBusy(false) } }
   return (
-    <BottomSheet visible={!!goal} onClose={onClose}>
+    <BottomSheet visible={!!goal} onClose={onClose} minHeight={SHEET_MIN_HEIGHT}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
         <Text style={{ fontSize: 18, fontWeight: '700', color: c.text }}>{goal?.name}</Text>
         <Touchable onPress={remove} scale={0.9} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: c.dangerLight, alignItems: 'center', justifyContent: 'center' }}><Trash2 size={16} color={c.danger} /></Touchable>
       </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 10 }}>
-        <Text style={{ fontSize: 20, fontWeight: '700', color: c.text3 }}>{displayCurrency()}</Text>
-        <Text style={{ fontSize: 38, fontWeight: '800', color: amount === '' ? c.text3 : c.text, minWidth: 60, textAlign: 'center' }}>{amount === '' ? '0' : amount}</Text>
+      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 90 }}>
+        <Text style={{ fontSize: 24, fontWeight: '700', color: c.text3 }}>{displayCurrency()}</Text>
+        <Text style={{ fontSize: 48, fontWeight: '800', color: amount === '' ? c.text3 : c.text, minWidth: 70, textAlign: 'center' }}>{amount === '' ? '0' : amount}</Text>
       </View>
       <NumPad onKey={onKey} />
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>

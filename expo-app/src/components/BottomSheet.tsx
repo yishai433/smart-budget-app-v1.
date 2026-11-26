@@ -7,7 +7,10 @@ const SCREEN_H = Dimensions.get('window').height
 
 // One smooth bottom sheet used by every popup in the app, so they all open with
 // the same light, natural motion instead of the stuttery native Modal slide.
-export default function BottomSheet({ visible, onClose, children, avoidKeyboard }: { visible: boolean; onClose: () => void; children: ReactNode; avoidKeyboard?: boolean }) {
+// Shared comfortable height so every amount sheet opens to the same spot.
+export const SHEET_MIN_HEIGHT = Math.round(SCREEN_H * 0.74)
+
+export default function BottomSheet({ visible, onClose, children, avoidKeyboard, minHeight }: { visible: boolean; onClose: () => void; children: ReactNode; avoidKeyboard?: boolean; minHeight?: number }) {
   const c = useTheme()
   const insets = useSafeAreaInsets()
   const [mounted, setMounted] = useState(visible)
@@ -35,7 +38,7 @@ export default function BottomSheet({ visible, onClose, children, avoidKeyboard 
   if (!mounted) return null
 
   const sheet = (
-    <Animated.View style={[styles.sheet, { backgroundColor: c.card, paddingBottom: insets.bottom + 14, transform: [{ translateY: entrance }] }]}>
+    <Animated.View style={[styles.sheet, { backgroundColor: c.card, paddingBottom: insets.bottom + 14, minHeight, transform: [{ translateY: entrance }] }]}>
       <View style={styles.handle} />
       {children}
     </Animated.View>
