@@ -311,63 +311,6 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Notifications */}
-        <InfoHeading tip="כל ערב בשעה שתבחר תקפוץ הודעה שמזכירה לרשום את ההוצאות של היום, כדי שלא תשכח אף הוצאה." style={{ textTransform: 'uppercase' }}>
-          {t('settings.notifications')}
-        </InfoHeading>
-        <div className="card" style={{ marginBottom: 20 }}>
-          <div className="card-inner" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div className="toggle-wrap">
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 15, display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <Bell size={16} strokeWidth={2} style={{ color: 'var(--c-text2)' }} />
-                  {t('settings.notifications')}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2 }}>{t('settings.notificationsDesc')}</div>
-              </div>
-              <Toggle
-                checked={settings.notificationsEnabled}
-                onChange={toggleNotifications}
-              />
-            </div>
-
-            <AnimatePresence>
-              {settings.notificationsEnabled && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 12 }}
-                >
-                  <div className="input-group">
-                    <label className="input-label">{t('settings.reminderTime')}</label>
-                    <input
-                      className="input-field"
-                      type="time"
-                      value={settings.reminderTime}
-                      onChange={e => updateSettings({ reminderTime: e.target.value })}
-                    />
-                  </div>
-                  <div className="input-group">
-                    <label className="input-label">{t('settings.reminderFrequency')}</label>
-                    <div className="segment">
-                      {['daily','weekly','monthly'].map(f => (
-                        <button
-                          key={f}
-                          className={`segment-btn ${settings.reminderFrequency === f ? 'active' : ''}`}
-                          onClick={() => updateSettings({ reminderFrequency: f })}
-                        >
-                          {t(`transaction.${f}`)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-
         <ServerNotifications />
 
         <PriceBranches />
