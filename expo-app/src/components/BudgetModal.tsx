@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { View, Text, TextInput, Modal, StyleSheet, KeyboardAvoidingView, Platform, Pressable, ActivityIndicator } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '../theme'
+import { displayCurrency } from '../lib/money'
 import Touchable from './Touchable'
 
 export default function BudgetModal({ visible, current, monthLabel, onClose, onSave }: { visible: boolean; current: number | null; monthLabel: string; onClose: () => void; onSave: (n: number) => Promise<void> }) {
@@ -23,7 +24,7 @@ export default function BudgetModal({ visible, current, monthLabel, onClose, onS
             <Text style={{ fontSize: 18, fontWeight: '700', color: c.text, textAlign: 'center' }}>תקציב ל{monthLabel}</Text>
             <Text style={{ fontSize: 13, color: c.text2, textAlign: 'center', marginTop: 6 }}>כמה אתם מתכננים להוציא החודש?</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 18 }}>
-              <Text style={{ fontSize: 24, fontWeight: '700', color: c.text3 }}>₪</Text>
+              <Text style={{ fontSize: 24, fontWeight: '700', color: c.text3 }}>{displayCurrency()}</Text>
               <TextInput ref={ref} style={{ fontSize: 40, fontWeight: '800', color: c.text, minWidth: 80, textAlign: 'center', padding: 0 }}
                 keyboardType="decimal-pad" placeholder="0" placeholderTextColor={c.text3} value={val} onChangeText={t => setVal(t.replace(/[^0-9.]/g, ''))} />
             </View>

@@ -6,6 +6,7 @@ import { db } from '../firebase'
 import { useAuth } from './AuthContext'
 import { Household, Transaction, ShoppingItem } from '../types'
 import { currentMonthKey, monthKeyOf } from '../lib/month'
+import { setDisplayCurrency } from '../lib/money'
 
 interface DataValue {
   ready: boolean
@@ -32,6 +33,8 @@ interface DataValue {
   deleteShoppingItem: (id: string) => Promise<void>
   clearChecked: () => Promise<void>
   uid: string | null
+  currency: string
+  setCurrency: (cur: string) => Promise<void>
   partnerName: string | null
 }
 
@@ -87,6 +90,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (snap.exists()) {
         const data = { id: activeHouseholdId, ...snap.data() } as Household
         setHousehold(data)
+        setDisplayCurrency((data.settings?.currency as string) || '₪')
         const partnerUid = (data.members || []).find(m => m !== user?.uid)
         if (partnerUid) {
           getDoc(doc(db, 'userProfiles', partnerUid)).then(p => {
@@ -144,6 +148,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const totalIncome = useMemo(() => monthTransactions.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0), [monthTransactions])
   const totalExpenses = useMemo(() => monthTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0), [monthTransactions])
   const monthlyBudget = household?.monthlyBudgets?.[monthKey] ?? null
+  const currency = (household?.settings?.currency as string) || '₪'
 
   const effectiveCategoryBudgets = useMemo(() => {
     const out: Record<string, number> = {}
@@ -152,6 +157,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     Object.entries(over).forEach(([id, v]) => { if (v > 0) out[id] = v as number; else if (v === null) delete out[id] })
     return out
   }, [household, monthKey])
+
+  const setCurrency = async (cur: string) => {
+    if (!activeHouseholdId) return
+    setDisplayCurrency(cur)
+    try { await updateDoc(doc(db, 'households', activeHouseholdId), { 'settings.currency': cur }) }
+    catch { await setDoc(doc(db, 'households', activeHouseholdId), { settings: { currency: cur } }, { merge: true }) }
+  }
 
   const setMonthlyBudget = async (amount: number) => {
     if (!activeHouseholdId) return
@@ -173,7 +185,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     ready, household, activeHouseholdId, transactions, monthKey, isCurrentMonth, shiftMonth, goToCurrentMonth,
     monthTransactions, totalIncome, totalExpenses, balance: totalIncome - totalExpenses,
     monthlyBudget, effectiveCategoryBudgets, setMonthlyBudget, addTransaction, updateTransaction, deleteTransaction,
-    shoppingItems, addShoppingItem, updateShoppingItem, deleteShoppingItem, clearChecked, uid: user?.uid ?? null, partnerName,
+    shoppingItems, addShoppingItem, updateShoppingItem, deleteShoppingItem, clearChecked, uid: user?.uid ?? null, currency, setCurrency, partnerName,
   }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

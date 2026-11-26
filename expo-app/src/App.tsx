@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { Wallet, BarChart3, ShoppingCart, Settings } from 'lucide-react-native'
 import { useTheme } from './theme'
 import { firebaseReady } from './firebase'
+import { AppearanceProvider } from './context/AppearanceContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { DataProvider } from './context/DataContext'
 import TabBar from './components/TabBar'
@@ -55,7 +56,7 @@ function MissingConfig() {
   )
 }
 
-export default function App() {
+function App() {
   const scheme = useColorScheme()
   const c = useTheme()
   const navTheme = {
@@ -70,4 +71,8 @@ export default function App() {
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
     </SafeAreaProvider>
   )
+}
+
+export default function Root() {
+  return <AppearanceProvider><App /></AppearanceProvider>
 }

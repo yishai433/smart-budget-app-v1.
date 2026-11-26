@@ -1,4 +1,8 @@
 // Money formatting, ported from the website's format.js.
+let CUR = '₪'
+export const setDisplayCurrency = (c: string) => { CUR = c || '₪' }
+export const displayCurrency = () => CUR
+
 const NF0 = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
 const NF2 = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
@@ -8,11 +12,11 @@ export function formatNumber(amount: number): string {
   return Number.isInteger(abs) ? NF0.format(abs) : NF2.format(abs)
 }
 
-export function formatAmount(amount: number, cur = '₪'): string {
+export function formatAmount(amount: number, cur = CUR): string {
   return `${cur}${formatNumber(amount)}`
 }
 
 // Signed with the currency, e.g. "₪−42.50" / "₪10,200".
-export function money(amount: number, cur = '₪'): string {
+export function money(amount: number, cur = CUR): string {
   return `${amount < 0 ? '−' : ''}${cur}${formatNumber(amount)}`
 }

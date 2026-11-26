@@ -1,4 +1,5 @@
 import { useColorScheme } from 'react-native'
+import { useAppearance } from './context/AppearanceContext'
 
 export type Theme = typeof light
 
@@ -20,4 +21,9 @@ export const dark: typeof light = {
   ink: '#4b5937', inkText: '#f3ecd9', inkText2: 'rgba(243,236,217,0.68)', inkLine: 'rgba(243,236,217,0.16)',
 }
 export const radius = { sm: 12, md: 16, lg: 20, xl: 28 }
-export const useTheme = (): Theme => (useColorScheme() === 'dark' ? dark : light)
+export const useTheme = (): Theme => {
+  const system = useColorScheme()
+  const { pref } = useAppearance()
+  const resolved = pref === 'auto' ? system : pref
+  return resolved === 'dark' ? dark : light
+}
