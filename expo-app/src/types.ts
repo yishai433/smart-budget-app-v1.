@@ -40,3 +40,12 @@ export interface ShoppingItem {
   checked?: boolean
   createdAt?: { seconds: number } | null
 }
+
+export interface SavingsGoal {
+  id: string
+  name: string
+  target: number
+  saved: number
+  date?: string
+  color?: string
+}

@@ -1,11 +1,13 @@
 import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react'
 import {
-  doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, addDoc, serverTimestamp,
+  doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, addDoc, serverTimestamp, increment, deleteField,
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from './AuthContext'
-import { Household, Transaction, ShoppingItem } from '../types'
+import { Household, Transaction, ShoppingItem, SavingsGoal } from '../types'
 import { currentMonthKey, monthKeyOf } from '../lib/month'
+
+const GOAL_COLORS = ['#c67139', '#7a8a5e', '#4F7A8A', '#9A6B8E', '#D08A2E', '#6B5FA0']
 import { setDisplayCurrency } from '../lib/money'
 
 interface DataValue {
@@ -35,6 +37,10 @@ interface DataValue {
   uid: string | null
   currency: string
   setCurrency: (cur: string) => Promise<void>
+  savingsGoals: SavingsGoal[]
+  addGoal: (name: string, target: number) => Promise<void>
+  depositGoal: (id: string, delta: number) => Promise<void>
+  deleteGoal: (id: string) => Promise<void>
   partnerName: string | null
 }
 
@@ -158,6 +164,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return out
   }, [household, monthKey])
 
+  const savingsGoals: SavingsGoal[] = Object.entries(household?.savingsGoals || {}).map(([id, g]) => ({ id, ...g }))
+
+  const addGoal: DataValue['addGoal'] = async (name, target) => {
+    if (!activeHouseholdId) return
+    const id = Math.random().toString(36).slice(2, 10)
+    const color = GOAL_COLORS[savingsGoals.length % GOAL_COLORS.length]
+    const goal = { name, target, saved: 0, date: '', color }
+    try { await updateDoc(doc(db, 'households', activeHouseholdId), { [`savingsGoals.${id}`]: goal }) }
+    catch { await setDoc(doc(db, 'households', activeHouseholdId), { savingsGoals: { [id]: goal } }, { merge: true }) }
+  }
+  const depositGoal: DataValue['depositGoal'] = async (id, delta) => {
+    if (!activeHouseholdId) return
+    await updateDoc(doc(db, 'households', activeHouseholdId), { [`savingsGoals.${id}.saved`]: increment(delta) })
+  }
+  const deleteGoal: DataValue['deleteGoal'] = async (id) => {
+    if (!activeHouseholdId) return
+    await updateDoc(doc(db, 'households', activeHouseholdId), { [`savingsGoals.${id}`]: deleteField() })
+  }
+
   const setCurrency = async (cur: string) => {
     if (!activeHouseholdId) return
     setDisplayCurrency(cur)
@@ -185,7 +210,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     ready, household, activeHouseholdId, transactions, monthKey, isCurrentMonth, shiftMonth, goToCurrentMonth,
     monthTransactions, totalIncome, totalExpenses, balance: totalIncome - totalExpenses,
     monthlyBudget, effectiveCategoryBudgets, setMonthlyBudget, addTransaction, updateTransaction, deleteTransaction,
-    shoppingItems, addShoppingItem, updateShoppingItem, deleteShoppingItem, clearChecked, uid: user?.uid ?? null, currency, setCurrency, partnerName,
+    shoppingItems, addShoppingItem, updateShoppingItem, deleteShoppingItem, clearChecked, uid: user?.uid ?? null, currency, setCurrency, savingsGoals, addGoal, depositGoal, deleteGoal, partnerName,
   }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
