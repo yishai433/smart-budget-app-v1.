@@ -9,6 +9,7 @@ import { todayISO } from '../lib/month'
 import Touchable from '../components/Touchable'
 import BottomSheet from '../components/BottomSheet'
 import NumPad, { applyKey } from '../components/NumPad'
+import Caret from '../components/Caret'
 import type { TxType, Transaction } from '../types'
 
 // A single category chip. Memoized so typing the amount doesn't re-render all chips.
@@ -80,9 +81,10 @@ export default function AddTransactionSheet({ visible, onClose, editTx }: { visi
       <View style={s.amountWrap}>
         <Text style={[s.cur, { color: c.text3 }]}>{displayCurrency()}</Text>
         <Text style={[s.amount, { color: amount === '' ? c.text3 : c.text }]}>{amount === '' ? '0' : amount}</Text>
+        <Caret color={c.primary} height={30} />
       </View>
 
-      <ScrollView style={{ height: 186 }} contentContainerStyle={s.grid} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ height: 160 }} contentContainerStyle={s.grid} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator persistentScrollbar>
         {cats.map(cat => <Chip key={cat.id} cat={cat} selected={cat.id === category} onPick={pick} c={c} />)}
         {Array.from({ length: fillers }).map((_, i) => <View key={`f${i}`} style={s.cell} />)}
       </ScrollView>
