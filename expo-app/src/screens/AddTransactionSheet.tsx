@@ -1,18 +1,30 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback, memo } from 'react'
 import { View, Text, TextInput, Modal, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Pressable, ActivityIndicator } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { X } from 'lucide-react-native'
-import { useTheme, radius, Theme } from '../theme'
-import { CATEGORIES } from '../categories'
+import { X, Trash2 } from 'lucide-react-native'
+import { useTheme, Theme } from '../theme'
+import { CATEGORIES, Category } from '../categories'
 import { useData } from '../context/DataContext'
 import { todayISO } from '../lib/month'
 import Touchable from '../components/Touchable'
-import type { TxType } from '../types'
+import type { TxType, Transaction } from '../types'
 
-export default function AddTransactionSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+// A single category chip. Memoized so typing the amount/description doesn't
+// re-render all twelve chips (the main source of the previous lag).
+const Chip = memo(function Chip({ cat, selected, onPick, c }: { cat: Category; selected: boolean; onPick: (id: string) => void; c: Theme }) {
+  return (
+    <Touchable scale={0.94} onPress={() => onPick(cat.id)} containerStyle={s.cell}
+      style={[s.chip, { backgroundColor: selected ? cat.color + '22' : c.bg, borderColor: selected ? cat.color : 'transparent' }]}>
+      <Text style={{ fontSize: 22 }}>{cat.emoji}</Text>
+      <Text style={{ fontSize: 12, fontWeight: '600', color: c.text, marginTop: 4 }} numberOfLines={1}>{cat.label}</Text>
+    </Touchable>
+  )
+})
+
+export default function AddTransactionSheet({ visible, onClose, editTx }: { visible: boolean; onClose: () => void; editTx?: Transaction | null }) {
   const c = useTheme()
   const insets = useSafeAreaInsets()
-  const { addTransaction } = useData()
+  const { addTransaction, updateTransaction, deleteTransaction } = useData()
   const [type, setType] = useState<TxType>('expense')
   const [category, setCategory] = useState('food')
   const [amount, setAmount] = useState('')
@@ -21,18 +33,27 @@ export default function AddTransactionSheet({ visible, onClose }: { visible: boo
   const amountRef = useRef<TextInput>(null)
 
   useEffect(() => {
-    if (visible) { setType('expense'); setCategory('food'); setAmount(''); setDesc(''); setBusy(false); setTimeout(() => amountRef.current?.focus(), 300) }
-  }, [visible])
+    if (!visible) return
+    if (editTx) { setType(editTx.type); setCategory(editTx.category); setAmount(String(editTx.amount)); setDesc(editTx.description || '') }
+    else { setType('expense'); setCategory('food'); setAmount(''); setDesc(''); setTimeout(() => amountRef.current?.focus(), 350) }
+    setBusy(false)
+  }, [visible, editTx])
 
+  const pick = useCallback((id: string) => setCategory(id), [])
   const n = parseFloat(amount) || 0
   const canSave = n > 0 && !busy
   const save = async () => {
     if (!canSave) return
     setBusy(true)
-    try { await addTransaction({ type, category, amount: n, description: desc.trim(), date: todayISO() }); onClose() }
-    catch { setBusy(false) }
+    try {
+      if (editTx) await updateTransaction(editTx.id, { type, category, amount: n, description: desc.trim() })
+      else await addTransaction({ type, category, amount: n, description: desc.trim(), date: todayISO() })
+      onClose()
+    } catch { setBusy(false) }
   }
+  const remove = async () => { if (!editTx) return; setBusy(true); try { await deleteTransaction(editTx.id); onClose() } catch { setBusy(false) } }
   const cats = CATEGORIES[type]
+  const fillers = (3 - (cats.length % 3)) % 3
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose} statusBarTranslucent>
@@ -42,11 +63,13 @@ export default function AddTransactionSheet({ visible, onClose }: { visible: boo
           <View style={[s.sheet, { backgroundColor: c.card, paddingBottom: insets.bottom + 12 }]}>
             <View style={s.handle} />
             <View style={s.header}>
-              <Text style={[s.title, { color: c.text }]}>הוספת תנועה</Text>
-              <Touchable onPress={onClose} scale={0.9} style={[s.x, { backgroundColor: c.bg }]}><X size={18} color={c.text2} /></Touchable>
+              <Text style={[s.title, { color: c.text }]}>{editTx ? 'עריכת תנועה' : 'הוספת תנועה'}</Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {editTx ? <Touchable onPress={remove} scale={0.9} style={[s.x, { backgroundColor: c.dangerLight }]}><Trash2 size={17} color={c.danger} /></Touchable> : null}
+                <Touchable onPress={onClose} scale={0.9} style={[s.x, { backgroundColor: c.bg }]}><X size={18} color={c.text2} /></Touchable>
+              </View>
             </View>
 
-            {/* type toggle */}
             <View style={[s.seg, { backgroundColor: c.bg }]}>
               {(['expense', 'income'] as TxType[]).map(t => {
                 const on = type === t
@@ -59,36 +82,22 @@ export default function AddTransactionSheet({ visible, onClose }: { visible: boo
               })}
             </View>
 
-            {/* amount */}
             <View style={s.amountWrap}>
               <Text style={[s.cur, { color: c.text3 }]}>₪</Text>
               <TextInput ref={amountRef} style={[s.amount, { color: c.text }]} value={amount} onChangeText={t => setAmount(t.replace(/[^0-9.]/g, ''))}
                 keyboardType="decimal-pad" placeholder="0" placeholderTextColor={c.text3} />
             </View>
 
-            {/* categories */}
-            <ScrollView style={{ maxHeight: 190 }} contentContainerStyle={s.grid} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-              {cats.map(cat => {
-                const on = cat.id === category
-                return (
-                  <Touchable key={cat.id} scale={0.94} onPress={() => setCategory(cat.id)} containerStyle={s.cell}
-                    style={[s.chip, { backgroundColor: on ? cat.color + '22' : c.bg, borderColor: on ? cat.color : 'transparent' }]}>
-                    <Text style={{ fontSize: 22 }}>{cat.emoji}</Text>
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: c.text, marginTop: 4 }} numberOfLines={1}>{cat.label}</Text>
-                  </Touchable>
-                )
-              })}
-              {Array.from({ length: (3 - (cats.length % 3)) % 3 }).map((_, i) => <View key={`f${i}`} style={s.cell} />)}
+            <ScrollView style={{ maxHeight: 186 }} contentContainerStyle={s.grid} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} keyboardDismissMode="none">
+              {cats.map(cat => <Chip key={cat.id} cat={cat} selected={cat.id === category} onPick={pick} c={c} />)}
+              {Array.from({ length: fillers }).map((_, i) => <View key={`f${i}`} style={s.cell} />)}
             </ScrollView>
 
-            {/* description */}
             <TextInput style={[s.desc, { backgroundColor: c.bg, color: c.text }]} value={desc} onChangeText={setDesc}
-              placeholder="תיאור (לא חובה)" placeholderTextColor={c.text3} textAlign="right" />
+              placeholder="תיאור (לא חובה)" placeholderTextColor={c.text3} textAlign="right" returnKeyType="done" />
 
-            {/* save */}
-            <Touchable onPress={save} disabled={!canSave} scale={0.98}
-              style={[s.save, { backgroundColor: c.primary, opacity: canSave ? 1 : 0.4 }]}>
-              {busy ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>שמירה</Text>}
+            <Touchable onPress={save} disabled={!canSave} scale={0.98} style={[s.save, { backgroundColor: c.primary, opacity: canSave ? 1 : 0.4 }]}>
+              {busy ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>{editTx ? 'עדכון' : 'שמירה'}</Text>}
             </Touchable>
           </View>
         </KeyboardAvoidingView>

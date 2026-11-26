@@ -14,6 +14,9 @@ import Header from '../components/Header'
 import MonthSwitcher from '../components/MonthSwitcher'
 import Touchable from '../components/Touchable'
 import AddTransactionSheet from './AddTransactionSheet'
+import BudgetModal from '../components/BudgetModal'
+import { monthLabel } from '../lib/month'
+import type { Transaction } from '../types'
 
 const shortDate = (d: string) => { const x = new Date(d); return `${x.getDate()}.${x.getMonth() + 1}` }
 
@@ -23,6 +26,8 @@ export default function BudgetScreen() {
   const { user } = useAuth()
   const d = useData()
   const [adding, setAdding] = useState(false)
+  const [editTx, setEditTx] = useState<Transaction | null>(null)
+  const [budgetOpen, setBudgetOpen] = useState(false)
 
   const names = [user?.displayName || user?.email?.split('@')[0] || 'אני', d.partnerName || ''].filter(Boolean)
   const spent = d.totalExpenses
@@ -48,6 +53,7 @@ export default function BudgetScreen() {
         </FadeIn>
 
         <FadeIn delay={60}>
+          <Touchable onPress={() => setBudgetOpen(true)} scale={0.99}>
           <View style={[s.hero, { backgroundColor: c.ink }]}>
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <View style={{ flex: 1 }}>
@@ -69,6 +75,7 @@ export default function BudgetScreen() {
               </Text>
             )}
           </View>
+          </Touchable>
         </FadeIn>
 
         <FadeIn delay={140}>
@@ -116,7 +123,8 @@ export default function BudgetScreen() {
               {d.monthTransactions.map((tx, i) => {
                 const cat = categoryOf(tx.category)
                 return (
-                  <View key={tx.id} style={[st_row(c), i ? { borderTopColor: c.sep, borderTopWidth: StyleSheet.hairlineWidth } : null]}>
+                  <Touchable key={tx.id} scale={0.98} onPress={() => setEditTx(tx)}
+                    style={[st_row(c), i ? { borderTopColor: c.sep, borderTopWidth: StyleSheet.hairlineWidth } : null]}>
                     <View style={[s.icon, { backgroundColor: cat.color + '22' }]}><Text style={{ fontSize: 17 }}>{cat.emoji}</Text></View>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 14.5, fontWeight: '500', color: c.text }}>{tx.description || cat.label}</Text>
@@ -125,7 +133,7 @@ export default function BudgetScreen() {
                     <Text style={{ fontSize: 15, fontWeight: '700', color: tx.type === 'income' ? c.success : c.text }}>
                       {tx.type === 'income' ? '+' : '−'}{formatAmount(tx.amount)}
                     </Text>
-                  </View>
+                  </Touchable>
                 )
               })}
             </View>
@@ -139,6 +147,8 @@ export default function BudgetScreen() {
       </Touchable>
 
       <AddTransactionSheet visible={adding} onClose={() => setAdding(false)} />
+      <AddTransactionSheet visible={!!editTx} editTx={editTx} onClose={() => setEditTx(null)} />
+      <BudgetModal visible={budgetOpen} current={budget} monthLabel={monthLabel(d.monthKey)} onClose={() => setBudgetOpen(false)} onSave={(nn) => d.setMonthlyBudget(nn)} />
     </View>
   )
 }
