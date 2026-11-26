@@ -7,7 +7,7 @@ import UserAvatar from '../components/UserAvatar'
 import AvatarCreator from '../components/AvatarCreator'
 import { db } from '../firebase'
 import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, getDoc, setDoc, Timestamp } from 'firebase/firestore'
-import { Bell, Users, User, UserPlus, LogIn, Copy, Share2, Check, Download } from 'lucide-react'
+import { Palette, Languages, Coins, Bell, Users, User, UserPlus, LogIn, Copy, Share2, Check, Download } from 'lucide-react'
 import { getThemePref, setThemePref } from '../utils/theme'
 import { buildCsv, downloadCsv } from '../utils/exportCsv'
 import { monthLabel } from '../utils/months'
@@ -212,71 +212,36 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Appearance — light (default), dark, or follow the device */}
-        <InfoHeading tip="בוחרים איך האפליקציה נראית: בהיר, כהה, או אוטומטי, שמתחלף לבד לפי ההגדרה של הטלפון." style={{ textTransform: 'uppercase' }}>
-          {settings.language === 'he' ? 'מראה' : 'Appearance'}
+        {/* Preferences: appearance, language and currency in one compact card */}
+        <InfoHeading tip="מראה: בהיר, כהה או אוטומטי לפי הטלפון. שפה: השפה של כל הכפתורים והטקסטים. מטבע: המטבע שבו מוצגים כל הסכומים." style={{ textTransform: 'uppercase' }}>
+          {settings.language === 'he' ? 'העדפות' : 'Preferences'}
         </InfoHeading>
         <div className="card" style={{ marginBottom: 20 }}>
-          <div className="card-inner">
-            <div className="segment">
-              {[
-                ['light', settings.language === 'he' ? 'בהיר' : 'Light'],
-                ['dark', settings.language === 'he' ? 'כהה' : 'Dark'],
-                ['auto', settings.language === 'he' ? 'אוטומטי' : 'Auto'],
-              ].map(([value, label]) => (
-                <button
-                  key={value}
-                  className={`segment-btn ${themePref === value ? 'active' : ''}`}
-                  onClick={() => { setThemePref(value); setThemePrefState(value) }}
-                >
-                  {label}
-                </button>
-              ))}
+          {[
+            { icon: <Palette size={16} strokeWidth={2} />, label: (settings.language === 'he' ? 'מראה' : 'Appearance'),
+              options: [['light', (settings.language === 'he' ? 'בהיר' : 'Light')], ['dark', (settings.language === 'he' ? 'כהה' : 'Dark')], ['auto', (settings.language === 'he' ? 'אוטו׳' : 'Auto')]],
+              value: themePref, onPick: v => { setThemePref(v); setThemePrefState(v) } },
+            { icon: <Languages size={16} strokeWidth={2} />, label: t('settings.language'),
+              options: [['he', 'עברית'], ['en', 'English']],
+              value: settings.language, onPick: v => changeLanguage(v) },
+            { icon: <Coins size={16} strokeWidth={2} />, label: t('settings.currency'),
+              options: CURRENCIES.map(c => [c, c]),
+              value: settings.currency, onPick: v => updateSettings({ currency: v }) },
+          ].map((row, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderTop: i ? '1px solid var(--c-sep)' : 'none' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600 }}>
+                <span style={{ color: 'var(--c-text2)', display: 'flex' }}>{row.icon}</span>{row.label}
+              </div>
+              <div className="segment" style={{ flexShrink: 0 }}>
+                {row.options.map(([value, label]) => (
+                  <button key={value} className={`segment-btn ${row.value === value ? 'active' : ''}`}
+                    style={{ flex: 'none', padding: '6px 13px', fontSize: 13 }} onClick={() => row.onPick(value)}>
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
-
-        {/* Language */}
-        <InfoHeading tip="השפה של כל הכפתורים והטקסטים באפליקציה." style={{ textTransform: 'uppercase' }}>
-          {t('settings.language')}
-        </InfoHeading>
-        <div className="card" style={{ marginBottom: 20 }}>
-          <div className="card-inner">
-            <div className="segment">
-              <button
-                className={`segment-btn ${settings.language === 'he' ? 'active' : ''}`}
-                onClick={() => changeLanguage('he')}
-              >
-                עברית
-              </button>
-              <button
-                className={`segment-btn ${settings.language === 'en' ? 'active' : ''}`}
-                onClick={() => changeLanguage('en')}
-              >
-                English
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Currency */}
-        <InfoHeading tip="המטבע שבו מוצגים כל הסכומים: הוצאות, הכנסות ותקציבים." style={{ textTransform: 'uppercase' }}>
-          {t('settings.currency')}
-        </InfoHeading>
-        <div className="card" style={{ marginBottom: 20 }}>
-          <div className="card-inner">
-            <div className="segment">
-              {CURRENCIES.map(c => (
-                <button
-                  key={c}
-                  className={`segment-btn ${settings.currency === c ? 'active' : ''}`}
-                  onClick={() => updateSettings({ currency: c })}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
-          </div>
+          ))}
         </div>
 
         {/* Monthly budget — shared household-wide */}
@@ -308,63 +273,6 @@ export default function SettingsPage() {
                 {savingBudget ? '⏳' : 'שמור'}
               </button>
             </div>
-          </div>
-        </div>
-
-        {/* Notifications */}
-        <InfoHeading tip="כל ערב בשעה שתבחר תקפוץ הודעה שמזכירה לרשום את ההוצאות של היום, כדי שלא תשכח אף הוצאה." style={{ textTransform: 'uppercase' }}>
-          {t('settings.notifications')}
-        </InfoHeading>
-        <div className="card" style={{ marginBottom: 20 }}>
-          <div className="card-inner" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div className="toggle-wrap">
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 15, display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <Bell size={16} strokeWidth={2} style={{ color: 'var(--c-text2)' }} />
-                  {t('settings.notifications')}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2 }}>{t('settings.notificationsDesc')}</div>
-              </div>
-              <Toggle
-                checked={settings.notificationsEnabled}
-                onChange={toggleNotifications}
-              />
-            </div>
-
-            <AnimatePresence>
-              {settings.notificationsEnabled && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 12 }}
-                >
-                  <div className="input-group">
-                    <label className="input-label">{t('settings.reminderTime')}</label>
-                    <input
-                      className="input-field"
-                      type="time"
-                      value={settings.reminderTime}
-                      onChange={e => updateSettings({ reminderTime: e.target.value })}
-                    />
-                  </div>
-                  <div className="input-group">
-                    <label className="input-label">{t('settings.reminderFrequency')}</label>
-                    <div className="segment">
-                      {['daily','weekly','monthly'].map(f => (
-                        <button
-                          key={f}
-                          className={`segment-btn ${settings.reminderFrequency === f ? 'active' : ''}`}
-                          onClick={() => updateSettings({ reminderFrequency: f })}
-                        >
-                          {t(`transaction.${f}`)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
         </div>
 
@@ -409,6 +317,9 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* Invite and join are only for an account that is not shared yet */}
+        {members.length <= 1 && (
+        <>
         {/* Invite section */}
         <div className="card" style={{ marginBottom: 12 }}>
           <div className="card-inner" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -537,6 +448,9 @@ export default function SettingsPage() {
             </AnimatePresence>
           </div>
         </div>
+
+        </>
+        )}
 
         {/* Receipts — Pro feature */}
         <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text2)', padding: '0 4px 8px', letterSpacing: 0.5, textTransform: 'uppercase' }}>
