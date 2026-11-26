@@ -15,6 +15,7 @@ import MonthSwitcher from '../components/MonthSwitcher'
 import Touchable from '../components/Touchable'
 import AddTransactionSheet from './AddTransactionSheet'
 import BudgetModal from '../components/BudgetModal'
+import SavingsGoals from '../components/SavingsGoals'
 import { monthLabel } from '../lib/month'
 import type { Transaction } from '../types'
 
@@ -111,6 +112,8 @@ export default function BudgetScreen() {
             </View>
           </FadeIn>
         )}
+
+        <SavingsGoals />
 
         <FadeIn delay={300}>
           <Text style={[s.section, { color: c.text }]}>תנועות</Text>
