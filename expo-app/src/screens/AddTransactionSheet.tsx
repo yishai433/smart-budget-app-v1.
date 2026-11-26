@@ -17,8 +17,8 @@ const Chip = memo(function Chip({ cat, selected, onPick, c }: { cat: Category; s
   return (
     <Touchable scale={0.94} onPress={() => onPick(cat.id)} containerStyle={s.cell}
       style={[s.chip, { backgroundColor: selected ? cat.color + '22' : c.bg, borderColor: selected ? cat.color : 'transparent' }]}>
-      <Text style={{ fontSize: 22 }}>{cat.emoji}</Text>
-      <Text style={{ fontSize: 12, fontWeight: '600', color: c.text, marginTop: 4 }} numberOfLines={1}>{cat.label}</Text>
+      <Text style={{ fontSize: 19 }}>{cat.emoji}</Text>
+      <Text style={{ fontSize: 11, fontWeight: '600', color: c.text, marginTop: 2 }} numberOfLines={1}>{cat.label}</Text>
     </Touchable>
   )
 })
@@ -61,13 +61,14 @@ export default function AddTransactionSheet({ visible, onClose, editTx }: { visi
       entrance.setValue(SCREEN_H)
       backdrop.setValue(0)
       Animated.parallel([
-        Animated.timing(backdrop, { toValue: 1, duration: 240, useNativeDriver: true }),
-        Animated.spring(entrance, { toValue: 0, useNativeDriver: true, damping: 26, stiffness: 240, mass: 0.85 }),
+        Animated.timing(backdrop, { toValue: 1, duration: 300, useNativeDriver: true }),
+        // easeOutExpo-style curve: quick to rise, soft to settle — reads as smooth.
+        Animated.timing(entrance, { toValue: 0, duration: 380, easing: Easing.bezier(0.16, 1, 0.3, 1), useNativeDriver: true }),
       ]).start()
     } else if (mounted) {
       Animated.parallel([
-        Animated.timing(backdrop, { toValue: 0, duration: 190, useNativeDriver: true }),
-        Animated.timing(entrance, { toValue: SCREEN_H, duration: 240, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(backdrop, { toValue: 0, duration: 200, useNativeDriver: true }),
+        Animated.timing(entrance, { toValue: SCREEN_H, duration: 260, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
       ]).start(() => setMounted(false))
     }
   }, [visible, editTx])
@@ -136,7 +137,7 @@ export default function AddTransactionSheet({ visible, onClose, editTx }: { visi
               <Text style={[s.amount, { color: amount === '' ? c.text3 : c.text }]}>{amount === '' ? '0' : amount}</Text>
             </View>
 
-            <ScrollView style={{ maxHeight: 132 }} contentContainerStyle={s.grid} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <ScrollView style={{ maxHeight: 190 }} contentContainerStyle={s.grid} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               {cats.map(cat => <Chip key={cat.id} cat={cat} selected={cat.id === category} onPick={pick} c={c} />)}
               {Array.from({ length: fillers }).map((_, i) => <View key={`f${i}`} style={s.cell} />)}
             </ScrollView>
@@ -164,17 +165,17 @@ const s = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   title: { fontSize: 18, fontWeight: '700' },
   x: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  seg: { flexDirection: 'row', borderRadius: 999, padding: 4, gap: 4, marginBottom: 4 },
-  segBtn: { paddingVertical: 11, borderRadius: 999, alignItems: 'center' },
-  amountWrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 10 },
-  cur: { fontSize: 24, fontWeight: '700' },
-  amount: { fontSize: 46, fontWeight: '800', minWidth: 60, textAlign: 'center' },
+  seg: { flexDirection: 'row', borderRadius: 999, padding: 4, gap: 4, marginBottom: 2 },
+  segBtn: { paddingVertical: 10, borderRadius: 999, alignItems: 'center' },
+  amountWrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 6 },
+  cur: { fontSize: 18, fontWeight: '700' },
+  amount: { fontSize: 32, fontWeight: '800', minWidth: 44, textAlign: 'center' },
   grid: { flexDirection: 'row-reverse', flexWrap: 'wrap', justifyContent: 'space-between' },
   cell: { width: '31%' },
-  chip: { height: 68, borderRadius: 16, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  desc: { borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12, fontSize: 15, marginTop: 4, marginBottom: 10 },
-  pad: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 8 },
+  chip: { height: 54, borderRadius: 14, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  desc: { borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, marginTop: 2, marginBottom: 8 },
+  pad: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 7 },
   keyCell: { width: '31.5%' },
-  key: { height: 50, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  save: { borderRadius: 16, paddingVertical: 15, alignItems: 'center', marginTop: 12 },
+  key: { height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  save: { borderRadius: 16, paddingVertical: 14, alignItems: 'center', marginTop: 10 },
 })
