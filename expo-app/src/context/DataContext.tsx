@@ -6,6 +6,7 @@ import { db } from '../firebase'
 import { useAuth } from './AuthContext'
 import { Household, Transaction, ShoppingItem, SavingsGoal } from '../types'
 import { currentMonthKey, monthKeyOf } from '../lib/month'
+import { createInviteCode, redeemInviteCode, RedeemResult } from '../lib/invites'
 
 const GOAL_COLORS = ['#c67139', '#7a8a5e', '#4F7A8A', '#9A6B8E', '#D08A2E', '#6B5FA0']
 import { setDisplayCurrency } from '../lib/money'
@@ -42,6 +43,8 @@ interface DataValue {
   addGoal: (name: string, target: number) => Promise<void>
   depositGoal: (id: string, delta: number) => Promise<void>
   deleteGoal: (id: string) => Promise<void>
+  createInvite: () => Promise<{ code: string; expiresAt: Date }>
+  joinByCode: (code: string) => Promise<RedeemResult>
   partnerName: string | null
 }
 
@@ -57,6 +60,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [partnerName, setPartnerName] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState(currentMonthKey())
+  const [resolveBump, setResolveBump] = useState(0)
 
   // Resolve which household to show: a joined one (linkedHouseholdId) or our own.
   useEffect(() => {
@@ -88,7 +92,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (!cancelled) setActiveHouseholdId(ownerId)
     })()
     return () => { cancelled = true }
-  }, [user])
+  }, [user, resolveBump])
 
   // Live household document.
   useEffect(() => {
@@ -184,6 +188,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
     await updateDoc(doc(db, 'households', activeHouseholdId), { [`savingsGoals.${id}`]: deleteField() })
   }
 
+  const createInvite: DataValue['createInvite'] = async () => {
+    if (!user || !activeHouseholdId) throw new Error('no-household')
+    return createInviteCode(activeHouseholdId, user.uid)
+  }
+  const joinByCode: DataValue['joinByCode'] = async (code) => {
+    if (!user) return 'error'
+    const res = await redeemInviteCode(code, user.uid, activeHouseholdId)
+    if (res === 'ok') setResolveBump(n => n + 1)
+    return res
+  }
+
   const setCurrency = async (cur: string) => {
     if (!activeHouseholdId) return
     setDisplayCurrency(cur)
@@ -218,7 +233,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     ready, household, activeHouseholdId, transactions, monthKey, isCurrentMonth, shiftMonth, goToCurrentMonth,
     monthTransactions, totalIncome, totalExpenses, balance: totalIncome - totalExpenses,
     monthlyBudget, effectiveCategoryBudgets, setMonthlyBudget, setCategoryBudget, addTransaction, updateTransaction, deleteTransaction,
-    shoppingItems, addShoppingItem, updateShoppingItem, deleteShoppingItem, clearChecked, uid: user?.uid ?? null, currency, setCurrency, savingsGoals, addGoal, depositGoal, deleteGoal, partnerName,
+    shoppingItems, addShoppingItem, updateShoppingItem, deleteShoppingItem, clearChecked, uid: user?.uid ?? null, currency, setCurrency, savingsGoals, addGoal, depositGoal, deleteGoal, createInvite, joinByCode, partnerName,
   }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
