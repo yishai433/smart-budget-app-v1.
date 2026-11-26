@@ -24,6 +24,8 @@ interface DataValue {
   effectiveCategoryBudgets: Record<string, number>
   setMonthlyBudget: (amount: number) => Promise<void>
   addTransaction: (data: Omit<Transaction, 'id' | 'householdId'>) => Promise<void>
+  updateTransaction: (id: string, data: Partial<Transaction>) => Promise<void>
+  deleteTransaction: (id: string) => Promise<void>
   shoppingItems: ShoppingItem[]
   addShoppingItem: (data: Partial<ShoppingItem> & { name: string }) => Promise<void>
   updateShoppingItem: (id: string, data: Partial<ShoppingItem>) => Promise<void>
@@ -164,11 +166,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
       createdByName: (user.displayName || '').split(' ')[0], createdAt: serverTimestamp(),
     })
   }
+  const updateTransaction: DataValue['updateTransaction'] = async (id, data) => { await updateDoc(doc(db, 'transactions', id), data) }
+  const deleteTransaction: DataValue['deleteTransaction'] = async (id) => { await deleteDoc(doc(db, 'transactions', id)) }
 
   const value: DataValue = {
     ready, household, activeHouseholdId, transactions, monthKey, isCurrentMonth, shiftMonth, goToCurrentMonth,
     monthTransactions, totalIncome, totalExpenses, balance: totalIncome - totalExpenses,
-    monthlyBudget, effectiveCategoryBudgets, setMonthlyBudget, addTransaction,
+    monthlyBudget, effectiveCategoryBudgets, setMonthlyBudget, addTransaction, updateTransaction, deleteTransaction,
     shoppingItems, addShoppingItem, updateShoppingItem, deleteShoppingItem, clearChecked, uid: user?.uid ?? null, partnerName,
   }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
