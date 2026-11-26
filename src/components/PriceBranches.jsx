@@ -96,12 +96,44 @@ function Picker({ catalog, selected, onSave, onClose }) {
 }
 
 // Settings card: which supermarket branches the barcode scanner compares.
+function StatusLine({ status, onCheck }) {
+  let text = 'בודק את השרת…', color = 'var(--c-text2)'
+  if (status?.error) { text = 'לא הצלחתי לבדוק את מצב השרת.'; color = 'var(--c-danger, #b3261e)' }
+  else if (status?.none) { text = 'השרת עוד לא טען מחירים לסניפים שלך.'; color = 'var(--c-remaining)' }
+  else if (status?.at) {
+    const d = new Date(status.at), now = new Date()
+    const days = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 86400000)
+    const hm = d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
+    const when = days === 0 ? `היום ב-${hm}` : days === 1 ? `אתמול ב-${hm}` : `לפני ${days} ימים (${d.toLocaleDateString('he-IL')})`
+    const fresh = days === 0 || (days === 1 && now.getHours() < 8)   // the daily refresh runs after 06:00
+    text = `${fresh ? 'השרת עובד. ' : 'המחירים לא התעדכנו היום. '}עודכן ${when} · ${status.n.toLocaleString('he-IL')} מוצרים, ${status.branches} סניפים`
+    color = fresh ? 'var(--c-success)' : 'var(--c-remaining)'
+  }
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color }}>
+      <span style={{ flex: 1 }}>{text}</span>
+      <button onClick={onCheck} className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: 12, minHeight: 0 }}>בדוק שוב</button>
+    </div>
+  )
+}
+
 export default function PriceBranches() {
   const { household, activeHouseholdId } = useApp()
   const [catalog, setCatalog] = useState(null)
   const [open, setOpen] = useState(false)
   const [msg, setMsg] = useState('')
   const selected = (household?.priceStores?.length ? household.priceStores : DEFAULTS)
+
+  // When the home server last loaded fresh prices (the product index is rewritten each time new files arrive)
+  const [status, setStatus] = useState(null)      // null = loading, {at, n} or {none:true}
+  const checkStatus = useCallback(() => {
+    if (!activeHouseholdId) return
+    setStatus(null)
+    getDoc(doc(db, 'priceIndex', activeHouseholdId))
+      .then(s => { const d = s.data(); setStatus(d?.updatedAt?.toMillis ? { at: d.updatedAt.toMillis(), n: d.n || 0, branches: d.keys?.length || 0 } : { none: true }) })
+      .catch(() => setStatus({ error: true }))
+  }, [activeHouseholdId])
+  useEffect(() => { checkStatus() }, [checkStatus])
 
   useEffect(() => {
     getDoc(doc(db, 'priceCatalog', 'stores')).then(s => setCatalog(s.exists() ? s.data().stores || [] : [])).catch(() => setCatalog([]))
@@ -129,6 +161,7 @@ export default function PriceBranches() {
               <Store size={16} color="var(--c-primary)" /> {nameOf(k)}
             </div>
           ))}
+          <StatusLine status={status} onCheck={checkStatus} />
           {msg && <div style={{ fontSize: 12, color: 'var(--c-text2)' }}>{msg}</div>}
           <button className="btn btn-secondary btn-full" disabled={catalog === null || !catalog.length} onClick={() => setOpen(true)}>
             {catalog === null ? 'טוען…' : catalog.length ? 'בחירת סניפים לפי עיר' : 'רשימת הסניפים עדיין לא מוכנה בשרת'}
