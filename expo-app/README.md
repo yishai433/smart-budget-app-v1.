@@ -2,7 +2,11 @@
 
 המרה אמיתית של האפליקציה ל-React Native, בשלבים. **לא** משפיע על האתר ולא על הפריסה שלו.
 
-## שלב 1 (עכשיו)
+## שלב 2 (חדש)
+- **רשימת קניות אמיתית**: הוספה, סימון, מחיקה וניקוי — מסונכרן ב-Firestore בין בני הבית.
+- **סריקת ברקוד** עם מצלמה (expo-camera) + **חיפוש מחיר** דרך השרת הביתי, בחירת הסניף הזול והוספה לרשימה.
+
+## שלב 1
 - TypeScript מלא, ניווט, עיצוב (בהיר/כהה), סרגל תחתון עם גלולה פעילה.
 - **התחברות אמיתית** ל-Firebase (אותו פרויקט כמו האתר).
 - **מסך תקציב אמיתי**: קורא את התקציב, ההכנסות, ההוצאות, הקטגוריות והתנועות מ-Firestore,
@@ -18,7 +22,7 @@
 ```
 cd expo-app
 npm install
-npx expo install @react-native-async-storage/async-storage
+npx expo install @react-native-async-storage/async-storage expo-camera
 cp .env.example .env     # ממלאים את מפתחות Firebase (מ-Firebase Console → Project settings → Web app)
 npx expo start --tunnel ngrok
 ```
