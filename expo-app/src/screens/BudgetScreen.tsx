@@ -29,6 +29,7 @@ export default function BudgetScreen() {
   const [adding, setAdding] = useState(false)
   const [editTx, setEditTx] = useState<Transaction | null>(null)
   const [budgetOpen, setBudgetOpen] = useState(false)
+  const [catBudget, setCatBudget] = useState<{ id: string; label: string; current: number | null } | null>(null)
 
   const names = [user?.displayName || user?.email?.split('@')[0] || 'אני', d.partnerName || ''].filter(Boolean)
   const spent = d.totalExpenses
@@ -97,7 +98,8 @@ export default function BudgetScreen() {
                 const p = b ? Math.round((r.spent / b) * 100) : 0
                 const ov = b && r.spent > b
                 return (
-                  <View key={r.id} style={[st_row(c), i === 0 ? null : { borderTopColor: c.sep, borderTopWidth: StyleSheet.hairlineWidth }]}>
+                  <Touchable key={r.id} scale={0.98} onPress={() => setCatBudget({ id: r.id, label: cat.label, current: b ?? null })}
+                    style={[st_row(c), i === 0 ? null : { borderTopColor: c.sep, borderTopWidth: StyleSheet.hairlineWidth }]}>
                     <View style={[s.icon, { backgroundColor: cat.color + '22' }]}><Text style={{ fontSize: 17 }}>{cat.emoji}</Text></View>
                     <View style={{ flex: 1 }}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 7 }}>
@@ -106,7 +108,7 @@ export default function BudgetScreen() {
                       </View>
                       <Bar pct={p} color={ov ? c.danger : cat.color} track={c.bg} delay={200 + i * 60} />
                     </View>
-                  </View>
+                  </Touchable>
                 )
               })}
             </View>
@@ -152,6 +154,7 @@ export default function BudgetScreen() {
       <AddTransactionSheet visible={adding} onClose={() => setAdding(false)} />
       <AddTransactionSheet visible={!!editTx} editTx={editTx} onClose={() => setEditTx(null)} />
       <BudgetModal visible={budgetOpen} current={budget} monthLabel={monthLabel(d.monthKey)} onClose={() => setBudgetOpen(false)} onSave={(nn) => d.setMonthlyBudget(nn)} />
+      <BudgetModal visible={!!catBudget} current={catBudget?.current ?? null} monthLabel={catBudget?.label || ''} onClose={() => setCatBudget(null)} onSave={(nn) => d.setCategoryBudget(catBudget!.id, nn)} />
     </View>
   )
 }
