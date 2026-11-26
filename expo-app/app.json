@@ -5,7 +5,23 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "ios": { "supportsTablet": false, "bundleIdentifier": "com.yishai.smartbudget" },
-    "android": { "package": "com.yishai.smartbudget" }
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.yishai.smartbudget",
+      "infoPlist": {
+        "NSCameraUsageDescription": "המצלמה משמשת לסריקת ברקודים של מוצרים."
+      }
+    },
+    "android": {
+      "package": "com.yishai.smartbudget"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "המצלמה משמשת לסריקת ברקודים של מוצרים."
+        }
+      ]
+    ]
   }
 }

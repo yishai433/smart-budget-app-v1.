@@ -1,10 +1,10 @@
 import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react'
 import {
-  doc, getDoc, setDoc, updateDoc, onSnapshot, collection, query, where, addDoc, serverTimestamp,
+  doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, addDoc, serverTimestamp,
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from './AuthContext'
-import { Household, Transaction, TxType } from '../types'
+import { Household, Transaction, ShoppingItem } from '../types'
 import { currentMonthKey, monthKeyOf } from '../lib/month'
 
 interface DataValue {
@@ -24,6 +24,12 @@ interface DataValue {
   effectiveCategoryBudgets: Record<string, number>
   setMonthlyBudget: (amount: number) => Promise<void>
   addTransaction: (data: Omit<Transaction, 'id' | 'householdId'>) => Promise<void>
+  shoppingItems: ShoppingItem[]
+  addShoppingItem: (data: Partial<ShoppingItem> & { name: string }) => Promise<void>
+  updateShoppingItem: (id: string, data: Partial<ShoppingItem>) => Promise<void>
+  deleteShoppingItem: (id: string) => Promise<void>
+  clearChecked: () => Promise<void>
+  uid: string | null
   partnerName: string | null
 }
 
@@ -35,6 +41,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [activeHouseholdId, setActiveHouseholdId] = useState<string | null>(null)
   const [household, setHousehold] = useState<Household | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [shoppingItems, setShoppingItems] = useState<ShoppingItem[]>([])
   const [partnerName, setPartnerName] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState(currentMonthKey())
@@ -101,6 +108,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }, () => {})
   }, [activeHouseholdId])
 
+  // Live shopping items.
+  useEffect(() => {
+    if (!activeHouseholdId) return
+    const q = query(collection(db, 'shoppingItems'), where('householdId', '==', activeHouseholdId))
+    return onSnapshot(q, (snap) => {
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() })) as ShoppingItem[]
+      items.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0))
+      setShoppingItems(items)
+    }, () => {})
+  }, [activeHouseholdId])
+
+  const addShoppingItem: DataValue['addShoppingItem'] = async (data) => {
+    if (!activeHouseholdId) return
+    const { checked, ...rest } = data
+    await addDoc(collection(db, 'shoppingItems'), { category: 'other', quantity: 1, ...rest, householdId: activeHouseholdId, checked: checked !== undefined ? checked : true, createdAt: serverTimestamp() })
+  }
+  const updateShoppingItem: DataValue['updateShoppingItem'] = async (id, data) => { await updateDoc(doc(db, 'shoppingItems', id), data) }
+  const deleteShoppingItem: DataValue['deleteShoppingItem'] = async (id) => { await deleteDoc(doc(db, 'shoppingItems', id)) }
+  const clearChecked: DataValue['clearChecked'] = async () => { await Promise.all(shoppingItems.filter(i => i.checked).map(i => deleteDoc(doc(db, 'shoppingItems', i.id)))) }
+
   const monthKey = selectedMonth
   const curKey = currentMonthKey()
   const isCurrentMonth = monthKey === curKey
@@ -141,7 +168,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const value: DataValue = {
     ready, household, activeHouseholdId, transactions, monthKey, isCurrentMonth, shiftMonth, goToCurrentMonth,
     monthTransactions, totalIncome, totalExpenses, balance: totalIncome - totalExpenses,
-    monthlyBudget, effectiveCategoryBudgets, setMonthlyBudget, addTransaction, partnerName,
+    monthlyBudget, effectiveCategoryBudgets, setMonthlyBudget, addTransaction,
+    shoppingItems, addShoppingItem, updateShoppingItem, deleteShoppingItem, clearChecked, uid: user?.uid ?? null, partnerName,
   }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

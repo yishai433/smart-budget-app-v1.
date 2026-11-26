@@ -27,3 +27,16 @@ export interface Household {
   splitEnabled?: boolean
   settings?: Record<string, unknown>
 }
+
+export interface ShoppingItem {
+  id: string
+  householdId: string
+  name: string
+  category?: string
+  quantity?: number
+  estimatedPrice?: number
+  otherLabel?: string
+  barcode?: string
+  checked?: boolean
+  createdAt?: { seconds: number } | null
+}
