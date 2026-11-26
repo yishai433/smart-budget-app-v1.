@@ -82,7 +82,7 @@ export default function AddTransactionSheet({ visible, onClose, editTx }: { visi
         <Text style={[s.amount, { color: amount === '' ? c.text3 : c.text }]}>{amount === '' ? '0' : amount}</Text>
       </View>
 
-      <ScrollView style={{ maxHeight: 190 }} contentContainerStyle={s.grid} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ height: 186 }} contentContainerStyle={s.grid} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         {cats.map(cat => <Chip key={cat.id} cat={cat} selected={cat.id === category} onPick={pick} c={c} />)}
         {Array.from({ length: fillers }).map((_, i) => <View key={`f${i}`} style={s.cell} />)}
       </ScrollView>
@@ -108,7 +108,7 @@ const s = StyleSheet.create({
   amountWrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 6 },
   cur: { fontSize: 18, fontWeight: '700' },
   amount: { fontSize: 32, fontWeight: '800', minWidth: 44, textAlign: 'center' },
-  grid: { flexDirection: 'row-reverse', flexWrap: 'wrap', justifyContent: 'space-between' },
+  grid: { flexDirection: 'row-reverse', flexWrap: 'wrap', justifyContent: 'space-between', alignContent: 'center', flexGrow: 1 },
   cell: { width: '31%' },
   chip: { height: 54, borderRadius: 14, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   desc: { borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, marginTop: 2, marginBottom: 8 },
