@@ -352,6 +352,9 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* Invite and join are only for an account that is not shared yet */}
+        {members.length <= 1 && (
+        <>
         {/* Invite section */}
         <div className="card" style={{ marginBottom: 12 }}>
           <div className="card-inner" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -480,6 +483,9 @@ export default function SettingsPage() {
             </AnimatePresence>
           </div>
         </div>
+
+        </>
+        )}
 
         {/* Receipts — Pro feature */}
         <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text2)', padding: '0 4px 8px', letterSpacing: 0.5, textTransform: 'uppercase' }}>
