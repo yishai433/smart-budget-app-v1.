@@ -46,7 +46,7 @@ export function InfoRow({ label, tip, sub, icon, children }) {
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
             {icon}{label}
-            <button
+            {tip && <button
               type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} aria-label={`הסבר על ${label}`}
               style={{
                 width: 22, height: 22, borderRadius: '50%', border: '1.5px solid var(--c-text3)', background: 'transparent',
@@ -54,7 +54,7 @@ export function InfoRow({ label, tip, sub, icon, children }) {
                 padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 position: 'relative', cursor: 'pointer',
               }}
-            >i<span style={{ position: 'absolute', inset: -11 }} /></button>
+            >i<span style={{ position: 'absolute', inset: -11 }} /></button>}
           </div>
           {sub && <div style={{ fontSize: 12, color: 'var(--c-text2)', marginTop: 2 }}>{sub}</div>}
         </div>

@@ -65,7 +65,6 @@ export default function ServerNotifications() {
             icon={<Server size={16} strokeWidth={2} style={{ color: 'var(--c-text2)' }} />}
             label="קבלת התראות"
             sub="במכשיר הזה, גם כשהאפליקציה סגורה"
-            tip="מפעיל או מכבה את כל ההתראות במכשיר הזה. בכל מכשיר אפשר לבחור לבד."
           >
             <Switch checked={on} disabled={!can || busy} onChange={toggle} />
           </InfoRow>
