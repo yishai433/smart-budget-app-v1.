@@ -4,6 +4,7 @@ import { useTheme, radius } from '../theme'
 import { formatAmount } from '../utils/format'
 import { CATEGORIES, CURRENCY as CUR, totals } from '../data/mock'
 import FadeIn from '../components/FadeIn'
+import Header from '../components/Header'
 import Bar from '../components/Bar'
 
 export default function ReportsPage() {
@@ -15,7 +16,7 @@ export default function ReportsPage() {
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingTop: insets.top + 12, paddingBottom: 120 }}>
         <FadeIn>
-          <Text style={[st.title, { color: c.text }]}>דוחות</Text>
+          <Header title="דוחות" />
           <Text style={[st.sub, { color: c.text2 }]}>לאן הלך הכסף החודש</Text>
         </FadeIn>
         <FadeIn delay={80}>

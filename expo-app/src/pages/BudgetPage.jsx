@@ -7,6 +7,8 @@ import { CURRENCY as CUR, MONTHLY_BUDGET, CATEGORIES, CATEGORY_BUDGETS, TRANSACT
 import Ring from '../components/Ring'
 import Bar from '../components/Bar'
 import FadeIn from '../components/FadeIn'
+import Header from '../components/Header'
+import MonthSwitcher from '../components/MonthSwitcher'
 
 const money = (n) => `${n < 0 ? '−' : ''}${formatAmount(Math.abs(n), CUR)}`
 const shortDate = (d) => { const x = new Date(d); return `${x.getDate()}.${x.getMonth() + 1}` }
@@ -85,8 +87,8 @@ export default function BudgetPage() {
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingTop: insets.top + 12, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
         <FadeIn>
-          <Text style={[s.title, { color: c.text }]}>תקציב</Text>
-          <Text style={[s.sub, { color: c.text2 }]}>נובמבר 2026 · ישי & טליה</Text>
+          <Header title="תקציב" />
+          <MonthSwitcher />
         </FadeIn>
 
         <FadeIn delay={60}><Hero /></FadeIn>

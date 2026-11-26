@@ -1,9 +1,9 @@
-import { Platform } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { useColorScheme } from 'react-native'
+import TabBar from './components/TabBar'
 import { Wallet, BarChart3, ShoppingCart, Settings } from 'lucide-react-native'
 import { useTheme } from './theme'
 import BudgetPage from './pages/BudgetPage'
@@ -17,11 +17,12 @@ import SettingsPage from './pages/SettingsPage'
 // reload kicks you back to the Expo Go home screen, which looks like an instant crash.
 
 const Tab = createBottomTabNavigator()
+// Order left→right. RTL web layout puts Budget rightmost, so it's last here.
 const TABS = [
-  { name: 'Budget', title: 'תקציב', Icon: Wallet, Page: BudgetPage },
-  { name: 'Reports', title: 'דוחות', Icon: BarChart3, Page: ReportsPage },
-  { name: 'Shopping', title: 'קניות', Icon: ShoppingCart, Page: ShoppingPage },
   { name: 'Settings', title: 'הגדרות', Icon: Settings, Page: SettingsPage },
+  { name: 'Shopping', title: 'קניות', Icon: ShoppingCart, Page: ShoppingPage },
+  { name: 'Reports', title: 'דוחות', Icon: BarChart3, Page: ReportsPage },
+  { name: 'Budget', title: 'תקציב', Icon: Wallet, Page: BudgetPage },
 ]
 
 export default function App() {
@@ -34,15 +35,10 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <NavigationContainer theme={navTheme}>
-        <Tab.Navigator screenOptions={{
-          headerShown: false,
-          animation: 'fade',
-          tabBarActiveTintColor: c.primary,
-          tabBarInactiveTintColor: c.text3,
-          tabBarStyle: { backgroundColor: c.bg, borderTopColor: c.sep, height: 58 + (Platform.OS === 'ios' ? 20 : 0), paddingTop: 6 },
-          tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-          tabBarItemStyle: { paddingTop: 2 },
-        }}>
+        <Tab.Navigator
+          initialRouteName="Budget"
+          tabBar={props => <TabBar {...props} />}
+          screenOptions={{ headerShown: false, animation: 'fade' }}>
           {TABS.map(({ name, title, Icon, Page }) => (
             <Tab.Screen key={name} name={name} component={Page}
               options={{ title, tabBarIcon: ({ color, size }) => <Icon color={color} size={size} /> }} />
