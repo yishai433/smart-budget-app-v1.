@@ -1,6 +1,5 @@
-import { useState } from 'react'
-import { View, Text, TextInput, Modal, StyleSheet, KeyboardAvoidingView, Platform, Pressable, ActivityIndicator } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useState, useCallback } from 'react'
+import { View, Text, TextInput, StyleSheet, ActivityIndicator } from 'react-native'
 import { Plus, Target, Trash2 } from 'lucide-react-native'
 import { useTheme, radius } from '../theme'
 import { useData } from '../context/DataContext'
@@ -8,6 +7,8 @@ import { formatAmount, displayCurrency } from '../lib/money'
 import Bar from './Bar'
 import Touchable from './Touchable'
 import FadeIn from './FadeIn'
+import BottomSheet from './BottomSheet'
+import NumPad, { applyKey } from './NumPad'
 import type { SavingsGoal } from '../types'
 
 export default function SavingsGoals() {
@@ -63,7 +64,6 @@ export default function SavingsGoals() {
 
 function AddGoal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const c = useTheme()
-  const insets = useSafeAreaInsets()
   const { addGoal } = useData()
   const [name, setName] = useState('')
   const [target, setTarget] = useState('')
@@ -71,66 +71,49 @@ function AddGoal({ visible, onClose }: { visible: boolean; onClose: () => void }
   const t = parseFloat(target) || 0
   const save = async () => { if (!name.trim() || !(t > 0)) return; setBusy(true); try { await addGoal(name.trim(), t); setName(''); setTarget(''); onClose() } catch { setBusy(false) } }
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose} statusBarTranslucent>
-      <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' }}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <View style={[gs.sheet, { backgroundColor: c.card, paddingBottom: insets.bottom + 16 }]}>
-            <View style={gs.handle} />
-            <Text style={{ fontSize: 18, fontWeight: '700', color: c.text, textAlign: 'center', marginBottom: 16 }}>יעד חיסכון חדש</Text>
-            <TextInput style={[gs.input, { backgroundColor: c.bg, color: c.text }]} placeholder="שם היעד (למשל חופשה)" placeholderTextColor={c.text3} value={name} onChangeText={setName} textAlign="right" />
-            <TextInput style={[gs.input, { backgroundColor: c.bg, color: c.text, marginTop: 10 }]} placeholder="סכום יעד" placeholderTextColor={c.text3} keyboardType="decimal-pad" value={target} onChangeText={v => setTarget(v.replace(/[^0-9.]/g, ''))} textAlign="right" />
-            <Touchable onPress={save} disabled={!name.trim() || !(t > 0) || busy} scale={0.98} style={{ marginTop: 16, borderRadius: 16, paddingVertical: 16, alignItems: 'center', backgroundColor: c.primary, opacity: name.trim() && t > 0 ? 1 : 0.4 }}>
-              {busy ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>שמירה</Text>}
-            </Touchable>
-          </View>
-        </KeyboardAvoidingView>
-      </View>
-    </Modal>
+    <BottomSheet visible={visible} onClose={onClose} avoidKeyboard>
+      <Text style={{ fontSize: 18, fontWeight: '700', color: c.text, textAlign: 'center', marginBottom: 16 }}>יעד חיסכון חדש</Text>
+      <TextInput style={[gs.input, { backgroundColor: c.bg, color: c.text }]} placeholder="שם היעד (למשל חופשה)" placeholderTextColor={c.text3} value={name} onChangeText={setName} textAlign="right" />
+      <TextInput style={[gs.input, { backgroundColor: c.bg, color: c.text, marginTop: 10 }]} placeholder="סכום יעד" placeholderTextColor={c.text3} keyboardType="decimal-pad" value={target} onChangeText={v => setTarget(v.replace(/[^0-9.]/g, ''))} textAlign="right" />
+      <Touchable onPress={save} disabled={!name.trim() || !(t > 0) || busy} scale={0.98} style={{ marginTop: 16, borderRadius: 16, paddingVertical: 16, alignItems: 'center', backgroundColor: c.primary, opacity: name.trim() && t > 0 ? 1 : 0.4 }}>
+        {busy ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>שמירה</Text>}
+      </Touchable>
+    </BottomSheet>
   )
 }
 
 function DepositGoal({ goal, onClose }: { goal: SavingsGoal | null; onClose: () => void }) {
   const c = useTheme()
-  const insets = useSafeAreaInsets()
   const { depositGoal, deleteGoal } = useData()
   const [amount, setAmount] = useState('')
   const [busy, setBusy] = useState(false)
+  const onKey = useCallback((k: string) => setAmount(prev => applyKey(prev, k)), [])
   const n = parseFloat(amount) || 0
   const doDeposit = async (sign: number) => { if (!goal || !(n > 0)) return; setBusy(true); try { await depositGoal(goal.id, sign * n); setAmount(''); onClose() } catch { setBusy(false) } }
   const remove = async () => { if (!goal) return; setBusy(true); try { await deleteGoal(goal.id); onClose() } catch { setBusy(false) } }
   return (
-    <Modal visible={!!goal} animationType="slide" transparent onRequestClose={onClose} statusBarTranslucent>
-      <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' }}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <View style={[gs.sheet, { backgroundColor: c.card, paddingBottom: insets.bottom + 16 }]}>
-            <View style={gs.handle} />
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-              <Text style={{ fontSize: 18, fontWeight: '700', color: c.text }}>{goal?.name}</Text>
-              <Touchable onPress={remove} scale={0.9} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: c.dangerLight, alignItems: 'center', justifyContent: 'center' }}><Trash2 size={16} color={c.danger} /></Touchable>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 14 }}>
-              <Text style={{ fontSize: 24, fontWeight: '700', color: c.text3 }}>{displayCurrency()}</Text>
-              <TextInput style={{ fontSize: 40, fontWeight: '800', color: c.text, minWidth: 80, textAlign: 'center', padding: 0 }} keyboardType="decimal-pad" placeholder="0" placeholderTextColor={c.text3} value={amount} onChangeText={v => setAmount(v.replace(/[^0-9.]/g, ''))} />
-            </View>
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <Touchable containerStyle={{ flex: 1 }} onPress={() => doDeposit(-1)} disabled={!(n > 0) || busy} scale={0.98} style={{ borderRadius: 16, paddingVertical: 15, alignItems: 'center', backgroundColor: c.bg, borderWidth: 1, borderColor: c.border, opacity: n > 0 ? 1 : 0.4 }}>
-                <Text style={{ color: c.text, fontWeight: '700' }}>משיכה</Text>
-              </Touchable>
-              <Touchable containerStyle={{ flex: 2 }} onPress={() => doDeposit(1)} disabled={!(n > 0) || busy} scale={0.98} style={{ borderRadius: 16, paddingVertical: 15, alignItems: 'center', backgroundColor: c.primary, opacity: n > 0 ? 1 : 0.4 }}>
-                {busy ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '700' }}>הפקדה</Text>}
-              </Touchable>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
+    <BottomSheet visible={!!goal} onClose={onClose}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <Text style={{ fontSize: 18, fontWeight: '700', color: c.text }}>{goal?.name}</Text>
+        <Touchable onPress={remove} scale={0.9} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: c.dangerLight, alignItems: 'center', justifyContent: 'center' }}><Trash2 size={16} color={c.danger} /></Touchable>
       </View>
-    </Modal>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 10 }}>
+        <Text style={{ fontSize: 20, fontWeight: '700', color: c.text3 }}>{displayCurrency()}</Text>
+        <Text style={{ fontSize: 38, fontWeight: '800', color: amount === '' ? c.text3 : c.text, minWidth: 60, textAlign: 'center' }}>{amount === '' ? '0' : amount}</Text>
+      </View>
+      <NumPad onKey={onKey} />
+      <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+        <Touchable containerStyle={{ flex: 1 }} onPress={() => doDeposit(-1)} disabled={!(n > 0) || busy} scale={0.98} style={{ borderRadius: 16, paddingVertical: 15, alignItems: 'center', backgroundColor: c.bg, borderWidth: 1, borderColor: c.border, opacity: n > 0 ? 1 : 0.4 }}>
+          <Text style={{ color: c.text, fontWeight: '700' }}>משיכה</Text>
+        </Touchable>
+        <Touchable containerStyle={{ flex: 2 }} onPress={() => doDeposit(1)} disabled={!(n > 0) || busy} scale={0.98} style={{ borderRadius: 16, paddingVertical: 15, alignItems: 'center', backgroundColor: c.primary, opacity: n > 0 ? 1 : 0.4 }}>
+          {busy ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '700' }}>הפקדה</Text>}
+        </Touchable>
+      </View>
+    </BottomSheet>
   )
 }
 
 const gs = StyleSheet.create({
-  sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 8 },
-  handle: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(128,128,128,0.35)', marginBottom: 14 },
   input: { borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15 },
 })
