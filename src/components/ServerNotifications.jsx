@@ -36,7 +36,7 @@ export default function ServerNotifications() {
       if (v) { await enablePush(user.uid); setOn(true)
         const all = { unusual: true, budget: true, summary: true, pace: true, recurring: true, duplicate: true }
         setPrefs(all); savePrefs(user.uid, all).catch(() => {})
-        setMsg('ההתראות הופעלו במכשיר הזה. אפשר לכבות כל סוג בנפרד.') }
+        setMsg('ההתראות הופעלו במכשיר הזה.') }
       else { await disablePush(user.uid); setOn(false) }
     } catch (e) {
       setOn(false)
