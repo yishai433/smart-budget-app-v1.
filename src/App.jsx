@@ -10,6 +10,7 @@ import SettingsPage from './pages/SettingsPage'
 import AddTransaction from './components/budget/AddTransaction'
 import AuthPage from './pages/AuthPage'
 import VerifyEmailPage from './pages/VerifyEmailPage'
+import FirstSetup from './pages/FirstSetup'
 import OnboardingIntro from './pages/OnboardingIntro'
 import ReportsPage from './pages/ReportsPage'
 import ReceiptsPage from './pages/ReceiptsPage'
@@ -168,6 +169,7 @@ function AppInner() {
   const { loading, user, verifyPending } = useApp()
   const [showAdd, setShowAdd] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [prefsStep, setPrefsStep] = useState(true)      // first-run language / appearance / currency, before the avatar
   const [showIntro, setShowIntro] = useState(() => !localStorage.getItem('sb_intro_seen'))
   // detail is a string, or { message, actionLabel, onAction } for a toast with a button (e.g. Undo)
   const [globalToast, setGlobalToast] = useState(null)
@@ -254,6 +256,7 @@ function AppInner() {
   if (verifyPending) return <VerifyEmailPage />
 
   // New user → avatar onboarding
+  if (showOnboarding && prefsStep) return <FirstSetup onDone={() => setPrefsStep(false)} />
   if (showOnboarding) {
     const done = () => {
       localStorage.removeItem('sb_new_user')
