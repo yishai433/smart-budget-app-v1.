@@ -5,6 +5,7 @@ import { X, Trash2 } from 'lucide-react-native'
 import { useTheme, Theme } from '../theme'
 import { CATEGORIES, Category } from '../categories'
 import { useData } from '../context/DataContext'
+import { displayCurrency } from '../lib/money'
 import { todayISO } from '../lib/month'
 import Touchable from '../components/Touchable'
 import type { TxType, Transaction } from '../types'
@@ -83,7 +84,7 @@ export default function AddTransactionSheet({ visible, onClose, editTx }: { visi
             </View>
 
             <View style={s.amountWrap}>
-              <Text style={[s.cur, { color: c.text3 }]}>₪</Text>
+              <Text style={[s.cur, { color: c.text3 }]}>{displayCurrency()}</Text>
               <TextInput ref={amountRef} style={[s.amount, { color: c.text }]} value={amount} onChangeText={t => setAmount(t.replace(/[^0-9.]/g, ''))}
                 keyboardType="decimal-pad" placeholder="0" placeholderTextColor={c.text3} />
             </View>

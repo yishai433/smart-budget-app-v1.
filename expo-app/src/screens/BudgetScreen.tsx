@@ -3,7 +3,7 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Wallet, ArrowUpRight, ArrowDownLeft, Plus } from 'lucide-react-native'
 import { useTheme, radius, Theme } from '../theme'
-import { formatAmount, money } from '../lib/money'
+import { formatAmount, money, displayCurrency } from '../lib/money'
 import { categoryOf } from '../categories'
 import { useData } from '../context/DataContext'
 import { useAuth } from '../context/AuthContext'
@@ -59,7 +59,7 @@ export default function BudgetScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={[s.overline, { color: c.inkText2 }]}>{over ? 'חרגנו מהתקציב ב' : 'הוצאנו החודש'}</Text>
                 <Text style={[s.heroNum, { color: over ? c.danger : c.inkText }]}>
-                  <Text style={{ fontSize: 24 }}>{over ? '−' : ''}₪</Text>{formatAmount(over && budget != null ? spent - budget : spent, '')}
+                  <Text style={{ fontSize: 24 }}>{over ? '−' : ''}{displayCurrency()}</Text>{formatAmount(over && budget != null ? spent - budget : spent, '')}
                 </Text>
               </View>
               <Ring pct={pct} />
