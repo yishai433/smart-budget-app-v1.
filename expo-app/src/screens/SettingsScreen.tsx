@@ -1,6 +1,7 @@
-import { View, Text, ScrollView, StyleSheet, Alert } from 'react-native'
+import { useState } from 'react'
+import { View, Text, ScrollView, StyleSheet, Alert, TextInput, ActivityIndicator } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Users, LogOut, Palette, Languages, Coins } from 'lucide-react-native'
+import { Users, LogOut, Palette, Languages, Coins, UserPlus, LogIn } from 'lucide-react-native'
 import { useTheme, radius, Theme } from '../theme'
 import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
@@ -36,6 +37,62 @@ function SegRow<T extends string>({ Icon, label, options, value, onPick, first }
             </Touchable>
           )
         })}
+      </View>
+    </View>
+  )
+}
+
+function ShareJoin() {
+  const c = useTheme()
+  const d = useData()
+  const [code, setCode] = useState<string | null>(null)
+  const [busyInvite, setBusyInvite] = useState(false)
+  const [join, setJoin] = useState('')
+  const [joinMsg, setJoinMsg] = useState('')
+  const [busyJoin, setBusyJoin] = useState(false)
+
+  const makeCode = async () => { setBusyInvite(true); try { const r = await d.createInvite(); setCode(r.code) } catch { setJoinMsg('יצירת הקוד נכשלה') } finally { setBusyInvite(false) } }
+  const doJoin = async () => {
+    if (join.trim().length < 4) return
+    setBusyJoin(true); setJoinMsg('')
+    const res = await d.joinByCode(join.trim())
+    setBusyJoin(false)
+    if (res === 'ok') { setJoinMsg('הצטרפת בהצלחה! הנתונים משותפים כעת.'); setJoin('') }
+    else setJoinMsg(res === 'used' ? 'הקוד כבר נוצל' : res === 'expired' ? 'הקוד פג תוקף' : res === 'self' ? 'זה הקוד שלך' : 'קוד לא נמצא')
+  }
+
+  return (
+    <View style={{ marginTop: 10, gap: 10 }}>
+      <View style={{ borderWidth: 1, borderColor: c.border, borderRadius: radius.lg, backgroundColor: c.card, padding: 16 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'flex-end', marginBottom: 10 }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: c.text }}>הזמן בן/בת זוג</Text>
+          <UserPlus size={16} color={c.primary} />
+        </View>
+        {code ? (
+          <View style={{ alignItems: 'center', paddingVertical: 6 }}>
+            <Text style={{ fontSize: 30, fontWeight: '800', letterSpacing: 6, color: c.primary }}>{code}</Text>
+            <Text style={{ fontSize: 12, color: c.text2, marginTop: 6 }}>תקף 24 שעות · הזן אותו במכשיר של בן/בת הזוג</Text>
+          </View>
+        ) : (
+          <Touchable onPress={makeCode} disabled={busyInvite} style={{ backgroundColor: c.bg, borderWidth: 1, borderColor: c.border, borderRadius: radius.md, paddingVertical: 12, alignItems: 'center' }}>
+            {busyInvite ? <ActivityIndicator color={c.primary} /> : <Text style={{ color: c.text, fontWeight: '600' }}>צור קוד הזמנה</Text>}
+          </Touchable>
+        )}
+      </View>
+
+      <View style={{ borderWidth: 1, borderColor: c.border, borderRadius: radius.lg, backgroundColor: c.card, padding: 16 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'flex-end', marginBottom: 10 }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: c.text }}>הצטרף לחשבון</Text>
+          <LogIn size={16} color={c.text2} />
+        </View>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TextInput style={{ flex: 1, backgroundColor: c.bg, borderWidth: 1, borderColor: c.border, borderRadius: radius.md, height: 46, textAlign: 'center', fontSize: 18, fontWeight: '800', letterSpacing: 3, color: c.text }}
+            placeholder="ABCD2345" placeholderTextColor={c.text3} autoCapitalize="characters" value={join} onChangeText={t => { setJoin(t.toUpperCase()); setJoinMsg('') }} maxLength={8} />
+          <Touchable onPress={doJoin} disabled={join.trim().length < 4 || busyJoin} style={{ paddingHorizontal: 20, borderRadius: radius.md, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center', opacity: join.trim().length < 4 ? 0.4 : 1 }}>
+            {busyJoin ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '700' }}>הצטרף</Text>}
+          </Touchable>
+        </View>
+        {joinMsg ? <Text style={{ fontSize: 13, color: joinMsg.includes('בהצלחה') ? c.success : c.danger, marginTop: 10, textAlign: 'center' }}>{joinMsg}</Text> : null}
       </View>
     </View>
   )
@@ -91,13 +148,8 @@ export default function SettingsScreen() {
                 <Text style={{ fontSize: 13, color: c.text2, marginTop: 2 }}>{names.join(' · ')}</Text>
               </View>
             </View>
-            {!shared && d.household?.inviteCode ? (
-              <View style={{ padding: 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.sep, alignItems: 'flex-end' }}>
-                <Text style={{ fontSize: 13, color: c.text2, marginBottom: 6 }}>קוד הזמנה לבן/בת זוג (מצטרפים דרך האתר):</Text>
-                <Text style={{ fontSize: 22, fontWeight: '800', letterSpacing: 4, color: c.primary }}>{d.household.inviteCode}</Text>
-              </View>
-            ) : null}
           </Card>
+          {!shared ? <ShareJoin /> : null}
         </FadeIn>
 
         <FadeIn delay={240}>
