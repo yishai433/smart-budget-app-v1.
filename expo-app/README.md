@@ -22,7 +22,7 @@
 ```
 cd expo-app
 npm install
-npx expo install @react-native-async-storage/async-storage expo-camera
+npx expo install --fix     # מיישר את כל הגרסאות ל-SDK 58 (חשוב!)
 cp .env.example .env     # ממלאים את מפתחות Firebase (מ-Firebase Console → Project settings → Web app)
 npx expo start --tunnel ngrok
 ```
