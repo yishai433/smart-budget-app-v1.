@@ -26,6 +26,7 @@ interface DataValue {
   monthlyBudget: number | null
   effectiveCategoryBudgets: Record<string, number>
   setMonthlyBudget: (amount: number) => Promise<void>
+  setCategoryBudget: (catId: string, amount: number) => Promise<void>
   addTransaction: (data: Omit<Transaction, 'id' | 'householdId'>) => Promise<void>
   updateTransaction: (id: string, data: Partial<Transaction>) => Promise<void>
   deleteTransaction: (id: string) => Promise<void>
@@ -190,6 +191,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     catch { await setDoc(doc(db, 'households', activeHouseholdId), { settings: { currency: cur } }, { merge: true }) }
   }
 
+  const setCategoryBudget = async (catId: string, amount: number) => {
+    if (!activeHouseholdId) return
+    const ref = doc(db, 'households', activeHouseholdId)
+    try { await updateDoc(ref, { [`categoryBudgets.${catId}`]: amount > 0 ? amount : deleteField() }) }
+    catch { if (amount > 0) await setDoc(ref, { categoryBudgets: { [catId]: amount } }, { merge: true }) }
+  }
+
   const setMonthlyBudget = async (amount: number) => {
     if (!activeHouseholdId) return
     try { await updateDoc(doc(db, 'households', activeHouseholdId), { [`monthlyBudgets.${monthKey}`]: amount }) }
@@ -209,7 +217,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const value: DataValue = {
     ready, household, activeHouseholdId, transactions, monthKey, isCurrentMonth, shiftMonth, goToCurrentMonth,
     monthTransactions, totalIncome, totalExpenses, balance: totalIncome - totalExpenses,
-    monthlyBudget, effectiveCategoryBudgets, setMonthlyBudget, addTransaction, updateTransaction, deleteTransaction,
+    monthlyBudget, effectiveCategoryBudgets, setMonthlyBudget, setCategoryBudget, addTransaction, updateTransaction, deleteTransaction,
     shoppingItems, addShoppingItem, updateShoppingItem, deleteShoppingItem, clearChecked, uid: user?.uid ?? null, currency, setCurrency, savingsGoals, addGoal, depositGoal, deleteGoal, partnerName,
   }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
