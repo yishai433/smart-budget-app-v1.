@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Check } from 'lucide-react-native'
 import { useTheme, radius } from '../theme'
 import FadeIn from '../components/FadeIn'
+import Header from '../components/Header'
 import Touchable from '../components/Touchable'
 
 const INITIAL = [
@@ -35,7 +36,7 @@ export default function ShoppingPage() {
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingTop: insets.top + 12, paddingBottom: 120 }}>
         <FadeIn>
-          <Text style={[st.title, { color: c.text }]}>קניות</Text>
+          <Header title="קניות" />
           <Text style={[st.sub, { color: c.text2 }]}>{left} פריטים ברשימה</Text>
         </FadeIn>
         <FadeIn delay={80}>
