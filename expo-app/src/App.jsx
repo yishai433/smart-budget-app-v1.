@@ -1,4 +1,4 @@
-import { I18nManager, Platform } from 'react-native'
+import { Platform } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
@@ -11,9 +11,10 @@ import ReportsPage from './pages/ReportsPage'
 import ShoppingPage from './pages/ShoppingPage'
 import SettingsPage from './pages/SettingsPage'
 
-// Hebrew app → right-to-left. In Expo Go the first launch may need one manual reload
-// for RTL to fully apply (a native build does it automatically).
-if (!I18nManager.isRTL) { I18nManager.allowRTL(true); I18nManager.forceRTL(true) }
+// Hebrew app: every screen aligns text/rows to the right directly in its own styles,
+// instead of forcing system-wide RTL (I18nManager.forceRTL). Forcing it would reload the
+// host app to apply the change — fine in a standalone build, but inside Expo Go that
+// reload kicks you back to the Expo Go home screen, which looks like an instant crash.
 
 const Tab = createBottomTabNavigator()
 const TABS = [
