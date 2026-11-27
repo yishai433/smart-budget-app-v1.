@@ -24,16 +24,23 @@ function parseRows(html) {
   }).filter(r => r.fileName)
 }
 
+async function tryUrl(url) {
+  console.log('== ' + url + ' ==')
+  const html = await getText(url)
+  const summary = (html.match(/summary-total">([^<]+)</) || [])[1]
+  console.log('סיכום: ' + summary)
+  const rows = parseRows(html)
+  console.log(`נמצאו ${rows.length} שורות קבצים:`)
+  rows.slice(0, 15).forEach(r => console.log(`  [${r.type}] ${r.fileName}  ->  ${r.href}`))
+  console.log()
+}
+
 async function main() {
   try {
-    const url = `${BASE}/?BranchTypeNumber=${SUBCHAIN}&StoreNumber=${store}`
-    console.log('== ' + url + ' ==')
-    const html = await getText(url)
-    const summary = (html.match(/summary-total">([^<]+)</) || [])[1]
-    console.log('סיכום: ' + summary)
-    const rows = parseRows(html)
-    console.log(`נמצאו ${rows.length} שורות קבצים:`)
-    rows.forEach(r => console.log(`  [${r.type}] ${r.fileName}  ->  ${r.href}`))
+    await tryUrl(`${BASE}/?BranchTypeNumber=${SUBCHAIN}&StoreNumber=${store}`)
+    await tryUrl(`${BASE}/?Search=${SUBCHAIN}-${store}`)
+    await tryUrl(`${BASE}/?Search=${store}`)
+    await tryUrl(`${BASE}/?FileType=PriceFull`)
   } catch (e) {
     console.log('שגיאה: ' + e.message)
   }
