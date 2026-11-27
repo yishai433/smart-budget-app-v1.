@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, ReactNode } from 'react'
+import { InteractionManager } from 'react-native'
 import { View, Modal, StyleSheet, Pressable, Animated, Easing, Dimensions, Platform, Keyboard } from 'react-native'
 import useKeyboardHeight from '../lib/useKeyboardHeight'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -15,6 +16,8 @@ export default function BottomSheet({ visible, onClose, children, avoidKeyboard,
   const c = useTheme()
   const insets = useSafeAreaInsets()
   const [mounted, setMounted] = useState(visible)
+  // Build the (possibly heavy) content one frame after the slide starts, so the open stays smooth.
+  const [content, setContent] = useState(false)
   const entrance = useRef(new Animated.Value(SCREEN_H)).current
   const backdrop = useRef(new Animated.Value(0)).current
   const kb = useKeyboardHeight(!!avoidKeyboard && visible)
@@ -26,6 +29,7 @@ export default function BottomSheet({ visible, onClose, children, avoidKeyboard,
       setMounted(true)
       entrance.setValue(SCREEN_H)
       backdrop.setValue(0)
+      const task = InteractionManager.runAfterInteractions(() => setContent(true))
       Animated.parallel([
         Animated.timing(backdrop, { toValue: 1, duration: 280, useNativeDriver: true }),
         // easeOutExpo: quick to rise, soft to settle.
@@ -36,16 +40,20 @@ export default function BottomSheet({ visible, onClose, children, avoidKeyboard,
       Animated.parallel([
         Animated.timing(backdrop, { toValue: 0, duration: 190, useNativeDriver: true }),
         Animated.timing(entrance, { toValue: SCREEN_H, duration: 250, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
-      ]).start(() => setMounted(false))
+      ]).start(() => { setMounted(false); setContent(false) })
     }
+    if (visible) return () => {}
   }, [visible])
+
+  // Also show content as soon as the first frame passes, in case interactions never settle.
+  useEffect(() => { if (mounted && !content) { const r = requestAnimationFrame(() => setContent(true)); return () => cancelAnimationFrame(r) } }, [mounted, content])
 
   if (!mounted) return null
 
   const sheet = (
     <Animated.View style={[styles.sheet, { backgroundColor: c.card, paddingBottom: lift ? kb + 10 : insets.bottom + 14, minHeight: lift ? undefined : minHeight, maxHeight: SCREEN_H - insets.top - 6, transform: [{ translateY: entrance }] }]}>
       <View style={styles.handle} />
-      {children}
+      {content ? children : <View style={{ height: minHeight ? minHeight - 40 : 120 }} />}
     </Animated.View>
   )
 
