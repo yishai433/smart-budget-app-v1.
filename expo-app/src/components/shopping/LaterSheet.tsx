@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { View, Text, TextInput, ScrollView, StyleSheet, Keyboard, Alert } from 'react-native'
 import { X, Plus, ArrowUpLeft, Trash2, Bell, BellRing, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react-native'
 import { useTheme, Theme } from '../../theme'
@@ -107,10 +107,13 @@ function ReminderPanel({ c, item, onBack }: { c: Theme; item: LaterItem; onBack:
 export default function LaterSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const c = useTheme()
   const d = useData()
-  const [text, setText] = useState('')
+  // uncontrolled box: typing doesn't re-render the whole list
+  const inputRef = useRef<TextInput>(null)
+  const textRef = useRef('')
+  const [hasText, setHasText] = useState(false)
   const [remindId, setRemindId] = useState<string | null>(null)
   useEffect(() => { if (!visible) setRemindId(null) }, [visible])
-  const add = () => { const n = text.trim(); if (!n) return; setText(''); d.addLaterItem(n).catch(fail) }
+  const add = () => { const n = textRef.current.trim(); if (!n) return; inputRef.current?.clear(); textRef.current = ''; setHasText(false); d.addLaterItem(n).catch(fail) }
   const items = d.laterItems
   const remindItem = items.find(i => i.id === remindId) || null
   const move = (list: LaterItem[]) => { list.forEach(i => cancelReminder(i.id)); d.moveLaterToList(list).catch(fail) }
@@ -130,8 +133,8 @@ export default function LaterSheet({ visible, onClose }: { visible: boolean; onC
         <>
           <View style={[s.addBar, { backgroundColor: c.bg }]}>
             <TextInput style={{ flex: 1, height: 46, color: c.text, fontSize: 15 }} placeholder="למשל: סוללות, מגבות..." placeholderTextColor={c.text3}
-              value={text} onChangeText={setText} onSubmitEditing={add} returnKeyType="done" blurOnSubmit={false} textAlign="right" />
-            <Touchable onPress={add} scale={0.88} style={[s.plus, { backgroundColor: c.primary, opacity: text.trim() ? 1 : 0.4 }]}><Plus size={18} color="#fff" /></Touchable>
+              ref={inputRef} onChangeText={v => { textRef.current = v; setHasText(!!v.trim()) }} onSubmitEditing={add} returnKeyType="done" blurOnSubmit={false} textAlign="right" />
+            <Touchable onPress={add} scale={0.88} style={[s.plus, { backgroundColor: c.primary, opacity: hasText ? 1 : 0.4 }]}><Plus size={18} color="#fff" /></Touchable>
           </View>
 
           <ScrollView style={{ flex: 1, marginTop: 12 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>

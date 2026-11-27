@@ -11,6 +11,7 @@ import { createInviteCode, redeemInviteCode, RedeemResult } from '../lib/invites
 
 const GOAL_COLORS = ['#c67139', '#7a8a5e', '#4F7A8A', '#9A6B8E', '#D08A2E', '#6B5FA0']
 import { setDisplayCurrency } from '../lib/money'
+import { prefetchPriceIndex } from '../lib/priceIndex'
 
 interface DataValue {
   ready: boolean
@@ -115,6 +116,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     })()
     return () => { cancelled = true }
   }, [user, resolveBump])
+
+  // Supermarket prices: read them in the background a few seconds after opening, so the
+  // shopping page is instant when it's visited.
+  useEffect(() => {
+    if (!activeHouseholdId) return
+    const t = setTimeout(() => prefetchPriceIndex(activeHouseholdId), 3000)
+    return () => clearTimeout(t)
+  }, [activeHouseholdId])
 
   // Live household document.
   useEffect(() => {

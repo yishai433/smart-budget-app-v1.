@@ -176,12 +176,20 @@ export function refreshPriceIndex(hh: string | null) {
   loading = load(hh, false).finally(() => { loading = null })
 }
 
+// Reading the index (≈11k products) takes a noticeable moment on the JS thread, so it's done
+// quietly in the background soon after the app opens, before anyone visits the shopping page.
+export function prefetchPriceIndex(hh: string | null) {
+  if (hh && loadedFor !== hh && !loading) refreshPriceIndex(hh)
+}
+
 export function usePriceIndex(hh: string | null): State {
   const [s, setS] = useState(state)
   useEffect(() => {
     subs.add(setS)
-    if (hh && loadedFor !== hh && !loading) refreshPriceIndex(hh)
-    return () => { subs.delete(setS) }
+    setS(state)
+    // not prefetched yet: let the page draw first, then load
+    const t = setTimeout(() => prefetchPriceIndex(hh), 450)
+    return () => { clearTimeout(t); subs.delete(setS) }
   }, [hh])
   return s
 }

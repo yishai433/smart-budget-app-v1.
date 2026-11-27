@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, memo, useDeferredValue, useEffect, useRef } from 'react'
+import { useState, useMemo, useCallback, memo, useEffect, useRef } from 'react'
 import { View, Text, ScrollView, TextInput, StyleSheet, Alert, Keyboard, ActivityIndicator, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Check, ScanLine, Plus, ListChecks, Clock, Trash2, ChevronLeft, ShoppingCart, Save, Store, HelpCircle, X } from 'lucide-react-native'
@@ -108,7 +108,26 @@ export default function ShoppingScreen() {
   const insets = useSafeAreaInsets()
   const { user } = useAuth()
   const d = useData()
-  const [text, setText] = useState('')
+  // The product search box is uncontrolled: typing doesn't re-render the page on every letter.
+  // `hasText` only flips when the box goes empty/non-empty, and the search runs once typing
+  // pauses for a moment (`q`).
+  const inputRef = useRef<TextInput>(null)
+  const textRef = useRef('')
+  const [hasText, setHasText] = useState(false)
+  const [q, setQ] = useState('')
+  const qTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const onType = useCallback((v: string) => {
+    textRef.current = v
+    setHasText(!!v)
+    if (qTimer.current) clearTimeout(qTimer.current)
+    qTimer.current = setTimeout(() => setQ(v), v.trim().length < 2 ? 0 : 140)
+  }, [])
+  const clearSearch = useCallback(() => {
+    inputRef.current?.clear(); textRef.current = ''
+    if (qTimer.current) clearTimeout(qTimer.current)
+    setHasText(false); setQ('')
+  }, [])
+  useEffect(() => () => { if (qTimer.current) clearTimeout(qTimer.current) }, [])
   const [scanning, setScanning] = useState(false)
   const [editing, setEditing] = useState<ShoppingItem | null>(null)
   const [laterOpen, setLaterOpen] = useState(false)
@@ -131,9 +150,10 @@ export default function ShoppingScreen() {
   const storesKey = d.priceStores.join(',')
   useEffect(() => {
     if (!storesKey) return
-    refreshPriceIndex(d.activeHouseholdId)
+    // a quick version check after the page has drawn (cheap when nothing changed)
+    const a = setTimeout(() => refreshPriceIndex(d.activeHouseholdId), 600)
     const t = setTimeout(() => refreshPriceIndex(d.activeHouseholdId), 75000)
-    return () => clearTimeout(t)
+    return () => { clearTimeout(a); clearTimeout(t) }
   }, [storesKey])
   const storeName = storeLabel(store, idx?.labels)
 
@@ -147,7 +167,6 @@ export default function ShoppingScreen() {
   const lineTotal = (i: ShoppingItem) => unitPrice(i) * (i.quantity || 1)
 
   // Live product search at the chosen branch while typing.
-  const q = useDeferredValue(text)
   // Products this household has bought before rank first in the search.
   const prefer = useMemo(() => {
     const set = new Set<string>()
@@ -173,8 +192,8 @@ export default function ShoppingScreen() {
   // space to scroll into). Clearing the search brings everything back.
   const pageRef = useRef<ScrollView>(null)
   const [focused, setFocused] = useState(false)
-  const searching = focused || !!text
-  const showingHits = text.trim().length >= 2
+  const searching = focused || hasText
+  const showingHits = q.trim().length >= 2
   useEffect(() => { pageRef.current?.scrollTo({ y: 0, animated: false }); const t = setTimeout(measureHits, 60); return () => clearTimeout(t) }, [searching])
   const hitsMax = Math.max(180, winH - hitsTop - 34 - (kb ? kb + 14 : insets.bottom + 90))
 
@@ -192,13 +211,13 @@ export default function ShoppingScreen() {
   }, [items])
 
   const addHit = (h: ProductHit) => {
-    setText('')
+    clearSearch()
     d.addShoppingItem({ name: h.name, code: h.code, category: guessShoppingCategory(h.name), quantity: 1, estimatedPrice: h.price ?? 0, priceManual: false, checked: false }).catch(fail)
   }
   // Typed a plain word: keep the word, and attach the closest product's price at this branch.
   const addTyped = () => {
-    const n = text.trim(); if (!n) return
-    setText('')
+    const n = textRef.current.trim(); if (!n) return
+    clearSearch()
     const m = idx && store ? autoMatch(idx, n, store, prefer) : null
     d.addShoppingItem({
       name: n, category: guessShoppingCategory(n), quantity: 1, estimatedPrice: m?.price ?? 0, priceManual: false, checked: false,
@@ -261,15 +280,15 @@ export default function ShoppingScreen() {
         <FadeIn delay={50}>
           <View style={[s.addBox, { backgroundColor: c.card, borderColor: c.border }]}>
             <TextInput style={{ flex: 1, height: 52, color: c.text, fontSize: 16 }} placeholder="הוספת מוצר, למשל: חלב" placeholderTextColor={c.text3}
-              value={text} onChangeText={setText} onSubmitEditing={addTyped} returnKeyType="done" blurOnSubmit={false} textAlign="right"
+              ref={inputRef} onChangeText={onType} onSubmitEditing={addTyped} returnKeyType="done" blurOnSubmit={false} textAlign="right"
               onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
-            {text ? (
-              <Touchable onPress={() => setText('')} scale={0.85} style={s.clearBtn}>
+            {hasText ? (
+              <Touchable onPress={clearSearch} scale={0.85} style={s.clearBtn}>
                 <View style={[s.clearDot, { backgroundColor: c.text3 }]}><X size={13} color="#fff" strokeWidth={3} /></View>
               </Touchable>
             ) : null}
             <Touchable onPress={() => setScanning(true)} scale={0.88} style={s.scanBtn}><ScanLine size={21} color={c.text2} /></Touchable>
-            <Touchable onPress={addTyped} scale={0.88} style={[s.plus, { backgroundColor: c.primary, opacity: text.trim() ? 1 : 0.35 }]}><Plus size={20} color="#fff" strokeWidth={2.5} /></Touchable>
+            <Touchable onPress={addTyped} scale={0.88} style={[s.plus, { backgroundColor: c.primary, opacity: hasText ? 1 : 0.35 }]}><Plus size={20} color="#fff" strokeWidth={2.5} /></Touchable>
           </View>
           {hasHits && (
             <View ref={hitsWrap} onLayout={measureHits} style={[s.card, { backgroundColor: c.card, borderColor: c.border, marginTop: 8 }]}>
@@ -296,7 +315,7 @@ export default function ShoppingScreen() {
               </ScrollView>
             </View>
           )}
-          {text.trim().length >= 2 && store && status === 'loading' ? <ActivityIndicator color={c.primary} style={{ marginTop: 10 }} /> : null}
+          {showingHits && store && status === 'loading' ? <ActivityIndicator color={c.primary} style={{ marginTop: 10 }} /> : null}
         </FadeIn>
 
         {!showingHits && <>
