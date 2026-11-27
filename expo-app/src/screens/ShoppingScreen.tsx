@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, memo, useEffect, useRef } from 'react'
 import { View, Text, ScrollView, TextInput, StyleSheet, Alert, Keyboard, ActivityIndicator, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Check, ScanLine, Plus, ListChecks, Clock, Trash2, ChevronLeft, ShoppingCart, Save, Store, HelpCircle, X } from 'lucide-react-native'
+import { Check, ScanLine, Plus, ListChecks, Clock, Trash2, ChevronLeft, ShoppingCart, Save, Store, HelpCircle, X, ClipboardPaste, Trophy } from 'lucide-react-native'
 import { useTheme, radius, Theme } from '../theme'
 import { useData } from '../context/DataContext'
 import { useAuth } from '../context/AuthContext'
@@ -17,6 +17,9 @@ import LaterSheet from '../components/shopping/LaterSheet'
 import BasketsSheet from '../components/shopping/BasketsSheet'
 import CheckoutSheet from '../components/shopping/CheckoutSheet'
 import StorePicker from '../components/shopping/StorePicker'
+import PasteListSheet from '../components/shopping/PasteListSheet'
+import BasketCompareSheet from '../components/shopping/BasketCompareSheet'
+import { compareBasket } from '../lib/listImport'
 import { usePriceIndex, searchProducts, autoMatch, priceAt, refreshPriceIndex, ProductHit } from '../lib/priceIndex'
 import { storeLabel } from '../lib/stores'
 import useKeyboardHeight from '../lib/useKeyboardHeight'
@@ -136,6 +139,8 @@ export default function ShoppingScreen() {
   const names = [user?.displayName || user?.email?.split('@')[0] || 'אני', d.partnerName || ''].filter(Boolean)
 
   const [storeOpen, setStoreOpen] = useState(false)
+  const [pasteOpen, setPasteOpen] = useState(false)
+  const [compareOpen, setCompareOpen] = useState(false)
   // "How it works" stays until the user dismisses it; the ? button brings it back.
   const [guide, setGuide] = useState(false)
   useEffect(() => { AsyncStorage.getItem(GUIDE_KEY).then(v => setGuide(v !== '1')).catch(() => setGuide(true)) }, [])
@@ -232,6 +237,16 @@ export default function ShoppingScreen() {
   ])
 
   const empty = items.length === 0
+  // The whole list priced at every compared branch (only when there's something to compare).
+  const basket = useMemo(() => compareBasket(idx, items.map(i => ({ code: i.code, qty: i.quantity || 1, name: i.name }))), [idx, items])
+  const bestB = basket.branches[0]
+  const mineB = basket.branches.find(b => b.key === store)
+  const basketSave = bestB && mineB && bestB.key !== store ? mineB.total - bestB.total : 0
+  const onPasted = (n: number) => {
+    setPasteOpen(false)
+    if (idx && idx.keys.length) setTimeout(() => setCompareOpen(true), 450)
+    else Alert.alert(`נוספו ${n} מוצרים`, 'בחרו סופרים באזור כדי לראות איפה הסל הכי זול.')
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
@@ -275,6 +290,23 @@ export default function ShoppingScreen() {
             ) : null}
           </View>
         </FadeIn>}
+
+        {/* The cheapest basket among the compared branches */}
+        {!searching && basket.branches.length > 1 && basket.priced >= 2 && (
+          <FadeIn delay={40}>
+            <Touchable onPress={() => setCompareOpen(true)} scale={0.98} style={[s.bestCard, { backgroundColor: basketSave > 0.5 ? c.primaryLight : c.card, borderColor: basketSave > 0.5 ? c.primary + '55' : c.border }]}>
+              <View style={[s.bestIcon, { backgroundColor: c.primary }]}><Trophy size={16} color="#fff" /></View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 11.5, color: c.text2, fontWeight: '700', textAlign: 'right' }}>הסל הכי זול · {basket.branches.length} סניפים</Text>
+                <Text numberOfLines={1} style={{ fontSize: 14.5, fontWeight: '800', color: c.text, textAlign: 'right', marginTop: 1 }}>
+                  {bestB.key === store ? 'אתם כבר בסופר הכי זול 👌' : `${storeLabel(bestB.key, idx?.labels)} · ${formatAmount(bestB.total)}`}
+                </Text>
+                {basketSave > 0.5 ? <Text style={{ fontSize: 12, color: c.primary, fontWeight: '700', textAlign: 'right', marginTop: 1 }}>חוסכים {formatAmount(basketSave)} על הרשימה</Text> : null}
+              </View>
+              <ChevronLeft size={18} color={c.text3} />
+            </Touchable>
+          </FadeIn>
+        )}
 
         {/* Add a product */}
         <FadeIn delay={50}>
@@ -352,6 +384,9 @@ export default function ShoppingScreen() {
               <Touchable onPress={() => setBasketsOpen(true)} scale={0.97} style={[s.primaryBtn, { backgroundColor: c.primary, paddingHorizontal: 22, alignSelf: 'stretch' }]}>
                 <ListChecks size={18} color="#fff" /><Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>לרשימות השמורות</Text>
               </Touchable>
+              <Touchable onPress={() => setPasteOpen(true)} scale={0.97} style={[s.primaryBtn, { backgroundColor: c.primaryLight, paddingHorizontal: 22, alignSelf: 'stretch', marginTop: 8 }]}>
+                <ClipboardPaste size={18} color={c.primary} /><Text style={{ color: c.primary, fontWeight: '700', fontSize: 15 }}>הדבקת רשימה או קובץ</Text>
+              </Touchable>
             </View>
           </FadeIn>
         )}
@@ -389,7 +424,9 @@ export default function ShoppingScreen() {
         {/* More options, spelled out */}
         <Text style={[s.label, { color: c.text2, marginTop: 26 }]}>עוד אפשרויות</Text>
         <View style={[s.card, { backgroundColor: c.card, borderColor: c.border }]}>
-          <MenuRow first c={c} Icon={ListChecks} title="רשימות שמורות" sub="קנייה שבועית, שבת... טוענים בלחיצה" onPress={() => setBasketsOpen(true)} badge={d.savedBaskets.length || undefined} />
+          <MenuRow first c={c} Icon={ClipboardPaste} title="הדבקת רשימה או קובץ" sub="כל הרשימה בבת אחת, עם מחירים והשוואה" onPress={() => setPasteOpen(true)} />
+          {!empty && idx && idx.keys.length > 0 ? <MenuRow c={c} Icon={Trophy} title="איפה הסל הכי זול?" sub="כל הרשימה מול כל הסופרים שבחרתם" onPress={() => setCompareOpen(true)} /> : null}
+          <MenuRow c={c} Icon={ListChecks} title="רשימות שמורות" sub="קנייה שבועית, שבת... טוענים בלחיצה" onPress={() => setBasketsOpen(true)} badge={d.savedBaskets.length || undefined} />
           {!empty && <MenuRow c={c} Icon={Save} title="לשמור את הרשימה הזאת" sub="כדי לטעון אותה שוב בקנייה הבאה" onPress={() => setBasketsOpen(true)} />}
           <MenuRow c={c} Icon={Clock} title="לקנות בהמשך" sub="דברים לא דחופים, כדי שלא תשכחו" onPress={() => setLaterOpen(true)} badge={d.laterItems.length || undefined} />
           {!empty && <MenuRow c={c} Icon={Trash2} title="מחיקת כל הרשימה" onPress={confirmClear} danger />}
@@ -413,6 +450,9 @@ export default function ShoppingScreen() {
       <BarcodeScanner visible={scanning} onClose={() => setScanning(false)} />
       <ItemEditSheet item={editing} branchPrice={editing?.code && idx ? priceAt(idx, editing.code, store) : null} storeName={storeName} onClose={() => setEditing(null)} />
       <StorePicker visible={storeOpen} labels={idx?.labels} onClose={() => setStoreOpen(false)} />
+      <PasteListSheet visible={pasteOpen} idx={idx} store={store} prefer={prefer} onClose={() => setPasteOpen(false)} onAdded={onPasted} />
+      <BasketCompareSheet visible={compareOpen} result={basket} labels={idx?.labels} onClose={() => setCompareOpen(false)}
+        onAddStores={() => { setCompareOpen(false); setTimeout(() => setStoreOpen(true), 350) }} />
       <LaterSheet visible={laterOpen} onClose={() => setLaterOpen(false)} />
       <BasketsSheet visible={basketsOpen} onClose={() => setBasketsOpen(false)} onLoaded={() => {}} />
       <CheckoutSheet visible={checkoutOpen} total={cartTotal} count={inCart.length} defaultStore={storeName} priceOf={unitPrice} onClose={() => setCheckoutOpen(false)} onDone={() => {}} />
@@ -438,6 +478,8 @@ const s = StyleSheet.create({
   addBox: { flexDirection: 'row-reverse', alignItems: 'center', borderWidth: 1, borderRadius: 16, paddingRight: 14, paddingLeft: 6, gap: 4, marginTop: 14 },
   cheap: { fontSize: 11.5, fontWeight: '700', textAlign: 'right', marginTop: 3 },
   cheapBox: { alignSelf: 'flex-end', maxWidth: '100%', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, marginTop: 4 },
+  bestCard: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 16, padding: 12, marginTop: 12 },
+  bestIcon: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   clearBtn: { width: 32, height: 40, alignItems: 'center', justifyContent: 'center' },
   clearDot: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   scanBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },

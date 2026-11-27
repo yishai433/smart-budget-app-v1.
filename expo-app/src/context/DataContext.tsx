@@ -64,6 +64,8 @@ interface DataValue {
   priceStores: string[]
   activeStore: string
   setActiveStore: (key: string) => Promise<void>
+  addStores: (keys: string[]) => Promise<number>
+  removeStore: (key: string) => Promise<void>
   setIncomeMonthMode: (m: IncomeMonthMode) => Promise<void>
 }
 
@@ -255,6 +257,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const stores = priceStores.includes(key) ? priceStores : [...priceStores, key]
     await setDoc(doc(db, 'households', activeHouseholdId), { priceStores: stores, settings: { shopStore: key } }, { merge: true })
   }
+  // Branches to compare prices against (the server downloads each one). Kept to a sane number.
+  const MAX_STORES = 15
+  const addStores: DataValue['addStores'] = async (keys) => {
+    if (!activeHouseholdId) return 0
+    const add = keys.filter(k => !priceStores.includes(k)).slice(0, Math.max(0, MAX_STORES - priceStores.length))
+    if (!add.length) return 0
+    const stores = [...priceStores, ...add]
+    await setDoc(doc(db, 'households', activeHouseholdId), { priceStores: stores, ...(activeStore ? {} : { settings: { shopStore: stores[0] } }) }, { merge: true })
+    return add.length
+  }
+  const removeStore: DataValue['removeStore'] = async (key) => {
+    if (!activeHouseholdId) return
+    const stores = priceStores.filter(k => k !== key)
+    await setDoc(doc(db, 'households', activeHouseholdId), { priceStores: stores, ...(key === activeStore ? { settings: { shopStore: stores[0] || '' } } : {}) }, { merge: true })
+  }
 
   const clearChecked: DataValue['clearChecked'] = async () => { await Promise.all(shoppingItems.filter(i => i.checked).map(i => deleteDoc(doc(db, 'shoppingItems', i.id)))) }
 
@@ -354,7 +371,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     monthTransactions, totalIncome, totalExpenses, balance: totalIncome - totalExpenses,
     monthlyBudget, effectiveCategoryBudgets, setMonthlyBudget, setCategoryBudget, addTransaction, updateTransaction, deleteTransaction,
     shoppingItems, addShoppingItem, updateShoppingItem, deleteShoppingItem, clearChecked, uid: user?.uid ?? null, currency, setCurrency, savingsGoals, addGoal, depositGoal, deleteGoal, createInvite, joinByCode, partnerName, incomeMonthMode, setIncomeMonthMode,
-    laterItems, addLaterItem, deleteLaterItem, setLaterReminder, moveLaterToList, savedBaskets, lastTrip, saveBasket, deleteBasket, loadBasket, clearShoppingList, checkoutShopping, priceStores, activeStore, setActiveStore,
+    laterItems, addLaterItem, deleteLaterItem, setLaterReminder, moveLaterToList, savedBaskets, lastTrip, saveBasket, deleteBasket, loadBasket, clearShoppingList, checkoutShopping, priceStores, activeStore, setActiveStore, addStores, removeStore,
   }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
