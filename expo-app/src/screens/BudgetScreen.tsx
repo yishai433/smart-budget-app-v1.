@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, Text, ScrollView, StyleSheet } from 'react-native'
+import { View, Text, ScrollView, StyleSheet, Alert } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Wallet, ArrowUpRight, ArrowDownLeft, Plus } from 'lucide-react-native'
 import { useTheme, radius, Theme } from '../theme'
@@ -13,6 +13,7 @@ import FadeIn from '../components/FadeIn'
 import Header from '../components/Header'
 import MonthSwitcher from '../components/MonthSwitcher'
 import Touchable from '../components/Touchable'
+import SwipeToDelete from '../components/SwipeToDelete'
 import AddTransactionSheet from './AddTransactionSheet'
 import BudgetModal from '../components/BudgetModal'
 import SavingsGoals from '../components/SavingsGoals'
@@ -121,6 +122,7 @@ export default function BudgetScreen() {
 
         <FadeIn delay={300}>
           <Text style={[s.section, { color: c.text }]}>תנועות</Text>
+          {d.monthTransactions.length > 0 ? <Text style={{ fontSize: 12, color: c.text3, marginTop: -6, marginBottom: 8, textAlign: 'right' }}>לחיצה לעריכה · החלקה שמאלה למחיקה</Text> : null}
           {d.monthTransactions.length === 0 ? (
             <View style={[s.card, { backgroundColor: c.card, borderColor: c.border, padding: 24, alignItems: 'center' }]}>
               <Text style={{ color: c.text2, fontSize: 14 }}>אין עדיין תנועות החודש. הוסף אחת עם הכפתור למטה.</Text>
@@ -129,9 +131,15 @@ export default function BudgetScreen() {
             <View style={[s.card, { backgroundColor: c.card, borderColor: c.border }]}>
               {d.monthTransactions.map((tx, i) => {
                 const cat = categoryOf(tx.category)
+                const ask = () => Alert.alert(tx.type === 'income' ? 'למחוק את ההכנסה?' : 'למחוק את ההוצאה?',
+                  `${tx.description || cat.label} · ${formatAmount(tx.amount)}`, [
+                    { text: 'ביטול', style: 'cancel' },
+                    { text: 'מחיקה', style: 'destructive', onPress: () => d.deleteTransaction(tx.id).catch(() => Alert.alert('המחיקה נכשלה', 'בדקו את החיבור לאינטרנט ונסו שוב.')) },
+                  ])
                 return (
-                  <Touchable key={tx.id} scale={0.98} onPress={() => setEditTx(tx)}
-                    style={[st_row(c), i ? { borderTopColor: c.sep, borderTopWidth: StyleSheet.hairlineWidth } : null]}>
+                  <SwipeToDelete key={tx.id} onDelete={ask} danger={c.danger}>
+                  <Touchable scale={0.98} onPress={() => setEditTx(tx)}
+                    style={[st_row(c), { backgroundColor: c.card }, i ? { borderTopColor: c.sep, borderTopWidth: StyleSheet.hairlineWidth } : null]}>
                     <View style={[s.icon, { backgroundColor: cat.color + '22' }]}><Text style={{ fontSize: 17 }}>{cat.emoji}</Text></View>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 14.5, fontWeight: '500', color: c.text }}>{tx.description || cat.label}</Text>
@@ -141,6 +149,7 @@ export default function BudgetScreen() {
                       {tx.type === 'income' ? '+' : '−'}{formatAmount(tx.amount)}
                     </Text>
                   </Touchable>
+                  </SwipeToDelete>
                 )
               })}
             </View>
