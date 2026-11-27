@@ -32,19 +32,26 @@ import type { ShoppingItem } from '../types'
 const fail = () => Alert.alert('הפעולה נכשלה', 'בדקו את החיבור לאינטרנט ונסו שוב.')
 
 // One list row. Memoized so ticking one item doesn't re-render the whole list.
-const ItemRow = memo(function ItemRow({ item, unit, inCart, first, c, onToggle, onOpen }: {
+const ItemRow = memo(function ItemRow({ item, unit, inCart, first, c, onToggle, onOpen, onLong, sel }: {
   item: ShoppingItem; unit: number; inCart: boolean; first: boolean; c: Theme; onToggle: (i: ShoppingItem) => void; onOpen: (i: ShoppingItem) => void
+  onLong: (i: ShoppingItem) => void; sel: boolean | null      // sel: null = normal, true/false = picking items to delete
 }) {
   const q = item.quantity || 1
   const t = unit * q
   return (
     <View style={[s.row, first ? null : { borderTopColor: c.sep, borderTopWidth: StyleSheet.hairlineWidth }]}>
-      <Touchable onPress={() => onToggle(item)} scale={0.85} style={s.checkHit}>
-        <View style={[s.check, inCart ? { backgroundColor: c.primary, borderColor: c.primary } : { borderColor: c.text3 }]}>
-          {inCart ? <Check size={15} color="#fff" strokeWidth={3} /> : null}
-        </View>
+      <Touchable onPress={() => onToggle(item)} onLongPress={() => onLong(item)} scale={0.85} style={s.checkHit}>
+        {sel === null ? (
+          <View style={[s.check, inCart ? { backgroundColor: c.primary, borderColor: c.primary } : { borderColor: c.text3 }]}>
+            {inCart ? <Check size={15} color="#fff" strokeWidth={3} /> : null}
+          </View>
+        ) : (
+          <View style={[s.check, { borderRadius: 8 }, sel ? { backgroundColor: c.danger, borderColor: c.danger } : { borderColor: c.danger + '88' }]}>
+            {sel ? <Check size={15} color="#fff" strokeWidth={3} /> : null}
+          </View>
+        )}
       </Touchable>
-      <Touchable onPress={() => onOpen(item)} scale={0.98} containerStyle={{ flex: 1 }} style={s.rowBody}>
+      <Touchable onPress={() => onOpen(item)} onLongPress={() => onLong(item)} scale={0.98} containerStyle={{ flex: 1 }} style={s.rowBody}>
         <View style={{ flex: 1 }}>
           <Text numberOfLines={1} style={{ fontSize: 16, fontWeight: '500', textAlign: 'right', color: inCart ? c.text3 : c.text, textDecorationLine: inCart ? 'line-through' : 'none' }}>
             {item.name}{q > 1 ? <Text style={{ color: c.text2, fontWeight: '700' }}>{`  ×${q}`}</Text> : null}
@@ -214,6 +221,9 @@ export default function ShoppingScreen() {
   const items = d.shoppingItems
   const toBuy = items.filter(i => !i.checked)
   const unpriced = toBuy.filter(i => !i.code && !i.priceManual && !(i.estimatedPrice && i.estimatedPrice > 0))
+  // the last pasted list, so it can be removed in one go
+  const lastBatch = items.reduce((m, i) => (i.batch && i.batch > m ? i.batch : m), '')
+  const pasted = lastBatch ? items.filter(i => i.batch === lastBatch) : []
   const inCart = items.filter(i => i.checked)
   const toBuyTotal = toBuy.reduce((a, i) => a + lineTotal(i), 0)
   const cartTotal = inCart.reduce((a, i) => a + lineTotal(i), 0)
@@ -244,8 +254,24 @@ export default function ShoppingScreen() {
       ...(m ? { code: m.code, matchedName: m.name } : {}),
     }).catch(fail)
   }
-  const onToggle = useCallback((i: ShoppingItem) => { d.updateShoppingItem(i.id, { checked: !i.checked }).catch(fail) }, [d.updateShoppingItem])
-  const onOpen = useCallback((i: ShoppingItem) => { Keyboard.dismiss(); setEditing(i) }, [])
+  // Picking items to delete: long-press any item (or "בחירה ומחיקה" below), tick, delete.
+  const [selecting, setSelecting] = useState(false)
+  const [sel, setSel] = useState<Set<string>>(() => new Set())
+  const startSelect = (ids: string[] = []) => { Keyboard.dismiss(); setSel(new Set(ids)); setSelecting(true) }
+  const stopSelect = () => { setSelecting(false); setSel(new Set()) }
+  const flip = (id: string) => setSel(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  const onToggle = useCallback((i: ShoppingItem) => {
+    if (selecting) flip(i.id); else d.updateShoppingItem(i.id, { checked: !i.checked }).catch(fail)
+  }, [d.updateShoppingItem, selecting])
+  const onOpen = useCallback((i: ShoppingItem) => { if (selecting) flip(i.id); else { Keyboard.dismiss(); setEditing(i) } }, [selecting])
+  const onLong = useCallback((i: ShoppingItem) => { if (!selecting) startSelect([i.id]) }, [selecting])
+  const removeIds = (ids: string[], what: string, after?: () => void) => {
+    if (!ids.length) return
+    Alert.alert(`למחוק ${what}?`, ids.length === 1 ? 'המוצר יימחק מהרשימה.' : `${ids.length} מוצרים יימחקו מהרשימה.`, [
+      { text: 'ביטול', style: 'cancel' },
+      { text: 'מחיקה', style: 'destructive', onPress: () => { Promise.all(ids.map(id => d.deleteShoppingItem(id))).catch(fail); after?.() } },
+    ])
+  }
   const confirmClear = () => Alert.alert('למחוק את כל הרשימה?', `${items.length} פריטים יימחקו.`, [
     { text: 'ביטול', style: 'cancel' },
     { text: 'מחיקה', style: 'destructive', onPress: () => d.clearShoppingList().catch(fail) },
@@ -266,7 +292,7 @@ export default function ShoppingScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView ref={pageRef} onScrollEndDrag={measureHits} onMomentumScrollEnd={measureHits} scrollEnabled={!searching}
-        contentContainerStyle={{ padding: 16, paddingTop: insets.top + 12, paddingBottom: (inCart.length ? 110 : 40) + kb }}
+        contentContainerStyle={{ padding: 16, paddingTop: insets.top + 12, paddingBottom: (selecting ? 190 : inCart.length ? 110 : 40) + kb }}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
         <FadeIn>
           <Header title="קניות" names={names} />
@@ -333,6 +359,9 @@ export default function ShoppingScreen() {
               <Text style={{ fontSize: 12.5, color: c.text2, textAlign: 'right', marginTop: 2, lineHeight: 18 }}>
                 לא מצאנו אותם בסופרים שלכם. הם ברשימה. לחצו על מוצר כדי לחפש אותו בעצמכם ולצרף מחיר.
               </Text>
+              <Touchable onPress={() => startSelect(unpriced.map(i => i.id))} scale={0.95} style={{ alignSelf: 'flex-end', marginTop: 6 }}>
+                <Text style={{ fontSize: 12.5, fontWeight: '700', color: c.danger }}>לא צריך אותם? מחיקה</Text>
+              </Touchable>
               <View style={s.missWrap}>
                 {unpriced.slice(0, 12).map(i => (
                   <Touchable key={i.id} onPress={() => findFor(i)} scale={0.94} style={[s.missChip, { backgroundColor: c.bg, borderColor: c.border }]}>
@@ -437,7 +466,7 @@ export default function ShoppingScreen() {
 
         {/* To buy, by department */}
         {!empty && toBuy.length > 0 && (
-          <Text style={[s.label, { color: c.text2, marginTop: 20 }]}>לקנות · סמנו ✓ כשהמוצר בעגלה, לחצו על מוצר לעריכה</Text>
+          <Text style={[s.label, { color: c.text2, marginTop: 20 }]}>לקנות · סמנו ✓ כשהמוצר בעגלה, לחצו לעריכה, לחיצה ארוכה למחיקה</Text>
         )}
         {groups.map(({ cat, items: gi }) => (
           <View key={cat.id} style={{ marginTop: 10 }}>
@@ -447,7 +476,7 @@ export default function ShoppingScreen() {
               <Text style={{ fontSize: 12.5, fontWeight: '700', color: cat.color }}>{gi.length}</Text>
             </View>
             <View style={[s.card, { backgroundColor: c.card, borderColor: c.border }]}>
-              {gi.map((it, i) => <ItemRow key={it.id} item={it} unit={unitPrice(it)} inCart={false} first={i === 0} c={c} onToggle={onToggle} onOpen={onOpen} />)}
+              {gi.map((it, i) => <ItemRow key={it.id} item={it} unit={unitPrice(it)} inCart={false} first={i === 0} c={c} onToggle={onToggle} onOpen={onOpen} onLong={onLong} sel={selecting ? sel.has(it.id) : null} />)}
             </View>
           </View>
         ))}
@@ -460,7 +489,7 @@ export default function ShoppingScreen() {
               <Text style={{ fontSize: 13.5, fontWeight: '800', color: c.text2 }}>כבר בעגלה ({inCart.length})</Text>
             </View>
             <View style={[s.card, { backgroundColor: c.card, borderColor: c.border }]}>
-              {inCart.map((it, i) => <ItemRow key={it.id} item={it} unit={unitPrice(it)} inCart first={i === 0} c={c} onToggle={onToggle} onOpen={onOpen} />)}
+              {inCart.map((it, i) => <ItemRow key={it.id} item={it} unit={unitPrice(it)} inCart first={i === 0} c={c} onToggle={onToggle} onOpen={onOpen} onLong={onLong} sel={selecting ? sel.has(it.id) : null} />)}
             </View>
           </View>
         )}
@@ -473,12 +502,36 @@ export default function ShoppingScreen() {
           <MenuRow c={c} Icon={ListChecks} title="רשימות שמורות" sub="קנייה שבועית, שבת... טוענים בלחיצה" onPress={() => setBasketsOpen(true)} badge={d.savedBaskets.length || undefined} />
           {!empty && <MenuRow c={c} Icon={Save} title="לשמור את הרשימה הזאת" sub="כדי לטעון אותה שוב בקנייה הבאה" onPress={() => setBasketsOpen(true)} />}
           <MenuRow c={c} Icon={Clock} title="לקנות בהמשך" sub="דברים לא דחופים, כדי שלא תשכחו" onPress={() => setLaterOpen(true)} badge={d.laterItems.length || undefined} />
+          {pasted.length > 0 && <MenuRow c={c} Icon={ClipboardPaste} title={`מחיקת הרשימה שהודבקה (${pasted.length})`} sub="כל המוצרים מההדבקה האחרונה" onPress={() => removeIds(pasted.map(i => i.id), 'את הרשימה שהודבקה')} danger />}
+          {inCart.length > 0 && <MenuRow c={c} Icon={ShoppingCart} title={`ניקוי מה שבעגלה (${inCart.length})`} sub="מוחק את המוצרים המסומנים ✓" onPress={() => removeIds(inCart.map(i => i.id), 'את מה שבעגלה')} danger />}
+          {!empty && <MenuRow c={c} Icon={ListChecks} title="בחירה ומחיקה" sub="מסמנים כמה מוצרים ומוחקים בבת אחת" onPress={() => startSelect()} danger />}
           {!empty && <MenuRow c={c} Icon={Trash2} title="מחיקת כל הרשימה" onPress={confirmClear} danger />}
         </View>
         </>}
       </ScrollView>
 
-      {inCart.length > 0 && !searching && (
+      {selecting && (
+        <View pointerEvents="box-none" style={s.footer}>
+          <View style={[s.selBar, { backgroundColor: c.card, borderColor: c.border }]}>
+            <View style={s.selChips}>
+              <Touchable onPress={() => setSel(new Set(items.map(i => i.id)))} scale={0.94} style={[s.selChip, { backgroundColor: c.bg }]}><Text style={[s.selChipT, { color: c.text }]}>הכל</Text></Touchable>
+              {pasted.length > 0 ? <Touchable onPress={() => setSel(new Set(pasted.map(i => i.id)))} scale={0.94} style={[s.selChip, { backgroundColor: c.bg }]}><Text style={[s.selChipT, { color: c.text }]}>מההדבקה</Text></Touchable> : null}
+              {unpriced.length > 0 ? <Touchable onPress={() => setSel(new Set(unpriced.map(i => i.id)))} scale={0.94} style={[s.selChip, { backgroundColor: c.bg }]}><Text style={[s.selChipT, { color: c.text }]}>בלי מחיר</Text></Touchable> : null}
+              {inCart.length > 0 ? <Touchable onPress={() => setSel(new Set(inCart.map(i => i.id)))} scale={0.94} style={[s.selChip, { backgroundColor: c.bg }]}><Text style={[s.selChipT, { color: c.text }]}>בעגלה</Text></Touchable> : null}
+              <Touchable onPress={() => setSel(new Set())} scale={0.94} style={[s.selChip, { backgroundColor: c.bg }]}><Text style={[s.selChipT, { color: c.text2 }]}>נקה</Text></Touchable>
+            </View>
+            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8, marginTop: 10 }}>
+              <Touchable onPress={() => removeIds([...sel], sel.size === 1 ? 'מוצר אחד' : `${sel.size} מוצרים`, stopSelect)} disabled={!sel.size} scale={0.97} containerStyle={{ flex: 1 }}
+                style={[s.selDel, { backgroundColor: c.danger }]}>
+                <Trash2 size={17} color="#fff" /><Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>מחיקה{sel.size ? ` (${sel.size})` : ''}</Text>
+              </Touchable>
+              <Touchable onPress={stopSelect} scale={0.97} style={[s.selCancel, { backgroundColor: c.bg }]}><Text style={{ color: c.text, fontWeight: '700', fontSize: 15 }}>ביטול</Text></Touchable>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {inCart.length > 0 && !searching && !selecting && (
         <View pointerEvents="box-none" style={s.footer}>
           <Touchable onPress={() => { Keyboard.dismiss(); setCheckoutOpen(true) }} scale={0.97} style={[s.checkout, { backgroundColor: c.primary }]}>
             <View>
@@ -528,6 +581,12 @@ const s = StyleSheet.create({
   missWrap: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 7, marginTop: 10 },
   missChip: { flexDirection: 'row-reverse', alignItems: 'center', gap: 5, borderWidth: 1, borderRadius: 999, paddingHorizontal: 11, paddingVertical: 7 },
   linkBar: { flexDirection: 'row-reverse', alignItems: 'center', gap: 8, marginTop: 8, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7 },
+  selBar: { borderWidth: 1, borderRadius: 20, padding: 12, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 14, shadowOffset: { width: 0, height: 5 }, elevation: 8 },
+  selChips: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 6 },
+  selChip: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
+  selChipT: { fontSize: 13, fontWeight: '700' },
+  selDel: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 14, paddingVertical: 13 },
+  selCancel: { borderRadius: 14, paddingVertical: 13, paddingHorizontal: 20 },
   clearBtn: { width: 32, height: 40, alignItems: 'center', justifyContent: 'center' },
   clearDot: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   scanBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },

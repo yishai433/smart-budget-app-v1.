@@ -93,9 +93,10 @@ export default function PasteListSheet({ visible, idx, store, prefer, onClose, o
     if (!chosen.length || saving) return
     setSaving(true)
     try {
+      const batch = String(Date.now())
       await Promise.all(chosen.map(m => d.addShoppingItem({
         name: m.line.name || m.product || '', category: guessShoppingCategory(m.line.name || m.product || ''), quantity: m.line.qty,
-        estimatedPrice: m.price ?? 0, priceManual: false, checked: false,
+        estimatedPrice: m.price ?? 0, priceManual: false, checked: false, batch,
         ...(m.code ? { code: m.code, matchedName: m.product } : {}),
       })))
       onAdded(chosen.length)

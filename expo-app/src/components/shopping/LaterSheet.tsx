@@ -163,6 +163,14 @@ export default function LaterSheet({ visible, onClose }: { visible: boolean; onC
           </ScrollView>
 
           {items.length > 1 && (
+            <Touchable onPress={() => Alert.alert('למחוק את כל הרשימה?', `${items.length} פריטים יימחקו מ"לקנות בהמשך".`, [
+              { text: 'ביטול', style: 'cancel' },
+              { text: 'מחיקה', style: 'destructive', onPress: () => items.forEach(remove) },
+            ])} scale={0.96} style={{ alignSelf: 'center', paddingVertical: 8, marginTop: 4 }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: c.danger }}>מחיקת כל הרשימה</Text>
+            </Touchable>
+          )}
+          {items.length > 1 && (
             <Touchable onPress={() => { Keyboard.dismiss(); move(items); onClose() }} scale={0.98} style={[s.save, { backgroundColor: c.primary }]}>
               <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15.5 }}>העבר הכל לרשימת הקניות ({items.length})</Text>
             </Touchable>

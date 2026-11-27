@@ -50,6 +50,7 @@ export interface ShoppingItem {
   matchedName?: string     // the store's product name when the item was matched automatically
   code?: string            // product code in the price index (prices follow the chosen branch)
   priceManual?: boolean    // the user typed the price; don't replace it with the branch price
+  batch?: string           // items added together from one pasted list (to remove them together)
   checked?: boolean
   createdAt?: { seconds: number } | null
 }
