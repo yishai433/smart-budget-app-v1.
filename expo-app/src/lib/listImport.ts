@@ -56,8 +56,10 @@ export function parseList(text: string): ParsedLine[] {
   const out: ParsedLine[] = []
   for (const l of lines) {
     if (tabular) { const r = parseRow(l.split(/\t|,(?=(?:[^"]*"[^"]*")*[^"]*$)/)); if (r) out.push(r); continue }
-    // one line with commas: "חלב, לחם, ביצים"
-    const parts = !tabular && lines.length <= 3 && l.split(/[,،;]/).length > 1 ? l.split(/[,،;]/) : [l]
+    // several products on one line: "רכז רימונים.   שמן קוקוס." (a full stop or a wide gap between
+    // them), or a short list written as "חלב, לחם, ביצים"
+    let parts = l.split(/\.\s+|\s{3,}|\s[·|]\s/)
+    if (lines.length <= 3) parts = parts.flatMap(x => x.split(/[,،;]/))
     for (const part of parts) { const r = parseOne(part); if (r) out.push(r) }
   }
   // the header of a spreadsheet ("שם מוצר, כמות") is not a product

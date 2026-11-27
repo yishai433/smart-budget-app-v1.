@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { View, Text, TextInput, ScrollView, StyleSheet, Alert, ActivityIndicator, Keyboard } from 'react-native'
+import { View, Text, TextInput, ScrollView, StyleSheet, Alert, ActivityIndicator, Keyboard, useWindowDimensions } from 'react-native'
 import * as DocumentPicker from 'expo-document-picker'
 import { X, Check, FileUp, ClipboardPaste, ChevronRight } from 'lucide-react-native'
 import { useTheme } from '../../theme'
@@ -9,6 +9,7 @@ import { guessShoppingCategory } from '../../lib/shopCategories'
 import { parseList, ParsedLine } from '../../lib/listImport'
 import { PriceIndex, searchProducts, autoMatch, priceAt } from '../../lib/priceIndex'
 import BottomSheet, { SHEET_TALL } from '../BottomSheet'
+import useKeyboardHeight from '../../lib/useKeyboardHeight'
 import Touchable from '../Touchable'
 
 interface Match { line: ParsedLine; code?: string; product?: string; price: number | null; on: boolean }
@@ -37,11 +38,17 @@ export default function PasteListSheet({ visible, idx, store, prefer, onClose, o
   const textRef = useRef('')
   const [seed, setSeed] = useState({ k: 0, v: '' })     // set the box's text from a file
   const [hasText, setHasText] = useState(false)
+  const hasTextRef = useRef(false)
   const [matches, setMatches] = useState<Match[] | null>(null)
   const [busy, setBusy] = useState(false)
   const [saving, setSaving] = useState(false)
+  // The text box has a fixed height and scrolls inside, so a long list never pushes the
+  // buttons down behind the keyboard (and the sheet doesn't re-layout on every new line).
+  const { height: winH } = useWindowDimensions()
+  const kb = useKeyboardHeight(visible)
+  const boxH = Math.round(Math.max(130, Math.min(winH * 0.42, winH - kb - 330)))
 
-  useEffect(() => { if (!visible) { textRef.current = ''; setSeed(x => ({ k: x.k + 1, v: '' })); setHasText(false); setMatches(null); setBusy(false) } }, [visible])
+  useEffect(() => { if (!visible) { textRef.current = ''; setSeed(x => ({ k: x.k + 1, v: '' })); setHasText(false); hasTextRef.current = false; setMatches(null); setBusy(false) } }, [visible])
 
   const pickFile = async () => {
     try {
@@ -55,7 +62,7 @@ export default function PasteListSheet({ visible, idx, store, prefer, onClose, o
       const txt = await (await fetch(a.uri)).text()
       textRef.current = txt
       setSeed(x => ({ k: x.k + 1, v: txt }))
-      setHasText(!!txt.trim())
+      hasTextRef.current = !!txt.trim(); setHasText(hasTextRef.current)
     } catch {
       Alert.alert('לא הצלחנו לקרוא את הקובץ', 'נסו להעתיק את התוכן ולהדביק אותו כאן.')
     }
@@ -109,24 +116,25 @@ export default function PasteListSheet({ visible, idx, store, prefer, onClose, o
       </View>
 
       {!matches ? (
-        <View style={{ flex: 1 }}>
-          <TextInput key={seed.k} defaultValue={seed.v} multiline textAlignVertical="top" textAlign="right"
-            onChangeText={v => { textRef.current = v; setHasText(!!v.trim()) }}
-            placeholder={'למשל:\nחלב 3% x2\nלחם\n2 קוטג\'\nביצים\nנייר טואלט'} placeholderTextColor={c.text3}
-            style={[s.box, { backgroundColor: c.bg, color: c.text }]} />
-          <View style={s.tips}>
-            <ClipboardPaste size={14} color={c.text3} />
-            <Text style={{ flex: 1, fontSize: 12, color: c.text3, textAlign: 'right', lineHeight: 17 }}>
-              לחיצה ארוכה בתיבה ← "הדבק". כמויות כמו "x2" או "3 יח'" וברקודים מזוהים לבד. אפשר להדביק גם עמודות מאקסל.
-            </Text>
-          </View>
+        <View>
+          {/* actions first, at eye level: continue, or open a file */}
           <View style={s.btns}>
             <Touchable onPress={check} disabled={!hasText || busy} scale={0.97} containerStyle={{ flex: 1 }} style={[s.primary, { backgroundColor: c.primary, opacity: hasText ? 1 : 0.4 }]}>
               {busy ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15.5 }}>המשך ומחירים</Text>}
             </Touchable>
             <Touchable onPress={pickFile} scale={0.95} style={[s.file, { backgroundColor: c.primaryLight }]}>
-              <FileUp size={17} color={c.primary} /><Text style={{ color: c.primary, fontWeight: '700', fontSize: 14 }}>קובץ</Text>
+              <FileUp size={17} color={c.primary} /><Text style={{ color: c.primary, fontWeight: '700', fontSize: 14 }}>פתיחת קובץ</Text>
             </Touchable>
+          </View>
+          <TextInput key={seed.k} defaultValue={seed.v} multiline scrollEnabled textAlignVertical="top" textAlign="right"
+            onChangeText={v => { textRef.current = v; const h = !!v.trim(); if (h !== hasTextRef.current) { hasTextRef.current = h; setHasText(h) } }}
+            placeholder={'למשל:\nחלב 3% x2\nלחם\n2 קוטג\'\nביצים\nנייר טואלט'} placeholderTextColor={c.text3}
+            style={[s.box, { backgroundColor: c.bg, color: c.text, height: boxH }]} />
+          <View style={s.tips}>
+            <ClipboardPaste size={14} color={c.text3} />
+            <Text style={{ flex: 1, fontSize: 12, color: c.text3, textAlign: 'right', lineHeight: 17 }}>
+              לחיצה ארוכה בתיבה ← "הדבק". אפשר כמה מוצרים בשורה (עם נקודה ביניהם), כמויות כמו "x2" או "3 יח'", ועמודות מאקסל.
+            </Text>
           </View>
         </View>
       ) : (
@@ -170,9 +178,9 @@ const s = StyleSheet.create({
   header: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10, marginBottom: 12 },
   title: { fontSize: 18, fontWeight: '800', textAlign: 'right' },
   x: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  box: { flex: 1, minHeight: 160, borderRadius: 16, padding: 14, fontSize: 16, lineHeight: 24 },
+  box: { borderRadius: 16, padding: 14, paddingTop: 14, fontSize: 16, lineHeight: 24, marginTop: 12 },
   tips: { flexDirection: 'row-reverse', alignItems: 'flex-start', gap: 6, marginTop: 8 },
-  btns: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10, marginTop: 12 },
+  btns: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10 },
   primary: { borderRadius: 16, paddingVertical: 14, alignItems: 'center', justifyContent: 'center', minHeight: 50 },
   file: { flexDirection: 'row-reverse', alignItems: 'center', gap: 6, borderRadius: 16, paddingHorizontal: 16, height: 50 },
   row: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10, paddingVertical: 11 },
