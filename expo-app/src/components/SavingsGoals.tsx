@@ -100,7 +100,7 @@ function DepositGoal({ goal, onClose }: { goal: SavingsGoal | null; onClose: () 
       </View>
       <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 90 }}>
         <Text style={{ fontSize: 24, fontWeight: '700', color: c.text3 }}>{displayCurrency()}</Text>
-        <Text style={{ fontSize: 48, fontWeight: '800', color: amount === '' ? c.text3 : c.text, minWidth: 70, textAlign: 'center' }}>{amount === '' ? '0' : amount}</Text>
+        <Text style={{ fontSize: 48, fontWeight: '800', color: amount === '' ? c.text3 : c.text }}>{amount === '' ? '0' : amount}</Text>
         <Caret color={c.primary} height={44} />
       </View>
       <NumPad onKey={onKey} />

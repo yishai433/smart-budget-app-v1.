@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, memo } from 'react'
-import { View, Text, TextInput, ScrollView, StyleSheet, ActivityIndicator } from 'react-native'
+import { useState, useEffect, useCallback, useRef, memo } from 'react'
+import { View, Text, TextInput, ScrollView, StyleSheet, ActivityIndicator, Animated } from 'react-native'
 import { X, Trash2 } from 'lucide-react-native'
 import { useTheme, Theme } from '../theme'
 import { CATEGORIES, Category } from '../categories'
@@ -31,6 +31,8 @@ export default function AddTransactionSheet({ visible, onClose, editTx }: { visi
   const [amount, setAmount] = useState('')
   const [desc, setDesc] = useState('')
   const [busy, setBusy] = useState(false)
+  const [contentH, setContentH] = useState(0)
+  const scrollY = useRef(new Animated.Value(0)).current
 
   useEffect(() => {
     if (!visible) return
@@ -55,6 +57,12 @@ export default function AddTransactionSheet({ visible, onClose, editTx }: { visi
   const remove = async () => { if (!editTx) return; setBusy(true); try { await deleteTransaction(editTx.id); onClose() } catch { setBusy(false) } }
   const cats = CATEGORIES[type]
   const fillers = (3 - (cats.length % 3)) % 3
+
+  const GRID_H = 168
+  const TRACK_H = GRID_H - 8
+  const canScroll = contentH > GRID_H + 2
+  const thumbH = canScroll ? Math.max(30, (GRID_H / contentH) * TRACK_H) : 0
+  const thumbY = scrollY.interpolate({ inputRange: [0, Math.max(1, contentH - GRID_H)], outputRange: [0, TRACK_H - thumbH], extrapolate: 'clamp' })
 
   return (
     <BottomSheet visible={visible} onClose={onClose} avoidKeyboard>
@@ -84,10 +92,20 @@ export default function AddTransactionSheet({ visible, onClose, editTx }: { visi
         <Caret color={c.primary} height={30} />
       </View>
 
-      <ScrollView style={{ height: 160 }} contentContainerStyle={s.grid} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator persistentScrollbar>
-        {cats.map(cat => <Chip key={cat.id} cat={cat} selected={cat.id === category} onPick={pick} c={c} />)}
-        {Array.from({ length: fillers }).map((_, i) => <View key={`f${i}`} style={s.cell} />)}
-      </ScrollView>
+      <View style={{ position: 'relative' }}>
+        <ScrollView style={{ height: GRID_H }} contentContainerStyle={[s.grid, { paddingRight: 10 }]} keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false} scrollEventThrottle={16}
+          onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
+          onContentSizeChange={(_w, h) => setContentH(h)}>
+          {cats.map(cat => <Chip key={cat.id} cat={cat} selected={cat.id === category} onPick={pick} c={c} />)}
+          {Array.from({ length: fillers }).map((_, i) => <View key={`f${i}`} style={s.cell} />)}
+        </ScrollView>
+        {canScroll && (
+          <View pointerEvents="none" style={{ position: 'absolute', right: 1, top: 4, width: 3.5, height: TRACK_H, borderRadius: 999, backgroundColor: c.sep }}>
+            <Animated.View style={{ position: 'absolute', right: 0, top: 0, width: 3.5, height: thumbH, borderRadius: 999, backgroundColor: c.primary, transform: [{ translateY: thumbY }] }} />
+          </View>
+        )}
+      </View>
 
       <TextInput style={[s.desc, { backgroundColor: c.bg, color: c.text }]} value={desc} onChangeText={setDesc}
         placeholder="תיאור (לא חובה)" placeholderTextColor={c.text3} textAlign="right" returnKeyType="done" />
@@ -109,7 +127,7 @@ const s = StyleSheet.create({
   segBtn: { paddingVertical: 10, borderRadius: 999, alignItems: 'center' },
   amountWrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 6 },
   cur: { fontSize: 18, fontWeight: '700' },
-  amount: { fontSize: 32, fontWeight: '800', minWidth: 44, textAlign: 'center' },
+  amount: { fontSize: 32, fontWeight: '800' },
   grid: { flexDirection: 'row-reverse', flexWrap: 'wrap', justifyContent: 'space-between', alignContent: 'center', flexGrow: 1 },
   cell: { width: '31%' },
   chip: { height: 54, borderRadius: 14, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },

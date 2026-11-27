@@ -21,7 +21,7 @@ export default function BudgetModal({ visible, current, monthLabel, onClose, onS
       <Text style={{ fontSize: 13, color: c.text2, textAlign: 'center', marginTop: 6 }}>כמה אתם מתכננים להוציא החודש?</Text>
       <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 90 }}>
         <Text style={{ fontSize: 24, fontWeight: '700', color: c.text3 }}>{displayCurrency()}</Text>
-        <Text style={{ fontSize: 48, fontWeight: '800', color: val === '' ? c.text3 : c.text, minWidth: 70, textAlign: 'center' }}>{val === '' ? '0' : val}</Text>
+        <Text style={{ fontSize: 48, fontWeight: '800', color: val === '' ? c.text3 : c.text }}>{val === '' ? '0' : val}</Text>
         <Caret color={c.primary} height={44} />
       </View>
       <NumPad onKey={onKey} />
