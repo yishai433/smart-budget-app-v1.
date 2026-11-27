@@ -119,7 +119,19 @@ export default function ShoppingScreen() {
 
   // Live product search at the chosen branch while typing.
   const q = useDeferredValue(text)
-  const hits = useMemo(() => (q.trim().length >= 2 && idx ? searchProducts(idx, q, store, 6) : []), [q, idx, store])
+  // Products this household has bought before rank first in the search.
+  const prefer = useMemo(() => {
+    const set = new Set<string>()
+    d.shoppingItems.forEach(i => i.code && set.add(i.code))
+    d.lastTrip.forEach(i => i.code && set.add(i.code))
+    d.savedBaskets.forEach(b => b.items.forEach(i => i.code && set.add(i.code)))
+    d.transactions.forEach(t => t.items?.forEach(i => i.code && set.add(i.code)))
+    return set
+  }, [d.shoppingItems, d.lastTrip, d.savedBaskets, d.transactions])
+  const hits = useMemo(() => (q.trim().length >= 2 && idx ? searchProducts(idx, q, store, { limit: 40, prefer }) : []), [q, idx, store, prefer])
+  const [showAll, setShowAll] = useState(false)
+  useEffect(() => { setShowAll(false) }, [q])
+  const shownHits = showAll ? hits : hits.slice(0, 5)
 
   const items = d.shoppingItems
   const toBuy = items.filter(i => !i.checked)
@@ -142,7 +154,7 @@ export default function ShoppingScreen() {
   const addTyped = () => {
     const n = text.trim(); if (!n) return
     setText('')
-    const m = idx && store ? autoMatch(idx, n, store) : null
+    const m = idx && store ? autoMatch(idx, n, store, prefer) : null
     d.addShoppingItem({
       name: n, category: guessShoppingCategory(n), quantity: 1, estimatedPrice: m?.price ?? 0, priceManual: false, checked: false,
       ...(m ? { code: m.code, matchedName: m.name } : {}),
@@ -204,15 +216,26 @@ export default function ShoppingScreen() {
           {hits.length > 0 && (
             <View style={[s.card, { backgroundColor: c.card, borderColor: c.border, marginTop: 8 }]}>
               <Text style={{ fontSize: 11.5, color: c.text2, fontWeight: '700', textAlign: 'right', paddingHorizontal: 14, paddingTop: 10 }}>בחרו מוצר · המחיר ב{storeName}</Text>
-              {hits.map((h, i) => (
+              {shownHits.map((h, i) => (
                 <Touchable key={h.code} onPress={() => addHit(h)} scale={0.98} style={[s.hit, i ? { borderTopColor: c.sep, borderTopWidth: StyleSheet.hairlineWidth } : null]}>
                   <Plus size={15} color={c.primary} strokeWidth={2.6} />
-                  <Text numberOfLines={1} style={{ flex: 1, fontSize: 14.5, color: c.text, textAlign: 'right' }}>{h.name}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text numberOfLines={2} style={{ fontSize: 14.5, color: c.text, textAlign: 'right' }}>{h.name}</Text>
+                    {h.bought || (i === 0 && h.basic) ? (
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: h.bought ? c.accent2Dark : c.primary, textAlign: 'right', marginTop: 2 }}>{h.bought ? 'קניתם בעבר' : 'הכי בסיסי'}</Text>
+                    ) : null}
+                  </View>
                   {h.price != null
                     ? <Text style={{ fontSize: 14.5, fontWeight: '800', color: c.text }}>{formatAmount(h.price)}</Text>
                     : <Text style={{ fontSize: 12, color: c.text3 }}>לא בסניף</Text>}
                 </Touchable>
               ))}
+              {!showAll && hits.length > 5 && (
+                <Touchable onPress={() => setShowAll(true)} scale={0.98} style={[s.more, { borderTopColor: c.sep }]}>
+                  <Text style={{ fontSize: 13.5, fontWeight: '700', color: c.primary }}>עוד {hits.length - 5} מוצרים</Text>
+                  <ChevronDown size={15} color={c.primary} />
+                </Touchable>
+              )}
             </View>
           )}
           {text.trim().length >= 2 && store && status === 'loading' ? <ActivityIndicator color={c.primary} style={{ marginTop: 10 }} /> : null}
@@ -302,6 +325,7 @@ const s = StyleSheet.create({
   storeBar: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 16, padding: 12, marginTop: 14 },
   storeIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   smallBtn: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, alignItems: 'center' },
+  more: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 12, borderTopWidth: StyleSheet.hairlineWidth },
   hit: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12 },
   addBox: { flexDirection: 'row-reverse', alignItems: 'center', borderWidth: 1, borderRadius: 16, paddingRight: 14, paddingLeft: 6, gap: 4, marginTop: 10 },
   scanBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },

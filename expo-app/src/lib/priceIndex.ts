@@ -11,7 +11,7 @@ import { db } from '../firebase'
 
 export interface PriceRow { code: string; name: string; prices: (number | null)[]; toks: string[]; first: string; joined: string }
 export interface PriceIndex { v: string; keys: string[]; labels: Record<string, string>; rows: PriceRow[]; byCode: Map<string, PriceRow>; updatedAt: number | null }
-export interface ProductHit { code: string; name: string; price: number | null; min: number; branches: number; variant: boolean; exact: boolean }
+export interface ProductHit { code: string; name: string; price: number | null; min: number; branches: number; variant: boolean; exact: boolean; bought?: boolean; basic?: boolean }
 
 // ---- decoding (manual, so it works the same on every JS engine) ----
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
@@ -57,29 +57,70 @@ function tier(row: PriceRow, words: string[]) {
   return words.every(w => row.joined.includes(w)) ? 2 : 9
 }
 
-// Products matching the query; `price` is the price at `store` (null if that branch doesn't sell it).
-// Products sold at the chosen branch come first.
-export function searchProducts(idx: PriceIndex | null, query: string, store: string, limit = 8): ProductHit[] {
+// Size / unit words ("1 ליטר", "500 גרם", "3%") describe the pack, not a different product,
+// so they don't make a name "more specific".
+const UNIT = /^(\d+([.,]\d+)?%?|\d+%|ליטר|ל|מל|גרם|גר|ג|קג|קילו|יח|יחידות|יחי|מארז|במארז|x\d+|\d+x)$/
+
+// The everyday version of common staples, so "milk" puts plain 3% milk first, "eggs" a tray of L, etc.
+// Checked against the normalised product name.
+const STAPLES: [RegExp, RegExp][] = [
+  [/^חלב$/, /^חלב( \S+){0,4} (3|1)%/],
+  [/^ביצים$/, /^ביצים .*(\bl\b|גודל l|12)/],
+  [/^לחם$/, /^לחם (אחיד|לבן|כפרי|חיטה מלאה|מלא)/],
+  [/^קוטג$/, /^קוטג( \S+){0,3} (5|3)%/],
+  [/^גבינה$/, /^גבינה לבנה( \S+){0,3} (5|3)%/],
+  [/^גבינה לבנה$/, /^גבינה לבנה( \S+){0,3} (5|3)%/],
+  [/^גבינה צהובה$/, /^גבינה צהובה (עמק|גלבוע|28%|פרוסות)/],
+  [/^יוגורט$/, /^יוגורט (טבעי|3%|1 5%)/],
+  [/^שמנת$/, /^שמנת (חמוצה|מתוקה)/],
+  [/^חמאה$/, /^חמאה (תנובה|82%)/],
+  [/^אורז$/, /^אורז (פרסי|לבן|בסמטי|עגול)/],
+  [/^סוכר$/, /^סוכר (לבן )?(1|ק)/],
+  [/^קמח$/, /^קמח (לבן|חיטה|תופח)/],
+  [/^שמן$/, /^שמן (קנולה|חמניות|סויה|זית)/],
+  [/^פסטה$/, /^(פסטה )?(ספגטי|פנה|פוזילי)/],
+  [/^טונה$/, /^טונה (בשמן|במים|לייט)/],
+  [/^מים$/, /^מים מינרליים/],
+  [/^עוף$/, /^(חזה עוף|שניצל עוף|עוף שלם|כרעיים)/],
+  [/^נייר טואלט$/, /^נייר טואלט/],
+]
+
+// Brand names don't make a product less basic ("תנובה 3% milk" is still plain milk).
+const BRAND = new Set(['תנובה', 'טרה', 'שטראוס', 'יטבתה', 'הרדוף', 'שופרסל', 'ספיר', 'סנו', 'אסם', 'עלית', 'יכין', 'סוגת', 'וילי', 'פוד', 'מעדנות', 'זוגלובק', 'עוף', 'טוב', 'מאמא', 'עוף טוב', 'אנג׳ל', 'אנגל', 'ברמן', 'דנונה', 'גד', 'מחלבות', 'פרי', 'הגליל', 'נביעות', 'מי', 'עדן', 'קלאסי', 'טרי', 'בקרטון', 'בשקית', 'בבקבוק', 'קרטון', 'שקית', 'בקבוק'])
+// Alternatives that people usually ask for by name (soy milk, goat cheese...).
+const ALT = /(^| )(סויה|שקדים|שיבולת|עיזים|כבשים|קוקוס|צמחי|טבעוני|ללא גלוטן|דל|דיאט|לייט|זירו)( |$)/
+
+export interface SearchOpts { limit?: number; prefer?: Set<string> }
+
+// Products matching the query, best first: things this household bought before, then the plain
+// everyday product (short name that starts with the word, not pickled / flavoured / processed),
+// then everything else. `price` is the price at `store` (null if that branch doesn't sell it).
+export function searchProducts(idx: PriceIndex | null, query: string, store: string, opts: SearchOpts | number = {}): ProductHit[] {
+  const { limit = 40, prefer } = typeof opts === 'number' ? { limit: opts, prefer: undefined } : opts
   if (!idx) return []
-  const words = norm(query).split(' ').filter(Boolean)
+  const q = norm(query)
+  const words = q.split(' ').filter(Boolean)
   if (!words.length) return []
+  const staple = STAPLES.find(([k]) => k.test(q))?.[1]
   const si = idx.keys.indexOf(store)
-  const t0: PriceRow[] = [], t1: PriceRow[] = [], t2: PriceRow[] = []
-  for (const r of idx.rows) { const t = tier(r, words); if (t === 0) t0.push(r); else if (t === 1) t1.push(r); else if (t === 2) t2.push(r) }
-  let pool = t0
-  if (pool.length < 8) pool = pool.concat(t1)
-  if (pool.length < 4) pool = pool.concat(t2)
-  return pool.map(r => {
+  const scored: (ProductHit & { _k: number })[] = []
+  for (const r of idx.rows) {
     const t = tier(r, words)
+    if (t === 9) continue
     const ps = r.prices.filter((p): p is number => p != null)
     const price = si >= 0 ? r.prices[si] ?? null : null
-    const extra = r.toks.filter(t => !words.includes(t)).length
-    const g = VARIANT.test(r.joined) && !words.some(w => VARIANT.test(w)) ? 2 : extra <= 2 ? 0 : 1
-    return { code: r.code, name: r.name, variant: g === 2, exact: t === 0, price, min: ps.length ? Math.min(...ps) : Infinity, branches: ps.length, _g: g, _t: t, _s: price == null ? 1 : 0 }
-  })
-    .sort((a, b) => a._s - b._s || a._t - b._t || a._g - b._g || (a.price ?? a.min) - (b.price ?? b.min) || a.name.length - b.name.length)
+    const extra = r.toks.filter(w => !words.includes(w) && !UNIT.test(w) && !BRAND.has(w)).length
+    const alt = ALT.test(r.joined) && !words.some(w => ALT.test(w))
+    const variant = VARIANT.test(r.joined) && !words.some(w => VARIANT.test(w))
+    let k = t * 100 + (variant ? 60 : 0) + (alt ? 35 : 0) + Math.min(extra, 8) * 7 + (price == null ? 400 : 0)
+    if (staple && staple.test(r.joined)) k -= 45
+    if (prefer?.has(r.code)) k -= 250
+    scored.push({ code: r.code, name: r.name, variant, exact: t === 0, price, min: ps.length ? Math.min(...ps) : Infinity, branches: ps.length, bought: !!prefer?.has(r.code), basic: !!staple && staple.test(r.joined), _k: k })
+  }
+  return scored
+    .sort((a, b) => a._k - b._k || b.branches - a.branches || (a.price ?? a.min) - (b.price ?? b.min) || a.name.length - b.name.length)
     .slice(0, limit)
-    .map(({ _g, _t, _s, ...h }) => h)
+    .map(({ _k, ...h }) => h)
 }
 
 export function priceAt(idx: PriceIndex | null, code: string | undefined, store: string): number | null {
@@ -142,10 +183,8 @@ export function usePriceIndex(hh: string | null): State {
   return s
 }
 
-// Best automatic match for a plain word like "milk": the cheapest regular (non-processed)
-// product sold at the chosen branch among the closest name matches.
-export function autoMatch(idx: PriceIndex | null, query: string, store: string): ProductHit | null {
-  const hits = searchProducts(idx, query, store, 25).filter(h => h.price != null && !h.variant && h.exact)
-  if (!hits.length) return null
-  return hits.reduce((a, b) => ((b.price as number) < (a.price as number) ? b : a))
+// Best automatic match for a plain word like "milk": the top-ranked everyday product that the
+// chosen branch sells (something bought before wins, then the basic version).
+export function autoMatch(idx: PriceIndex | null, query: string, store: string, prefer?: Set<string>): ProductHit | null {
+  return searchProducts(idx, query, store, { limit: 10, prefer }).find(h => h.price != null && !h.variant && h.exact) || null
 }
