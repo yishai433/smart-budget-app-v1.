@@ -168,15 +168,14 @@ export default function ShoppingScreen() {
   const hasHits = hits.length > 0
   useEffect(() => { if (hasHits) { measureHits(); const t = setTimeout(() => hitsScroll.current?.flashScrollIndicators(), 350); return () => clearTimeout(t) } }, [hasHits, kb])
   useEffect(() => { hitsScroll.current?.scrollTo({ y: 0, animated: false }) }, [q])
-  // Typing a product lifts the search line to the top of the screen, so the results sit
-  // where the eye is and have the most room above the keyboard.
+  // Search mode: while typing a product, the big summary card steps aside so the search line
+  // sits at the top, and while results show, the rest of the page waits below them (no empty
+  // space to scroll into). Clearing the search brings everything back.
   const pageRef = useRef<ScrollView>(null)
-  const addY = useRef(0)
-  const [searching, setSearching] = useState(false)
-  const liftSearch = () => {
-    setSearching(true)
-    setTimeout(() => { pageRef.current?.scrollTo({ y: Math.max(0, addY.current - 8), animated: true }); setTimeout(measureHits, 380) }, 60)
-  }
+  const [focused, setFocused] = useState(false)
+  const searching = focused || !!text
+  const showingHits = text.trim().length >= 2
+  useEffect(() => { pageRef.current?.scrollTo({ y: 0, animated: false }); const t = setTimeout(measureHits, 60); return () => clearTimeout(t) }, [searching])
   const hitsMax = Math.max(180, winH - hitsTop - 34 - (kb ? kb + 14 : insets.bottom + 90))
 
   const items = d.shoppingItems
@@ -218,14 +217,14 @@ export default function ShoppingScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView ref={pageRef} onScrollEndDrag={measureHits} onMomentumScrollEnd={measureHits}
-        contentContainerStyle={{ padding: 16, paddingTop: insets.top + 12, paddingBottom: (inCart.length ? 110 : 40) + kb + (searching ? winH : 0) }}
+        contentContainerStyle={{ padding: 16, paddingTop: insets.top + 12, paddingBottom: (inCart.length ? 110 : 40) + kb }}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
         <FadeIn>
           <Header title="קניות" names={names} />
         </FadeIn>
 
         {/* Hero: where we shop (prices follow this branch) + how much is left */}
-        <FadeIn delay={30}>
+        {!searching && <FadeIn delay={30}>
           <View style={[s.hero, { backgroundColor: c.ink }]}>
             <View style={s.heroTop}>
               <Touchable onPress={() => setStoreOpen(true)} scale={0.97} containerStyle={{ flex: 1 }} style={s.heroStore}>
@@ -256,17 +255,16 @@ export default function ShoppingScreen() {
               </Touchable>
             ) : null}
           </View>
-        </FadeIn>
+        </FadeIn>}
 
         {/* Add a product */}
-        <View onLayout={e => { addY.current = e.nativeEvent.layout.y }}>
         <FadeIn delay={50}>
           <View style={[s.addBox, { backgroundColor: c.card, borderColor: c.border }]}>
             <TextInput style={{ flex: 1, height: 52, color: c.text, fontSize: 16 }} placeholder="הוספת מוצר, למשל: חלב" placeholderTextColor={c.text3}
               value={text} onChangeText={setText} onSubmitEditing={addTyped} returnKeyType="done" blurOnSubmit={false} textAlign="right"
-              onFocus={liftSearch} onBlur={() => { if (!text) setSearching(false) }} />
+              onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
             {text ? (
-              <Touchable onPress={() => { setText(''); if (!Keyboard.isVisible()) setSearching(false) }} scale={0.85} style={s.clearBtn}>
+              <Touchable onPress={() => setText('')} scale={0.85} style={s.clearBtn}>
                 <View style={[s.clearDot, { backgroundColor: c.text3 }]}><X size={13} color="#fff" strokeWidth={3} /></View>
               </Touchable>
             ) : null}
@@ -300,7 +298,8 @@ export default function ShoppingScreen() {
           )}
           {text.trim().length >= 2 && store && status === 'loading' ? <ActivityIndicator color={c.primary} style={{ marginTop: 10 }} /> : null}
         </FadeIn>
-        </View>
+
+        {!showingHits && <>
 
         {/* How it works: shown until dismissed, reopened from the ? button */}
         {guide && (
@@ -376,6 +375,7 @@ export default function ShoppingScreen() {
           <MenuRow c={c} Icon={Clock} title="לקנות בהמשך" sub="דברים לא דחופים, כדי שלא תשכחו" onPress={() => setLaterOpen(true)} badge={d.laterItems.length || undefined} />
           {!empty && <MenuRow c={c} Icon={Trash2} title="מחיקת כל הרשימה" onPress={confirmClear} danger />}
         </View>
+        </>}
       </ScrollView>
 
       {inCart.length > 0 && (
