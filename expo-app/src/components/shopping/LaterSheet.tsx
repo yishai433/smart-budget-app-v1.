@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { View, Text, TextInput, ScrollView, StyleSheet, Keyboard, Alert } from 'react-native'
-import { X, Plus, ArrowUpLeft, Trash2, Bell, BellRing, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react-native'
+import { View, Text, TextInput, ScrollView, StyleSheet, Keyboard, Alert, Platform } from 'react-native'
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker'
+import { X, Plus, ArrowUpLeft, Trash2, Bell, BellRing, ChevronRight } from 'lucide-react-native'
 import { useTheme, Theme } from '../../theme'
 import { useData } from '../../context/DataContext'
 import { shopCat } from '../../lib/shopCategories'
@@ -10,92 +11,97 @@ import Touchable from '../Touchable'
 import type { LaterItem } from '../../types'
 
 const fail = () => Alert.alert('הפעולה נכשלה', 'בדקו את החיבור לאינטרנט ונסו שוב.')
-const DAYS = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳']
-const at = (dayOffset: number, hour: number, minute = 0) => { const d = new Date(); d.setDate(d.getDate() + dayOffset); d.setHours(hour, minute, 0, 0); return d.getTime() }
 const pad = (n: number) => String(n).padStart(2, '0')
 
-function Chip({ c, label, on, onPress }: { c: Theme; label: string; on: boolean; onPress: () => void }) {
-  return (
-    <Touchable onPress={onPress} scale={0.94}>
-      <View style={[s.chip, { backgroundColor: on ? c.primary : c.bg }]}>
-        <Text style={{ fontSize: 13.5, fontWeight: '700', color: on ? '#fff' : c.text }}>{label}</Text>
-      </View>
-    </Touchable>
-  )
-}
-
-// A single up/down wheel for hour or minute.
-function Wheel({ c, value, onChange, step = 1, max }: { c: Theme; value: number; onChange: (v: number) => void; step?: number; max: number }) {
-  const set = (delta: number) => onChange((value + delta * step + (max + 1)) % (max + 1))
-  return (
-    <View style={{ alignItems: 'center' }}>
-      <Touchable onPress={() => set(1)} scale={0.85} style={[s.wheelBtn, { backgroundColor: c.bg }]}><ChevronUp size={20} color={c.text} /></Touchable>
-      <Text style={{ fontSize: 34, fontWeight: '800', color: c.text, width: 62, textAlign: 'center' }}>{pad(value)}</Text>
-      <Touchable onPress={() => set(-1)} scale={0.85} style={[s.wheelBtn, { backgroundColor: c.bg }]}><ChevronDown size={20} color={c.text} /></Touchable>
-    </View>
-  )
-}
-
-// Pick when to be reminded about one item: choose a day, then set the exact time.
+// Pick when to be reminded: the phone's own time wheel (iOS) / clock (Android), a day in one
+// tap, and the result spelled out in a single line.
 function ReminderPanel({ c, item, onBack }: { c: Theme; item: LaterItem; onBack: () => void }) {
   const d = useData()
-  const now = new Date()
-  const [day, setDay] = useState(0)
-  const [hour, setHour] = useState((now.getHours() + 1) % 24)
-  const [minute, setMinute] = useState(0)
-  const when = at(day, hour, minute)
-  const valid = when > Date.now() + 60000
+  const [when, setWhen] = useState(() => {
+    if (item.remindAt && item.remindAt > Date.now()) return new Date(item.remindAt)
+    const t = new Date(); t.setMinutes(0, 0, 0); t.setHours(t.getHours() + 1)
+    if (t.getHours() >= 22 || t.getHours() < 7) { if (t.getHours() >= 22) t.setDate(t.getDate() + 1); t.setHours(9) }
+    return t
+  })
+  const [androidPick, setAndroidPick] = useState<'time' | 'date' | null>(null)
+  const [iosDate, setIosDate] = useState(false)
+  const valid = when.getTime() > Date.now() + 60000
+  const dayOff = Math.round((new Date(when).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 86400000)
+  const setDay = (off: number) => { const t = new Date(); t.setDate(t.getDate() + off); t.setHours(when.getHours(), when.getMinutes(), 0, 0); setWhen(t); setIosDate(false) }
+  const onPick = (_e: DateTimePickerEvent, v?: Date) => {
+    setAndroidPick(null)
+    if (v) setWhen(v)
+  }
 
   const save = async () => {
     if (!valid) return
     const ok = await ensurePermission()
     if (!ok) { Alert.alert('אין הרשאה להתראות', 'כדי לקבל תזכורת צריך לאשר התראות לאפליקציה בהגדרות של הטלפון.'); return }
-    d.setLaterReminder(item.id, when).catch(fail)
-    scheduleReminder(item.id, item.name, when).catch(() => {})
+    const t = when.getTime()
+    d.setLaterReminder(item.id, t).catch(fail)
+    scheduleReminder(item.id, item.name, t).catch(() => {})
     onBack()
   }
   const clear = () => { d.setLaterReminder(item.id, null).catch(fail); cancelReminder(item.id); onBack() }
+  const hhmm = `${pad(when.getHours())}:${pad(when.getMinutes())}`
+  const ios = Platform.OS === 'ios'
 
   return (
-    <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+    <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
       <Touchable onPress={onBack} scale={0.96} style={s.back}>
         <ChevronRight size={18} color={c.primary} /><Text style={{ fontSize: 14, fontWeight: '700', color: c.primary }}>חזרה לרשימה</Text>
       </Touchable>
-      <Text style={{ fontSize: 17, fontWeight: '800', color: c.text, textAlign: 'right' }}>מתי להזכיר על "{item.name}"?</Text>
 
-      <Text style={[s.label, { color: c.text2 }]}>יום</Text>
-      <View style={s.wrap}>
-        {Array.from({ length: 8 }, (_, i) => {
-          const dt = new Date(); dt.setDate(dt.getDate() + i)
-          const label = i === 0 ? 'היום' : i === 1 ? 'מחר' : `${DAYS[dt.getDay()]} ${dt.getDate()}.${dt.getMonth() + 1}`
-          return <Chip key={i} c={c} label={label} on={day === i} onPress={() => setDay(i)} />
+      {/* the answer, big: what you'll get and when */}
+      <View style={[s.hero, { backgroundColor: c.primaryLight }]}>
+        <BellRing size={20} color={c.primary} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 13, color: c.text2, textAlign: 'right' }}>תזכורת על "{item.name}"</Text>
+          <Text style={{ fontSize: 22, fontWeight: '800', color: valid ? c.text : c.danger, textAlign: 'right', marginTop: 2 }}>
+            {valid ? reminderLabel(when.getTime()) : 'הזמן הזה כבר עבר'}
+          </Text>
+        </View>
+      </View>
+
+      <View style={[s.seg, { backgroundColor: c.bg }]}>
+        {[['היום', 0], ['מחר', 1], ['מחרתיים', 2]].map(([lbl, off]) => {
+          const on = dayOff === off && !iosDate
+          return (
+            <Touchable key={lbl as string} onPress={() => setDay(off as number)} scale={0.96} containerStyle={{ flex: 1 }} style={[s.segBtn, on ? { backgroundColor: c.card } : null]}>
+              <Text style={{ fontSize: 14.5, fontWeight: on ? '800' : '600', color: on ? c.primary : c.text2 }}>{lbl}</Text>
+            </Touchable>
+          )
         })}
+        <Touchable onPress={() => (ios ? setIosDate(v => !v) : setAndroidPick('date'))} scale={0.96} containerStyle={{ flex: 1 }}
+          style={[s.segBtn, dayOff > 2 || iosDate ? { backgroundColor: c.card } : null]}>
+          <Text style={{ fontSize: 14.5, fontWeight: dayOff > 2 || iosDate ? '800' : '600', color: dayOff > 2 || iosDate ? c.primary : c.text2 }}>
+            {dayOff > 2 ? `${when.getDate()}.${when.getMonth() + 1}` : 'תאריך…'}
+          </Text>
+        </Touchable>
       </View>
 
-      <Text style={[s.label, { color: c.text2 }]}>שעה</Text>
-      <View style={[s.clock, { backgroundColor: c.card, borderColor: c.border }]}>
-        <Wheel c={c} value={minute} onChange={setMinute} step={5} max={59} />
-        <Text style={{ fontSize: 34, fontWeight: '800', color: c.text3, marginHorizontal: 4 }}>:</Text>
-        <Wheel c={c} value={hour} onChange={setHour} max={23} />
-      </View>
-      <View style={[s.wrap, { marginTop: 10, justifyContent: 'center' }]}>
-        {[['בוקר', 8], ['צהריים', 13], ['אחה״צ', 17], ['ערב', 20]].map(([lbl, h]) => (
-          <Chip key={lbl as string} c={c} label={lbl as string} on={hour === h && minute === 0} onPress={() => { setHour(h as number); setMinute(0) }} />
-        ))}
-      </View>
+      {ios ? (
+        <View style={[s.pickerBox, { backgroundColor: c.bg }]}>
+          <DateTimePicker value={when} mode={iosDate ? 'date' : 'time'} display="spinner" locale="he-IL" minuteInterval={5}
+            minimumDate={iosDate ? new Date() : undefined} onChange={(_e, v) => v && setWhen(v)} style={{ height: 180 }} />
+        </View>
+      ) : (
+        <Touchable onPress={() => setAndroidPick('time')} scale={0.97} style={[s.timeBtn, { backgroundColor: c.bg }]}>
+          <Text style={{ fontSize: 13, color: c.text2 }}>שעה</Text>
+          <Text style={{ fontSize: 34, fontWeight: '800', color: c.text, writingDirection: 'ltr' }}>{hhmm}</Text>
+          <Text style={{ fontSize: 13, color: c.primary, fontWeight: '700' }}>לחצו לשינוי</Text>
+        </Touchable>
+      )}
+      {androidPick ? (
+        <DateTimePicker value={when} mode={androidPick} is24Hour minimumDate={androidPick === 'date' ? new Date() : undefined} onChange={onPick} />
+      ) : null}
 
-      <View style={[s.summary, { backgroundColor: c.primaryLight }]}>
-        <BellRing size={17} color={c.primary} />
-        <Text style={{ flex: 1, fontSize: 14, fontWeight: '700', color: valid ? c.text : c.danger, textAlign: 'right' }}>
-          {valid ? `תזכורת ${reminderLabel(when)}` : 'הזמן הזה כבר עבר, בחרו מאוחר יותר'}
-        </Text>
-      </View>
       <Touchable onPress={save} disabled={!valid} scale={0.98} style={[s.save, { backgroundColor: c.primary, opacity: valid ? 1 : 0.4 }]}>
-        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15.5 }}>קביעת תזכורת</Text>
+        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>שמירת תזכורת</Text>
       </Touchable>
       {item.remindAt ? (
-        <Touchable onPress={clear} scale={0.98} style={[s.save, { backgroundColor: c.bg }]}>
-          <Text style={{ color: c.danger, fontWeight: '700', fontSize: 15 }}>ביטול התזכורת</Text>
+        <Touchable onPress={clear} scale={0.98} style={{ alignItems: 'center', paddingVertical: 12 }}>
+          <Text style={{ color: c.danger, fontWeight: '700', fontSize: 14 }}>ביטול התזכורת</Text>
         </Touchable>
       ) : null}
       <View style={{ height: 12 }} />
@@ -195,8 +201,10 @@ const s = StyleSheet.create({
   back: { flexDirection: 'row-reverse', alignItems: 'center', gap: 2, alignSelf: 'flex-end', marginBottom: 10 },
   label: { fontSize: 12.5, fontWeight: '700', textAlign: 'right', marginTop: 16, marginBottom: 8 },
   wrap: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8 },
-  chip: { paddingHorizontal: 13, paddingVertical: 9, borderRadius: 999 },
-  clock: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, borderWidth: 1, borderRadius: 18, paddingVertical: 14, marginTop: 4 },
-  wheelBtn: { width: 52, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginVertical: 4 },
+  hero: { flexDirection: 'row-reverse', alignItems: 'center', gap: 12, borderRadius: 18, padding: 16 },
+  seg: { flexDirection: 'row-reverse', borderRadius: 14, padding: 4, gap: 4, marginTop: 14 },
+  segBtn: { alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 11 },
+  pickerBox: { borderRadius: 18, marginTop: 12, overflow: 'hidden', alignItems: 'center' },
+  timeBtn: { alignItems: 'center', borderRadius: 18, paddingVertical: 16, marginTop: 12, gap: 2 },
   summary: { flexDirection: 'row-reverse', alignItems: 'center', gap: 8, borderRadius: 14, padding: 14, marginTop: 18 },
 })
