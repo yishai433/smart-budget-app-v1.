@@ -32,7 +32,14 @@ export const CERBERUS = {
 export const LAIB = {
   mshuk: { edi: '7290661400001', label: 'מחסני השוק' },
 }
-const KEY_RE = new RegExp(`^(shufersal|sapir|${[...Object.keys(CERBERUS), ...Object.keys(LAIB)].join('|')})-(\\d+)$`)
+// chains on the netiv-hesed.com portal: no API, a plain HTML file-table at the site root with a
+// "Search" free-text box that filters by filename substring, and a direct download link per row
+// (/Prices/Download?fileName=..). One chainId covers several sub-chains (נתיב החסד, בר-כל, שירה
+// מרקט), told apart by SubChainID; the Stores.gz file groups branches under a <SubChain> block.
+export const NETIV = {
+  barkol: { portal: 'https://app.netiv-hesed.com', chainId: '7290058160839', subChainId: '002', label: 'בר-כל' },
+}
+const KEY_RE = new RegExp(`^(shufersal|sapir|${[...Object.keys(CERBERUS), ...Object.keys(LAIB), ...Object.keys(NETIV)].join('|')})-(\\d+)$`)
 export const validKey = (k) => KEY_RE.test(String(k || ''))
 let catalogCache = null
 function storeDef(key, dataDir) {
@@ -220,6 +227,25 @@ const fetchers = {
       PromoFull: promoF ? { name: promoF.fileName, text: await dl(promoF) } : { name: '', text: '' },
     }
   },
+  async netiv(store, chain) {
+    const { portal, subChainId, label } = NETIV[chain]
+    const s = String(store).padStart(3, '0')
+    const html = (await getBuf(`${portal}/?Search=${subChainId}-${s}`)).toString('utf8')
+    const rows = (html.match(/<tr>\s*<td>[\s\S]*?<\/tr>/g) || []).map(row => ({
+      fileName: (row.match(/class="file-name">([^<]+)</) || [])[1] || '',
+      href: (row.match(/href="([^"]+)"/) || [])[1] || '',
+    })).filter(r => r.fileName && new RegExp(`-${subChainId}-${s}-\\d{8}-`).test(r.fileName))
+    const pick = (type) => rows.filter(r => r.fileName.toLowerCase().startsWith(type.toLowerCase()))
+      .sort((a, b) => stamp(b.fileName).localeCompare(stamp(a.fileName)))[0]
+    const priceF = pick('PriceFull')
+    if (!priceF) throw new Error(`${label}: אין קובץ מחירים לסניף ${store}`)
+    const promoF = pick('PromoFull')
+    const dl = async (f) => gunzipText(await getBuf(`${portal}${f.href}`))
+    return {
+      PriceFull: { name: priceF.fileName, text: await dl(priceF) },
+      PromoFull: promoF ? { name: promoF.fileName, text: await dl(promoF) } : { name: '', text: '' },
+    }
+  },
 }
 
 // ── storage ──
@@ -232,6 +258,7 @@ export async function refreshStore(dataDir, key, log = console.log) {
   if (!def) throw new Error('סניף לא מוכר: ' + key)
   const files = def.chain in CERBERUS ? await fetchers.cerberus(def.store, def.chain)
     : def.chain in LAIB ? await fetchers.laib(def.store, def.chain)
+    : def.chain in NETIV ? await fetchers.netiv(def.store, def.chain)
     : await fetchers[def.chain](def.store)
   const items = parseItems(files.PriceFull.text)
   const promos = parsePromos(files.PromoFull.text)
@@ -288,7 +315,7 @@ export function loadCatalog(dataDir) {
   if (catalogCache) return catalogCache
   try { catalogCache = JSON.parse(fs.readFileSync(catFile(dataDir), 'utf8')).stores; return catalogCache } catch { return null }
 }
-const CATALOG_V = 4     // bump to force every server to rebuild the branch list (new chains added)
+const CATALOG_V = 5     // bump to force every server to rebuild the branch list (new chains added)
 export const catalogAge = (dataDir) => {
   try { if (JSON.parse(fs.readFileSync(catFile(dataDir), 'utf8')).v !== CATALOG_V) return Infinity; return Date.now() - fs.statSync(catFile(dataDir)).mtimeMs } catch { return Infinity }
 }
@@ -341,6 +368,21 @@ export async function refreshCatalog(dataDir, log = console.log) {
         seen.add(id)
         const raw = String(b.name ?? b.Name ?? '').replace(/^\d+\s*/, '').trim()   // names come as "268 נהריה..."
         out.push({ k: `${chain}-${id}`, c: chain, n: raw.includes(def.label) ? raw : `${def.label} ${raw}`.trim(), city: raw, a: '' })
+      }
+    } catch (e) { log(`קטלוג ${def.label} נכשל:`, e.message) }
+  }
+  for (const [chain, def] of Object.entries(NETIV)) {
+    try {
+      const html = (await getBuf(`${def.portal}/?FileType=Stores`)).toString('utf8')
+      const href = (html.match(/file-name">[^<]+<\/td>\s*<td>\s*<a[^>]*href="([^"]+)"/) || [])[1]
+      if (!href) throw new Error('אין קובץ סניפים')
+      const xml = gunzipText(await getBuf(`${def.portal}${href}`))
+      const sub = blocks(xml, 'SubChain').find(b => tag(b, 'SubChainID') === def.subChainId)
+      if (!sub) throw new Error(`תת-רשת ${def.subChainId} לא נמצאה`)
+      for (const x of parseStoreList(sub)) {
+        const id = String(parseInt(x.id, 10))
+        if (id === 'NaN') continue
+        out.push({ k: `${chain}-${id}`, c: chain, n: x.name.includes(def.label) ? x.name : `${def.label} ${x.name}`.trim(), city: x.name, a: x.a })
       }
     } catch (e) { log(`קטלוג ${def.label} נכשל:`, e.message) }
   }

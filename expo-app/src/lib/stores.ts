@@ -4,7 +4,7 @@ import { db } from '../firebase'
 // Supermarket branch catalog (published by the home server, same as the website uses).
 export interface StoreInfo { k: string; n: string; c: string; city?: string; a?: string }
 
-export const CHAIN: Record<string, string> = { shufersal: 'שופרסל', sapir: 'ספיר', osherad: 'אושר עד', ramilevi: 'רמי לוי', yohananof: 'יוחננוף', tivtaam: 'טיב טעם', freshmarket: 'פרשמרקט', stopmarket: 'סטופ מרקט', keshet: 'קשת טעמים', mshuk: 'מחסני השוק' }
+export const CHAIN: Record<string, string> = { shufersal: 'שופרסל', sapir: 'ספיר', osherad: 'אושר עד', ramilevi: 'רמי לוי', yohananof: 'יוחננוף', tivtaam: 'טיב טעם', freshmarket: 'פרשמרקט', stopmarket: 'סטופ מרקט', keshet: 'קשת טעמים', mshuk: 'מחסני השוק', barkol: 'בר-כל' }
 // Shufersal gives the city as a national city code. Major cities:
 const CITY_BY_CODE: Record<number, string> = {
   3000: 'ירושלים', 5000: 'תל אביב-יפו', 4000: 'חיפה', 70: 'אשדוד', 7100: 'אשקלון', 9000: 'באר שבע', 6100: 'בני ברק',
