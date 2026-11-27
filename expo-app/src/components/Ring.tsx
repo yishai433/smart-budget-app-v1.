@@ -17,7 +17,7 @@ export default function Ring({ pct }: { pct: number }) {
   return (
     <View style={{ width: SIZE, height: SIZE }}>
       <Svg width={SIZE} height={SIZE}>
-        <Circle cx={SIZE / 2} cy={SIZE / 2} r={R} stroke="rgba(34,31,15,0.15)" strokeWidth={STROKE} fill="none" />
+        <Circle cx={SIZE / 2} cy={SIZE / 2} r={R} stroke="rgba(255,255,255,0.28)" strokeWidth={STROKE} fill="none" />
         <AnimatedCircle cx={SIZE / 2} cy={SIZE / 2} r={R} stroke={over ? c.danger : c.inkText} strokeWidth={STROKE} fill="none"
           strokeLinecap="round" strokeDasharray={C} strokeDashoffset={offset} transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`} />
       </Svg>

@@ -30,7 +30,7 @@ function Item({ focused, onPress, icon, label, c }: { focused: boolean; onPress:
   const color = focused ? c.accent2Dark : c.text3
   return (
     <Pressable onPress={onPress} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', height: 54 }}>
-      <Animated.View style={{ position: 'absolute', top: 4, bottom: 4, left: 6, right: 6, borderRadius: 999, backgroundColor: c.accent2Light, opacity: a, transform: [{ scale: a.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] }) }] }} />
+      <Animated.View style={{ position: 'absolute', top: 4, bottom: 4, left: 6, right: 6, borderRadius: 999, backgroundColor: c.primaryLight, opacity: a, transform: [{ scale: a.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] }) }] }} />
       <View style={{ alignItems: 'center', gap: 3 }}>
         {icon}
         <Text style={{ fontSize: 11, fontWeight: '600', color }}>{label}</Text>
