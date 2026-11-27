@@ -36,7 +36,7 @@ export interface Household {
 
 export interface BasketItem { name: string; category?: string; quantity?: number; estimatedPrice?: number; otherLabel?: string; code?: string }
 export interface SavedBasket { id: string; name: string; items: BasketItem[]; updatedAt?: number }
-export interface LaterItem { id: string; householdId: string; name: string; category?: string; createdAt?: { seconds: number } | null }
+export interface LaterItem { id: string; householdId: string; name: string; category?: string; remindAt?: number | null; createdAt?: { seconds: number } | null }
 
 export interface ShoppingItem {
   id: string

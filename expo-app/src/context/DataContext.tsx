@@ -51,6 +51,7 @@ interface DataValue {
   laterItems: LaterItem[]
   addLaterItem: (name: string) => Promise<void>
   deleteLaterItem: (id: string) => Promise<void>
+  setLaterReminder: (id: string, at: number | null) => Promise<void>
   moveLaterToList: (items: LaterItem[]) => Promise<void>
   savedBaskets: SavedBasket[]
   lastTrip: BasketItem[]
@@ -180,6 +181,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     await addDoc(collection(db, 'laterListItems'), { name: n, category: guessShoppingCategory(n), householdId: activeHouseholdId, createdAt: serverTimestamp() })
   }
   const deleteLaterItem: DataValue['deleteLaterItem'] = async (id) => { await deleteDoc(doc(db, 'laterListItems', id)) }
+  const setLaterReminder: DataValue['setLaterReminder'] = async (id, at) => { await updateDoc(doc(db, 'laterListItems', id), { remindAt: at }) }
   const moveLaterToList: DataValue['moveLaterToList'] = async (items) => {
     if (!activeHouseholdId) return
     await Promise.all(items.map(async it => {
@@ -343,7 +345,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     monthTransactions, totalIncome, totalExpenses, balance: totalIncome - totalExpenses,
     monthlyBudget, effectiveCategoryBudgets, setMonthlyBudget, setCategoryBudget, addTransaction, updateTransaction, deleteTransaction,
     shoppingItems, addShoppingItem, updateShoppingItem, deleteShoppingItem, clearChecked, uid: user?.uid ?? null, currency, setCurrency, savingsGoals, addGoal, depositGoal, deleteGoal, createInvite, joinByCode, partnerName, incomeMonthMode, setIncomeMonthMode,
-    laterItems, addLaterItem, deleteLaterItem, moveLaterToList, savedBaskets, lastTrip, saveBasket, deleteBasket, loadBasket, clearShoppingList, checkoutShopping, priceStores, activeStore, setActiveStore,
+    laterItems, addLaterItem, deleteLaterItem, setLaterReminder, moveLaterToList, savedBaskets, lastTrip, saveBasket, deleteBasket, loadBasket, clearShoppingList, checkoutShopping, priceStores, activeStore, setActiveStore,
   }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

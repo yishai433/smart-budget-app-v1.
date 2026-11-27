@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, memo, useDeferredValue, useEffect } from 'react'
 import { View, Text, ScrollView, TextInput, StyleSheet, Alert, Keyboard, ActivityIndicator } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Check, ScanLine, Plus, ListChecks, Clock, Trash2, ChevronLeft, ShoppingCart, Save, Store, ChevronDown } from 'lucide-react-native'
+import { Check, ScanLine, Plus, ListChecks, Clock, Trash2, ChevronLeft, ShoppingCart, Save, Store, ChevronDown, HelpCircle, X } from 'lucide-react-native'
 import { useTheme, radius, Theme } from '../theme'
 import { useData } from '../context/DataContext'
 import { useAuth } from '../context/AuthContext'
@@ -20,6 +20,10 @@ import StorePicker from '../components/shopping/StorePicker'
 import { usePriceIndex, searchProducts, autoMatch, priceAt, refreshPriceIndex, ProductHit } from '../lib/priceIndex'
 import { storeLabel } from '../lib/stores'
 import useKeyboardHeight from '../lib/useKeyboardHeight'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { syncReminders } from '../lib/reminders'
+
+const GUIDE_KEY = 'sb-shop-guide-hidden'
 import type { ShoppingItem } from '../types'
 
 const fail = () => Alert.alert('הפעולה נכשלה', 'בדקו את החיבור לאינטרנט ונסו שוב.')
@@ -94,6 +98,12 @@ export default function ShoppingScreen() {
   const names = [user?.displayName || user?.email?.split('@')[0] || 'אני', d.partnerName || ''].filter(Boolean)
 
   const [storeOpen, setStoreOpen] = useState(false)
+  // "How it works" stays until the user dismisses it; the ? button brings it back.
+  const [guide, setGuide] = useState(false)
+  useEffect(() => { AsyncStorage.getItem(GUIDE_KEY).then(v => setGuide(v !== '1')).catch(() => setGuide(true)) }, [])
+  const hideGuide = () => { setGuide(false); AsyncStorage.setItem(GUIDE_KEY, '1').catch(() => {}) }
+  // Keep this phone's reminders in step with the shared "buy later" list.
+  useEffect(() => { syncReminders(d.laterItems) }, [d.laterItems])
   // While the keyboard is up it hides the bottom of the page: make room for it so everything can still be scrolled to.
   const kb = useKeyboardHeight()
   const { idx, status } = usePriceIndex(d.activeHouseholdId)
@@ -175,34 +185,40 @@ export default function ShoppingScreen() {
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
         <FadeIn>
           <Header title="קניות" names={names} />
-          <Text style={{ fontSize: 14, color: c.text2, textAlign: 'right', marginTop: -6 }}>
-            {empty ? 'רשימת הקניות של הבית' : toBuy.length === 0 ? 'הכל בעגלה 🎉' : `${toBuy.length} ${toBuy.length === 1 ? 'מוצר' : 'מוצרים'} לקנות${toBuyTotal > 0 ? ` · כ-${formatAmount(toBuyTotal)}` : ''}`}
-          </Text>
         </FadeIn>
 
-        {/* Where we shop: prices follow this branch */}
+        {/* Hero: where we shop (prices follow this branch) + how much is left */}
         <FadeIn delay={30}>
-          <Touchable onPress={() => setStoreOpen(true)} scale={0.98} style={[s.storeBar, { backgroundColor: c.card, borderColor: c.border }]}>
-            <View style={[s.storeIcon, { backgroundColor: c.primaryLight }]}><Store size={18} color={c.primary} /></View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 11.5, color: c.text2, fontWeight: '600', textAlign: 'right' }}>{store ? 'קונים ב' : 'מחירים אוטומטיים'}</Text>
-              <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: '800', color: c.text, textAlign: 'right' }}>{store ? storeName : 'בחרו את הסופר שלכם'}</Text>
-              {store ? (
-                <Text style={{ fontSize: 11.5, color: status === 'ready' ? c.success : c.text2, textAlign: 'right', marginTop: 1 }}>
-                  {status === 'loading' ? 'טוען מחירים…' : status === 'ready' ? `מחירים עדכניים${idx?.updatedAt ? ` · ${new Date(idx.updatedAt).toLocaleDateString('he-IL')}` : ''}` : 'המחירים נטענים בשרת'}
-                </Text>
-              ) : null}
+          <View style={[s.hero, { backgroundColor: c.ink }]}>
+            <View style={s.heroTop}>
+              <Touchable onPress={() => setStoreOpen(true)} scale={0.97} containerStyle={{ flex: 1 }} style={s.heroStore}>
+                <View style={[s.storeIcon, { backgroundColor: 'rgba(255,255,255,0.16)' }]}><Store size={17} color={c.inkText} /></View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 11.5, color: c.inkText2, fontWeight: '600', textAlign: 'right' }}>{store ? 'קונים ב' : 'מחירים אוטומטיים'}</Text>
+                  <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: '800', color: c.inkText, textAlign: 'right' }}>{store ? storeName : 'בחרו את הסופר שלכם ›'}</Text>
+                </View>
+                {store ? <View style={s.pill}><Text style={{ fontSize: 12, fontWeight: '700', color: c.inkText }}>החלפה</Text></View> : null}
+              </Touchable>
+              <Touchable onPress={() => setGuide(true)} scale={0.88} style={s.help}>
+                <HelpCircle size={20} color={c.inkText} />
+              </Touchable>
             </View>
-            {store && status !== 'ready' && status !== 'loading' ? (
-              <Touchable onPress={() => refreshPriceIndex(d.activeHouseholdId)} scale={0.9} style={[s.smallBtn, { backgroundColor: c.bg }]}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: c.primary }}>רענון</Text>
+
+            <View style={[s.heroLine, { backgroundColor: c.inkLine }]} />
+            <Text style={{ fontSize: 26, fontWeight: '800', color: c.inkText, textAlign: 'right' }}>
+              {empty ? 'הרשימה ריקה' : toBuy.length === 0 ? 'הכל בעגלה 🎉' : `${toBuy.length} ${toBuy.length === 1 ? 'מוצר' : 'מוצרים'} לקנות`}
+            </Text>
+            <Text style={{ fontSize: 13, color: c.inkText2, textAlign: 'right', marginTop: 3 }}>
+              {empty ? 'הוסיפו מוצרים בשורה למטה'
+                : [toBuyTotal > 0 ? `כ-${formatAmount(toBuyTotal)} לקנות` : '', inCart.length ? `${inCart.length} כבר בעגלה` : ''].filter(Boolean).join(' · ') || 'הוסיפו מחירים כדי לראות סכום'}
+            </Text>
+            {!empty && <View style={{ marginTop: 12 }}><Bar pct={(inCart.length / items.length) * 100} color={c.inkText} track={c.inkLine} height={6} /></View>}
+            {store && status !== 'ready' ? (
+              <Touchable onPress={() => refreshPriceIndex(d.activeHouseholdId)} scale={0.97} style={{ marginTop: 10 }}>
+                <Text style={{ fontSize: 12, color: c.inkText2, textAlign: 'right' }}>{status === 'loading' ? 'טוען מחירים…' : 'המחירים של הסניף נטענים בשרת · לחצו לרענון'}</Text>
               </Touchable>
             ) : null}
-            <View style={[s.smallBtn, { backgroundColor: c.bg, flexDirection: 'row-reverse', gap: 2 }]}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: c.primary }}>{store ? 'החלפה' : 'בחירה'}</Text>
-              <ChevronDown size={14} color={c.primary} />
-            </View>
-          </Touchable>
+          </View>
         </FadeIn>
 
         {/* Add a product */}
@@ -241,19 +257,37 @@ export default function ShoppingScreen() {
           {text.trim().length >= 2 && store && status === 'loading' ? <ActivityIndicator color={c.primary} style={{ marginTop: 10 }} /> : null}
         </FadeIn>
 
-        {/* First use: explain how it works */}
-        {empty && (
+        {/* How it works: shown until dismissed, reopened from the ? button */}
+        {guide && (
           <FadeIn delay={130}>
             <View style={[s.card, { backgroundColor: c.card, borderColor: c.border, padding: 18, marginTop: 18 }]}>
-              <View style={{ alignItems: 'center', marginBottom: 14 }}>
-                <View style={[s.emptyIcon, { backgroundColor: c.primaryLight }]}><ShoppingCart size={28} color={c.primary} /></View>
-                <Text style={{ fontSize: 17, fontWeight: '800', color: c.text, marginTop: 10 }}>איך זה עובד?</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <Touchable onPress={hideGuide} scale={0.9} style={[s.x, { backgroundColor: c.bg }]}><X size={16} color={c.text2} /></Touchable>
+                <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
+                  <View style={[s.emptyIcon, { backgroundColor: c.primaryLight }]}><ShoppingCart size={20} color={c.primary} /></View>
+                  <Text style={{ fontSize: 17, fontWeight: '800', color: c.text }}>איך זה עובד?</Text>
+                </View>
               </View>
               <Step c={c} n={1} title="מוסיפים מוצרים" sub="כותבים בשורה למעלה (למשל: חלב) ובוחרים מהרשימה. המחיר בסניף שלכם נכנס לבד." />
               <Step c={c} n={2} title="בסופר מסמנים ✓" sub="כל מוצר שנכנס לעגלה מסמנים בעיגול שלידו." />
               <Step c={c} n={3} title="לוחצים &quot;סיימתי קנייה&quot;" sub="הסכום נרשם אוטומטית בהוצאות, והרשימה נשמרת לפעם הבאה." />
-              <Touchable onPress={() => setBasketsOpen(true)} scale={0.97} style={[s.primaryBtn, { backgroundColor: c.primary }]}>
-                <ListChecks size={18} color="#fff" /><Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>להתחיל מרשימה מוכנה</Text>
+              <Step c={c} n={4} title="רשימות שמורות ותזכורות" sub="שמרו רשימה קבועה וטענו אותה בלחיצה. דברים לא דחופים רשמו ב&quot;לקנות בהמשך&quot; וקבעו תזכורת." />
+              <Touchable onPress={hideGuide} scale={0.97} style={[s.primaryBtn, { backgroundColor: c.primary }]}>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>הבנתי</Text>
+              </Touchable>
+              <Text style={{ fontSize: 12, color: c.text3, textAlign: 'center', marginTop: 8 }}>אפשר לחזור להסבר בכל רגע בסימן ? למעלה</Text>
+            </View>
+          </FadeIn>
+        )}
+
+        {empty && !guide && (
+          <FadeIn delay={80}>
+            <View style={[s.card, { backgroundColor: c.card, borderColor: c.border, padding: 22, marginTop: 18, alignItems: 'center' }]}>
+              <View style={[s.bigIcon, { backgroundColor: c.primaryLight }]}><ShoppingCart size={28} color={c.primary} /></View>
+              <Text style={{ fontSize: 16, fontWeight: '800', color: c.text, marginTop: 12 }}>מה קונים הפעם?</Text>
+              <Text style={{ fontSize: 13, color: c.text2, textAlign: 'center', marginTop: 4 }}>כתבו מוצר למעלה, או התחילו מרשימה שמורה</Text>
+              <Touchable onPress={() => setBasketsOpen(true)} scale={0.97} style={[s.primaryBtn, { backgroundColor: c.primary, paddingHorizontal: 22, alignSelf: 'stretch' }]}>
+                <ListChecks size={18} color="#fff" /><Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>לרשימות השמורות</Text>
               </Touchable>
             </View>
           </FadeIn>
@@ -266,8 +300,9 @@ export default function ShoppingScreen() {
         {groups.map(({ cat, items: gi }) => (
           <View key={cat.id} style={{ marginTop: 10 }}>
             <View style={s.groupHead}>
-              <Text style={{ fontSize: 15 }}>{cat.emoji}</Text>
-              <Text style={{ fontSize: 13.5, fontWeight: '800', color: c.text }}>{cat.label}</Text>
+              <View style={[s.deptDot, { backgroundColor: cat.color + '22' }]}><Text style={{ fontSize: 14 }}>{cat.emoji}</Text></View>
+              <Text style={{ fontSize: 14, fontWeight: '800', color: c.text }}>{cat.label}</Text>
+              <Text style={{ fontSize: 12.5, fontWeight: '700', color: cat.color }}>{gi.length}</Text>
             </View>
             <View style={[s.card, { backgroundColor: c.card, borderColor: c.border }]}>
               {gi.map((it, i) => <ItemRow key={it.id} item={it} unit={unitPrice(it)} inCart={false} first={i === 0} c={c} onToggle={onToggle} onOpen={onOpen} />)}
@@ -322,18 +357,27 @@ export default function ShoppingScreen() {
 }
 
 const s = StyleSheet.create({
+  deptDot: { width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  hero: { borderRadius: radius.xl, padding: 16, marginTop: 4 },
+  heroTop: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10 },
+  heroStore: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10 },
+  heroLine: { height: 1, marginVertical: 14 },
+  pill: { backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
+  help: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.12)' },
+  x: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  bigIcon: { width: 58, height: 58, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   storeBar: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 16, padding: 12, marginTop: 14 },
   storeIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   smallBtn: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, alignItems: 'center' },
   more: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 12, borderTopWidth: StyleSheet.hairlineWidth },
   hit: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12 },
-  addBox: { flexDirection: 'row-reverse', alignItems: 'center', borderWidth: 1, borderRadius: 16, paddingRight: 14, paddingLeft: 6, gap: 4, marginTop: 10 },
+  addBox: { flexDirection: 'row-reverse', alignItems: 'center', borderWidth: 1, borderRadius: 16, paddingRight: 14, paddingLeft: 6, gap: 4, marginTop: 14 },
   scanBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   plus: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   label: { fontSize: 12.5, fontWeight: '700', textAlign: 'right', marginTop: 16, marginBottom: 8, paddingHorizontal: 4 },
   suggWrap: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8 },
   sugg: { flexDirection: 'row-reverse', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1 },
-  emptyIcon: { width: 58, height: 58, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  emptyIcon: { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   step: { flexDirection: 'row-reverse', alignItems: 'flex-start', gap: 12, marginBottom: 14 },
   stepNum: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   primaryBtn: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 14, paddingVertical: 13, marginTop: 4 },
