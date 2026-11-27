@@ -25,7 +25,14 @@ export const CERBERUS = {
   stopmarket: { user: 'Stop_Market', label: 'סטופ מרקט' },
   keshet: { user: 'Keshet', label: 'קשת טעמים' },
 }
-const KEY_RE = new RegExp(`^(shufersal|sapir|${Object.keys(CERBERUS).join('|')})-(\\d+)$`)
+// chains on the laibcatalog.co.il "webapi" (Nibit engine), identified by the chain's EDI (company id):
+//   getfiles?edi=..  → [{branchNumber,fileName,fileType,fileDate,fileSize}]
+//   getbranches?edi=.. → [{number,name}]
+//   download: webapi/<edi>/<fileName>  → gz
+export const LAIB = {
+  mshuk: { edi: '7290661400001', label: 'מחסני השוק' },
+}
+const KEY_RE = new RegExp(`^(shufersal|sapir|${[...Object.keys(CERBERUS), ...Object.keys(LAIB)].join('|')})-(\\d+)$`)
 export const validKey = (k) => KEY_RE.test(String(k || ''))
 let catalogCache = null
 function storeDef(key, dataDir) {
@@ -190,6 +197,29 @@ const fetchers = {
     }
     return out
   },
+  async laib(store, chain) {
+    const edi = LAIB[chain].edi
+    const base = 'https://laibcatalog.co.il/webapi'
+    const list = JSON.parse((await getBuf(`${base}/api/getfiles?edi=${edi}`)).toString('utf8'))
+    const mine = list.filter(f => (f.branchNumber | 0) === Number(store))
+    // Prefer the full snapshot when it exists; otherwise the plain price file (mshuk's "price" files are full catalogs).
+    const pick = (types) => {
+      for (const t of types) {
+        const hit = mine.filter(f => String(f.fileType).toLowerCase() === t)
+          .sort((a, b) => String(b.fileDate).localeCompare(String(a.fileDate)))
+        if (hit.length) return hit[0]
+      }
+      return null
+    }
+    const priceF = pick(['pricefull', 'price'])
+    if (!priceF) throw new Error(`${LAIB[chain].label}: אין קובץ מחירים לסניף ${store}`)
+    const promoF = pick(['promofull', 'promo'])
+    const dl = async (f) => gunzipText(await getBuf(`${base}/${encodeURIComponent(edi)}/${encodeURIComponent(f.fileName)}`))
+    return {
+      PriceFull: { name: priceF.fileName, text: await dl(priceF) },
+      PromoFull: promoF ? { name: promoF.fileName, text: await dl(promoF) } : { name: '', text: '' },
+    }
+  },
 }
 
 // ── storage ──
@@ -200,7 +230,9 @@ const cache = new Map()
 export async function refreshStore(dataDir, key, log = console.log) {
   const def = storeDef(key, dataDir)
   if (!def) throw new Error('סניף לא מוכר: ' + key)
-  const files = def.chain in CERBERUS ? await fetchers.cerberus(def.store, def.chain) : await fetchers[def.chain](def.store)
+  const files = def.chain in CERBERUS ? await fetchers.cerberus(def.store, def.chain)
+    : def.chain in LAIB ? await fetchers.laib(def.store, def.chain)
+    : await fetchers[def.chain](def.store)
   const items = parseItems(files.PriceFull.text)
   const promos = parsePromos(files.PromoFull.text)
   const data = { key, label: def.label, chain: def.chain, store: def.store, fetchedAt: Date.now(),
@@ -256,7 +288,7 @@ export function loadCatalog(dataDir) {
   if (catalogCache) return catalogCache
   try { catalogCache = JSON.parse(fs.readFileSync(catFile(dataDir), 'utf8')).stores; return catalogCache } catch { return null }
 }
-const CATALOG_V = 3     // bump to force every server to rebuild the branch list (new chains added)
+const CATALOG_V = 4     // bump to force every server to rebuild the branch list (new chains added)
 export const catalogAge = (dataDir) => {
   try { if (JSON.parse(fs.readFileSync(catFile(dataDir), 'utf8')).v !== CATALOG_V) return Infinity; return Date.now() - fs.statSync(catFile(dataDir)).mtimeMs } catch { return Infinity }
 }
@@ -296,6 +328,19 @@ export async function refreshCatalog(dataDir, log = console.log) {
         if (id === 'NaN' || seen.has(id)) continue
         seen.add(id)
         out.push({ k: `${chain}-${id}`, c: chain, n: x.name.includes(def.label) ? x.name : `${def.label} ${x.name}`.trim(), city: x.city, a: x.a })
+      }
+    } catch (e) { log(`קטלוג ${def.label} נכשל:`, e.message) }
+  }
+  for (const [chain, def] of Object.entries(LAIB)) {
+    try {
+      const branches = JSON.parse((await getBuf(`https://laibcatalog.co.il/webapi/api/getbranches?edi=${def.edi}`)).toString('utf8'))
+      const seen = new Set()
+      for (const b of branches) {
+        const id = String(parseInt(b.number ?? b.Number, 10))
+        if (id === 'NaN' || seen.has(id)) continue
+        seen.add(id)
+        const raw = String(b.name ?? b.Name ?? '').replace(/^\d+\s*/, '').trim()   // names come as "268 נהריה..."
+        out.push({ k: `${chain}-${id}`, c: chain, n: raw.includes(def.label) ? raw : `${def.label} ${raw}`.trim(), city: raw, a: '' })
       }
     } catch (e) { log(`קטלוג ${def.label} נכשל:`, e.message) }
   }
