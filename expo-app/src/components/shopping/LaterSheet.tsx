@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { View, Text, TextInput, ScrollView, StyleSheet, Keyboard, Alert } from 'react-native'
-import { X, Plus, ArrowUpLeft, Trash2, Bell, BellRing, ChevronRight } from 'lucide-react-native'
+import { X, Plus, ArrowUpLeft, Trash2, Bell, BellRing, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react-native'
 import { useTheme, Theme } from '../../theme'
 import { useData } from '../../context/DataContext'
 import { shopCat } from '../../lib/shopCategories'
@@ -11,19 +11,8 @@ import type { LaterItem } from '../../types'
 
 const fail = () => Alert.alert('הפעולה נכשלה', 'בדקו את החיבור לאינטרנט ונסו שוב.')
 const DAYS = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳']
-const HOURS = [8, 10, 12, 16, 18, 20]
-
 const at = (dayOffset: number, hour: number, minute = 0) => { const d = new Date(); d.setDate(d.getDate() + dayOffset); d.setHours(hour, minute, 0, 0); return d.getTime() }
-function quickOptions(): { label: string; at: number }[] {
-  const now = new Date()
-  const opts = [{ label: 'בעוד שעה', at: Date.now() + 3600 * 1000 }]
-  if (now.getHours() < 19) opts.push({ label: 'הערב ב-20:00', at: at(0, 20) })
-  opts.push({ label: 'מחר ב-9:00', at: at(1, 9) })
-  const toFri = (5 - now.getDay() + 7) % 7 || 7
-  if (toFri > 1) opts.push({ label: 'ביום שישי ב-9:00', at: at(toFri, 9) })
-  opts.push({ label: 'בעוד שבוע', at: at(7, 9) })
-  return opts
-}
+const pad = (n: number) => String(n).padStart(2, '0')
 
 function Chip({ c, label, on, onPress }: { c: Theme; label: string; on: boolean; onPress: () => void }) {
   return (
@@ -35,19 +24,32 @@ function Chip({ c, label, on, onPress }: { c: Theme; label: string; on: boolean;
   )
 }
 
-// Pick when to be reminded about one item.
+// A single up/down wheel for hour or minute.
+function Wheel({ c, value, onChange, step = 1, max }: { c: Theme; value: number; onChange: (v: number) => void; step?: number; max: number }) {
+  const set = (delta: number) => onChange((value + delta * step + (max + 1)) % (max + 1))
+  return (
+    <View style={{ alignItems: 'center' }}>
+      <Touchable onPress={() => set(1)} scale={0.85} style={[s.wheelBtn, { backgroundColor: c.bg }]}><ChevronUp size={20} color={c.text} /></Touchable>
+      <Text style={{ fontSize: 34, fontWeight: '800', color: c.text, width: 62, textAlign: 'center' }}>{pad(value)}</Text>
+      <Touchable onPress={() => set(-1)} scale={0.85} style={[s.wheelBtn, { backgroundColor: c.bg }]}><ChevronDown size={20} color={c.text} /></Touchable>
+    </View>
+  )
+}
+
+// Pick when to be reminded about one item: choose a day, then set the exact time.
 function ReminderPanel({ c, item, onBack }: { c: Theme; item: LaterItem; onBack: () => void }) {
   const d = useData()
-  const [day, setDay] = useState(1)
-  const [hour, setHour] = useState(9)
-  const [picked, setPicked] = useState<number | null>(null)
-  const when = picked ?? at(day, hour)
+  const now = new Date()
+  const [day, setDay] = useState(0)
+  const [hour, setHour] = useState((now.getHours() + 1) % 24)
+  const [minute, setMinute] = useState(0)
+  const when = at(day, hour, minute)
   const valid = when > Date.now() + 60000
 
   const save = async () => {
     if (!valid) return
     const ok = await ensurePermission()
-    if (!ok) { Alert.alert('אין הרשאה להתראות', 'כדי לקבל תזכורת צריך לאשר התראות לאפליקציה בהגדרות של האייפון.'); return }
+    if (!ok) { Alert.alert('אין הרשאה להתראות', 'כדי לקבל תזכורת צריך לאשר התראות לאפליקציה בהגדרות של הטלפון.'); return }
     d.setLaterReminder(item.id, when).catch(fail)
     scheduleReminder(item.id, item.name, when).catch(() => {})
     onBack()
@@ -55,33 +57,37 @@ function ReminderPanel({ c, item, onBack }: { c: Theme; item: LaterItem; onBack:
   const clear = () => { d.setLaterReminder(item.id, null).catch(fail); cancelReminder(item.id); onBack() }
 
   return (
-    <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+    <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
       <Touchable onPress={onBack} scale={0.96} style={s.back}>
         <ChevronRight size={18} color={c.primary} /><Text style={{ fontSize: 14, fontWeight: '700', color: c.primary }}>חזרה לרשימה</Text>
       </Touchable>
       <Text style={{ fontSize: 17, fontWeight: '800', color: c.text, textAlign: 'right' }}>מתי להזכיר על "{item.name}"?</Text>
 
-      <Text style={[s.label, { color: c.text2 }]}>מהיר</Text>
-      <View style={s.wrap}>
-        {quickOptions().map(o => <Chip key={o.label} c={c} label={o.label} on={picked === o.at} onPress={() => setPicked(o.at)} />)}
-      </View>
-
-      <Text style={[s.label, { color: c.text2 }]}>או בחרו יום ושעה</Text>
+      <Text style={[s.label, { color: c.text2 }]}>יום</Text>
       <View style={s.wrap}>
         {Array.from({ length: 8 }, (_, i) => {
           const dt = new Date(); dt.setDate(dt.getDate() + i)
           const label = i === 0 ? 'היום' : i === 1 ? 'מחר' : `${DAYS[dt.getDay()]} ${dt.getDate()}.${dt.getMonth() + 1}`
-          return <Chip key={i} c={c} label={label} on={picked === null && day === i} onPress={() => { setPicked(null); setDay(i) }} />
+          return <Chip key={i} c={c} label={label} on={day === i} onPress={() => setDay(i)} />
         })}
       </View>
-      <View style={[s.wrap, { marginTop: 8 }]}>
-        {HOURS.map(h => <Chip key={h} c={c} label={`${h}:00`} on={picked === null && hour === h} onPress={() => { setPicked(null); setHour(h) }} />)}
+
+      <Text style={[s.label, { color: c.text2 }]}>שעה</Text>
+      <View style={[s.clock, { backgroundColor: c.card, borderColor: c.border }]}>
+        <Wheel c={c} value={minute} onChange={setMinute} step={5} max={59} />
+        <Text style={{ fontSize: 34, fontWeight: '800', color: c.text3, marginHorizontal: 4 }}>:</Text>
+        <Wheel c={c} value={hour} onChange={setHour} max={23} />
+      </View>
+      <View style={[s.wrap, { marginTop: 10, justifyContent: 'center' }]}>
+        {[['בוקר', 8], ['צהריים', 13], ['אחה״צ', 17], ['ערב', 20]].map(([lbl, h]) => (
+          <Chip key={lbl as string} c={c} label={lbl as string} on={hour === h && minute === 0} onPress={() => { setHour(h as number); setMinute(0) }} />
+        ))}
       </View>
 
       <View style={[s.summary, { backgroundColor: c.primaryLight }]}>
         <BellRing size={17} color={c.primary} />
         <Text style={{ flex: 1, fontSize: 14, fontWeight: '700', color: valid ? c.text : c.danger, textAlign: 'right' }}>
-          {valid ? `תזכורת ${reminderLabel(when)}` : 'השעה הזאת כבר עברה, בחרו זמן אחר'}
+          {valid ? `תזכורת ${reminderLabel(when)}` : 'הזמן הזה כבר עבר, בחרו מאוחר יותר'}
         </Text>
       </View>
       <Touchable onPress={save} disabled={!valid} scale={0.98} style={[s.save, { backgroundColor: c.primary, opacity: valid ? 1 : 0.4 }]}>
@@ -179,5 +185,7 @@ const s = StyleSheet.create({
   label: { fontSize: 12.5, fontWeight: '700', textAlign: 'right', marginTop: 16, marginBottom: 8 },
   wrap: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8 },
   chip: { paddingHorizontal: 13, paddingVertical: 9, borderRadius: 999 },
+  clock: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, borderWidth: 1, borderRadius: 18, paddingVertical: 14, marginTop: 4 },
+  wheelBtn: { width: 52, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginVertical: 4 },
   summary: { flexDirection: 'row-reverse', alignItems: 'center', gap: 8, borderRadius: 14, padding: 14, marginTop: 18 },
 })
