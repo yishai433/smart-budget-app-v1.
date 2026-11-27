@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, ReactNode } from 'react'
-import { View, Modal, StyleSheet, Pressable, Animated, Easing, Dimensions, Platform } from 'react-native'
+import { View, Modal, StyleSheet, Pressable, Animated, Easing, Dimensions, Platform, Keyboard } from 'react-native'
 import useKeyboardHeight from '../lib/useKeyboardHeight'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '../theme'
@@ -17,7 +17,7 @@ export default function BottomSheet({ visible, onClose, children, avoidKeyboard,
   const [mounted, setMounted] = useState(visible)
   const entrance = useRef(new Animated.Value(SCREEN_H)).current
   const backdrop = useRef(new Animated.Value(0)).current
-  const kb = useKeyboardHeight()
+  const kb = useKeyboardHeight(!!avoidKeyboard && mounted)
   // iOS: lift the sheet's content above the keyboard (animated in sync with it).
   const lift = avoidKeyboard && Platform.OS === 'ios' && kb > 0
 
@@ -32,6 +32,7 @@ export default function BottomSheet({ visible, onClose, children, avoidKeyboard,
         Animated.timing(entrance, { toValue: 0, duration: 370, easing: Easing.bezier(0.16, 1, 0.3, 1), useNativeDriver: true }),
       ]).start()
     } else if (mounted) {
+      Keyboard.dismiss()
       Animated.parallel([
         Animated.timing(backdrop, { toValue: 0, duration: 190, useNativeDriver: true }),
         Animated.timing(entrance, { toValue: SCREEN_H, duration: 250, easing: Easing.in(Easing.cubic), useNativeDriver: true }),

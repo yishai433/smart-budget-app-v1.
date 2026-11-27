@@ -5,7 +5,7 @@ import {
 import { db } from '../firebase'
 import { useAuth } from './AuthContext'
 import { Household, Transaction, ShoppingItem, SavingsGoal } from '../types'
-import { currentMonthKey, monthKeyOf } from '../lib/month'
+import { currentMonthKey, monthKeyOf, txMonth } from '../lib/month'
 import { createInviteCode, redeemInviteCode, RedeemResult } from '../lib/invites'
 
 const GOAL_COLORS = ['#c67139', '#7a8a5e', '#4F7A8A', '#9A6B8E', '#D08A2E', '#6B5FA0']
@@ -46,7 +46,12 @@ interface DataValue {
   createInvite: () => Promise<{ code: string; expiresAt: Date }>
   joinByCode: (code: string) => Promise<RedeemResult>
   partnerName: string | null
+  incomeMonthMode: IncomeMonthMode | null
+  setIncomeMonthMode: (m: IncomeMonthMode) => Promise<void>
 }
+
+// Where income received early in a month (days 1–15) is counted.
+export type IncomeMonthMode = 'previous' | 'received'
 
 const Ctx = createContext<DataValue>(null as unknown as DataValue)
 export const useData = () => useContext(Ctx)
@@ -155,7 +160,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   })
   const goToCurrentMonth = () => setSelectedMonth(curKey)
 
-  const monthTransactions = useMemo(() => transactions.filter(t => t.date?.startsWith(monthKey)), [transactions, monthKey])
+  const monthTransactions = useMemo(() => transactions.filter(t => txMonth(t) === monthKey), [transactions, monthKey])
   const totalIncome = useMemo(() => monthTransactions.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0), [monthTransactions])
   const totalExpenses = useMemo(() => monthTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0), [monthTransactions])
   const monthlyBudget = household?.monthlyBudgets?.[monthKey] ?? null
@@ -206,6 +211,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     catch { await setDoc(doc(db, 'households', activeHouseholdId), { settings: { currency: cur } }, { merge: true }) }
   }
 
+  const incomeMonthMode = (household?.settings?.incomeMonth as IncomeMonthMode) || null
+  const setIncomeMonthMode = async (m: IncomeMonthMode) => {
+    if (!activeHouseholdId) return
+    try { await updateDoc(doc(db, 'households', activeHouseholdId), { 'settings.incomeMonth': m }) }
+    catch { await setDoc(doc(db, 'households', activeHouseholdId), { settings: { incomeMonth: m } }, { merge: true }) }
+  }
+
   const setCategoryBudget = async (catId: string, amount: number) => {
     if (!activeHouseholdId) return
     const ref = doc(db, 'households', activeHouseholdId)
@@ -233,7 +245,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     ready, household, activeHouseholdId, transactions, monthKey, isCurrentMonth, shiftMonth, goToCurrentMonth,
     monthTransactions, totalIncome, totalExpenses, balance: totalIncome - totalExpenses,
     monthlyBudget, effectiveCategoryBudgets, setMonthlyBudget, setCategoryBudget, addTransaction, updateTransaction, deleteTransaction,
-    shoppingItems, addShoppingItem, updateShoppingItem, deleteShoppingItem, clearChecked, uid: user?.uid ?? null, currency, setCurrency, savingsGoals, addGoal, depositGoal, deleteGoal, createInvite, joinByCode, partnerName,
+    shoppingItems, addShoppingItem, updateShoppingItem, deleteShoppingItem, clearChecked, uid: user?.uid ?? null, currency, setCurrency, savingsGoals, addGoal, depositGoal, deleteGoal, createInvite, joinByCode, partnerName, incomeMonthMode, setIncomeMonthMode,
   }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

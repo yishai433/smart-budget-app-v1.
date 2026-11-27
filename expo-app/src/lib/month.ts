@@ -18,3 +18,6 @@ export const todayISO = (): string => {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
+
+// The budget month a transaction belongs to: its explicit forMonth, else the month of its date.
+export const txMonth = (t: { date?: string; forMonth?: string }): string => t.forMonth || (t.date || '').slice(0, 7)

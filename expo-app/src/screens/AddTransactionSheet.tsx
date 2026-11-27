@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react'
-import { View, Text, TextInput, ScrollView, StyleSheet, ActivityIndicator, Animated, Keyboard, Pressable } from 'react-native'
-import useKeyboardHeight from '../lib/useKeyboardHeight'
-import { X, Trash2 } from 'lucide-react-native'
+import { View, Text, TextInput, ScrollView, StyleSheet, Animated, Keyboard, Pressable, Alert } from 'react-native'
+import { X, Trash2, CalendarDays } from 'lucide-react-native'
 import { useTheme, Theme } from '../theme'
 import { CATEGORIES, Category } from '../categories'
 import { useData } from '../context/DataContext'
 import { displayCurrency } from '../lib/money'
-import { todayISO } from '../lib/month'
+import { todayISO, shiftMonthKey, monthLabel } from '../lib/month'
+import useKeyboardHeight from '../lib/useKeyboardHeight'
 import Touchable from '../components/Touchable'
 import BottomSheet from '../components/BottomSheet'
 import NumPad, { applyKey } from '../components/NumPad'
@@ -24,40 +24,64 @@ const Chip = memo(function Chip({ cat, selected, onPick, c }: { cat: Category; s
   )
 })
 
+const monthName = (key: string) => monthLabel(key).split(' ')[0]
+
 export default function AddTransactionSheet({ visible, onClose, editTx }: { visible: boolean; onClose: () => void; editTx?: Transaction | null }) {
   const c = useTheme()
-  const { addTransaction, updateTransaction, deleteTransaction } = useData()
+  const { addTransaction, updateTransaction, deleteTransaction, incomeMonthMode, setIncomeMonthMode } = useData()
   const [type, setType] = useState<TxType>('expense')
   const [category, setCategory] = useState('food')
   const [amount, setAmount] = useState('')
-  const [desc, setDesc] = useState('')
-  const [busy, setBusy] = useState(false)
+  // Description is uncontrolled: typing doesn't re-render the sheet on every letter.
+  const [descInit, setDescInit] = useState('')
+  const descRef = useRef('')
+  const [forMonth, setForMonth] = useState('')
   const [contentH, setContentH] = useState(0)
   const scrollY = useRef(new Animated.Value(0)).current
   // While typing a description the system keyboard takes the keypad's place.
-  const typing = useKeyboardHeight() > 0
+  const typing = useKeyboardHeight(visible) > 0
+
+  // Income that lands early in a month (e.g. salary on the 10th) can belong to the previous month.
+  const baseDate = editTx?.date || todayISO()
+  const recvKey = baseDate.slice(0, 7)
+  const prevKey = shiftMonthKey(recvKey, -1)
+  const early = Number(baseDate.slice(8, 10)) <= 15
+  const showMonth = type === 'income' && (early || (!!editTx?.forMonth && editTx.forMonth !== recvKey))
 
   useEffect(() => {
     if (!visible) return
-    if (editTx) { setType(editTx.type); setCategory(editTx.category); setAmount(String(editTx.amount)); setDesc(editTx.description || '') }
-    else { setType('expense'); setCategory('food'); setAmount(''); setDesc('') }
-    setBusy(false)
+    if (editTx) {
+      setType(editTx.type); setCategory(editTx.category); setAmount(String(editTx.amount))
+      setDescInit(editTx.description || ''); descRef.current = editTx.description || ''
+      setForMonth(editTx.forMonth || recvKey)
+    } else {
+      setType('expense'); setCategory('food'); setAmount('')
+      setDescInit(''); descRef.current = ''
+      setForMonth(incomeMonthMode === 'previous' ? prevKey : recvKey)
+    }
   }, [visible, editTx])
 
   const pick = useCallback((id: string) => setCategory(id), [])
   const onKey = useCallback((k: string) => setAmount(prev => applyKey(prev, k)), [])
   const n = parseFloat(amount) || 0
-  const canSave = n > 0 && !busy
-  const save = async () => {
+  const canSave = n > 0
+
+  // Saves are optimistic: the sheet closes at once and the list updates from the local
+  // write; the server confirms in the background.
+  const fail = () => Alert.alert('השמירה נכשלה', 'בדקו את החיבור לאינטרנט ונסו שוב.')
+  const save = () => {
     if (!canSave) return
-    setBusy(true)
-    try {
-      if (editTx) await updateTransaction(editTx.id, { type, category, amount: n, description: desc.trim() })
-      else await addTransaction({ type, category, amount: n, description: desc.trim(), date: todayISO() })
-      onClose()
-    } catch { setBusy(false) }
+    Keyboard.dismiss()
+    const description = descRef.current.trim()
+    // Not a split-month income (any more): make sure no stale forMonth is left on the record.
+    const month = showMonth ? { forMonth } : editTx?.forMonth ? { forMonth: recvKey } : {}
+    if (editTx) updateTransaction(editTx.id, { type, category, amount: n, description, ...month }).catch(fail)
+    else addTransaction({ type, category, amount: n, description, date: todayISO(), ...month }).catch(fail)
+    // First time: remember the choice so future salaries are placed automatically.
+    if (showMonth && !editTx && !incomeMonthMode) setIncomeMonthMode(forMonth === prevKey ? 'previous' : 'received').catch(() => {})
+    onClose()
   }
-  const remove = async () => { if (!editTx) return; setBusy(true); try { await deleteTransaction(editTx.id); onClose() } catch { setBusy(false) } }
+  const remove = () => { if (!editTx) return; deleteTransaction(editTx.id).catch(fail); onClose() }
   const cats = CATEGORIES[type]
   const fillers = (3 - (cats.length % 3)) % 3
 
@@ -67,6 +91,7 @@ export default function AddTransactionSheet({ visible, onClose, editTx }: { visi
   const canScroll = contentH > GRID_H + 2
   const thumbH = canScroll ? Math.max(30, (GRID_H / contentH) * TRACK_H) : 0
   const thumbY = scrollY.interpolate({ inputRange: [0, Math.max(1, contentH - GRID_H)], outputRange: [0, TRACK_H - thumbH], extrapolate: 'clamp' })
+  const isPrev = forMonth === prevKey
 
   return (
     <BottomSheet visible={visible} onClose={onClose} avoidKeyboard>
@@ -90,9 +115,23 @@ export default function AddTransactionSheet({ visible, onClose, editTx }: { visi
         })}
       </View>
 
-      <Pressable style={s.amountWrap} onPress={Keyboard.dismiss}>
-        <AmountDisplay value={amount} currency={displayCurrency()} size={32} curSize={18} c={c} caretHeight={30} />
-      </Pressable>
+      <View style={s.amountRow}>
+        <Pressable style={s.amountWrap} onPress={Keyboard.dismiss}>
+          <AmountDisplay value={amount} currency={displayCurrency()} size={32} curSize={18} c={c} caretHeight={30} />
+        </Pressable>
+        {showMonth && (
+          // Tap to switch which month this income counts for. Highlighted until the
+          // household has made its first choice (then it's remembered).
+          <Touchable onPress={() => setForMonth(isPrev ? recvKey : prevKey)} scale={0.94} containerStyle={s.monthPos}
+            style={[s.monthPill, { backgroundColor: incomeMonthMode ? c.bg : c.primaryLight, borderColor: incomeMonthMode ? 'transparent' : c.primary }]}>
+            <CalendarDays size={13} color={c.primary} />
+            <View>
+              <Text style={{ fontSize: 10, color: c.text2, fontWeight: '600', textAlign: 'right' }}>{isPrev ? 'משכורת על' : 'שייך ל'}</Text>
+              <Text style={{ fontSize: 13, color: c.text, fontWeight: '800', textAlign: 'right' }}>{monthName(forMonth)}</Text>
+            </View>
+          </Touchable>
+        )}
+      </View>
 
       <View style={{ position: 'relative' }}>
         <ScrollView style={{ height: GRID_H }} contentContainerStyle={[s.grid, { paddingRight: 10 }]} keyboardShouldPersistTaps="handled"
@@ -109,13 +148,17 @@ export default function AddTransactionSheet({ visible, onClose, editTx }: { visi
         )}
       </View>
 
-      <TextInput style={[s.desc, { backgroundColor: c.bg, color: c.text }]} value={desc} onChangeText={setDesc}
-        placeholder="תיאור (לא חובה)" placeholderTextColor={c.text3} textAlign="right" returnKeyType="done" blurOnSubmit onSubmitEditing={Keyboard.dismiss} />
+      <TextInput key={(editTx?.id || 'new') + '|' + descInit} style={[s.desc, { backgroundColor: c.bg, color: c.text }]} defaultValue={descInit}
+        onChangeText={v => { descRef.current = v }} placeholder="תיאור (לא חובה)" placeholderTextColor={c.text3}
+        textAlign="right" returnKeyType="done" blurOnSubmit onSubmitEditing={Keyboard.dismiss} autoCorrect={false} />
 
-      {!typing && <NumPad onKey={onKey} />}
+      {/* Kept mounted (just collapsed) while typing, so it never has to rebuild mid-animation. */}
+      <View style={typing ? s.collapsed : null} pointerEvents={typing ? 'none' : 'auto'}>
+        <NumPad onKey={onKey} />
+      </View>
 
       <Touchable onPress={save} disabled={!canSave} scale={0.98} style={[s.save, { backgroundColor: c.primary, opacity: canSave ? 1 : 0.4 }]}>
-        {busy ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>{editTx ? 'עדכון' : 'שמירה'}</Text>}
+        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>{editTx ? 'עדכון' : 'שמירה'}</Text>
       </Touchable>
     </BottomSheet>
   )
@@ -127,12 +170,14 @@ const s = StyleSheet.create({
   x: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   seg: { flexDirection: 'row', borderRadius: 999, padding: 4, gap: 4, marginBottom: 2 },
   segBtn: { paddingVertical: 10, borderRadius: 999, alignItems: 'center' },
-  amountWrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 6 },
-  cur: { fontSize: 18, fontWeight: '700' },
-  amount: { fontSize: 32, fontWeight: '800' },
+  amountRow: { position: 'relative', justifyContent: 'center' },
+  amountWrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 6 },
+  monthPos: { position: 'absolute', left: 0, top: 0, bottom: 0, justifyContent: 'center' },
+  monthPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, borderWidth: 1.2 },
   grid: { flexDirection: 'row-reverse', flexWrap: 'wrap', justifyContent: 'space-between', alignContent: 'center', flexGrow: 1 },
   cell: { width: '31%' },
   chip: { height: 54, borderRadius: 14, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   desc: { borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, marginTop: 2, marginBottom: 8 },
+  collapsed: { height: 0, opacity: 0, overflow: 'hidden' },
   save: { borderRadius: 16, paddingVertical: 14, alignItems: 'center', marginTop: 10 },
 })

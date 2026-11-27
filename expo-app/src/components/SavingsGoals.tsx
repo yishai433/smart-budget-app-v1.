@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { View, Text, TextInput, StyleSheet, ActivityIndicator } from 'react-native'
+import { View, Text, TextInput, StyleSheet, ActivityIndicator, Alert } from 'react-native'
 import { Plus, Target, Trash2 } from 'lucide-react-native'
 import { useTheme, radius } from '../theme'
 import { useData } from '../context/DataContext'
@@ -11,6 +11,8 @@ import BottomSheet, { SHEET_MIN_HEIGHT } from './BottomSheet'
 import NumPad, { applyKey } from './NumPad'
 import AmountDisplay from './AmountDisplay'
 import type { SavingsGoal } from '../types'
+
+const failAlert = () => Alert.alert('השמירה נכשלה', 'בדקו את החיבור לאינטרנט ונסו שוב.')
 
 export default function SavingsGoals() {
   const c = useTheme()
@@ -70,7 +72,7 @@ function AddGoal({ visible, onClose }: { visible: boolean; onClose: () => void }
   const [target, setTarget] = useState('')
   const [busy, setBusy] = useState(false)
   const t = parseFloat(target) || 0
-  const save = async () => { if (!name.trim() || !(t > 0)) return; setBusy(true); try { await addGoal(name.trim(), t); setName(''); setTarget(''); onClose() } catch { setBusy(false) } }
+  const save = () => { if (!name.trim() || !(t > 0)) return; addGoal(name.trim(), t).catch(failAlert); setName(''); setTarget(''); onClose() }
   return (
     <BottomSheet visible={visible} onClose={onClose} avoidKeyboard>
       <Text style={{ fontSize: 18, fontWeight: '700', color: c.text, textAlign: 'center', marginBottom: 16 }}>יעד חיסכון חדש</Text>
@@ -90,8 +92,8 @@ function DepositGoal({ goal, onClose }: { goal: SavingsGoal | null; onClose: () 
   const [busy, setBusy] = useState(false)
   const onKey = useCallback((k: string) => setAmount(prev => applyKey(prev, k)), [])
   const n = parseFloat(amount) || 0
-  const doDeposit = async (sign: number) => { if (!goal || !(n > 0)) return; setBusy(true); try { await depositGoal(goal.id, sign * n); setAmount(''); onClose() } catch { setBusy(false) } }
-  const remove = async () => { if (!goal) return; setBusy(true); try { await deleteGoal(goal.id); onClose() } catch { setBusy(false) } }
+  const doDeposit = (sign: number) => { if (!goal || !(n > 0)) return; depositGoal(goal.id, sign * n).catch(failAlert); setAmount(''); onClose() }
+  const remove = () => { if (!goal) return; deleteGoal(goal.id).catch(failAlert); onClose() }
   return (
     <BottomSheet visible={!!goal} onClose={onClose} minHeight={SHEET_MIN_HEIGHT}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>

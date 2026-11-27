@@ -5,7 +5,7 @@ import { useTheme, radius } from '../theme'
 import { useData } from '../context/DataContext'
 import { categoryOf } from '../categories'
 import { money, formatAmount } from '../lib/money'
-import { monthLabel, shiftMonthKey } from '../lib/month'
+import { monthLabel, shiftMonthKey, txMonth } from '../lib/month'
 import Touchable from './Touchable'
 import Bar from './Bar'
 import type { Transaction } from '../types'
@@ -31,7 +31,7 @@ export default function SummaryDetail({ kind, onClose, onEdit }: { kind: DetailK
   const balance = d.balance
 
   const prevKey = shiftMonthKey(d.monthKey, -1)
-  const prevTxs = d.transactions.filter(t => t.date?.startsWith(prevKey))
+  const prevTxs = d.transactions.filter(t => txMonth(t) === prevKey)
   const prevBalance = sum(prevTxs, 'income') - sum(prevTxs, 'expense')
   const hasPrev = prevTxs.length > 0
 

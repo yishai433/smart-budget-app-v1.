@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { View, Text, ScrollView, StyleSheet, Alert, TextInput, ActivityIndicator } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Users, LogOut, Palette, Languages, Coins, UserPlus, LogIn } from 'lucide-react-native'
+import { Users, LogOut, Palette, Languages, Coins, UserPlus, LogIn, CalendarDays } from 'lucide-react-native'
 import { useTheme, radius, Theme } from '../theme'
 import { useAuth } from '../context/AuthContext'
-import { useData } from '../context/DataContext'
+import { useData, IncomeMonthMode } from '../context/DataContext'
 import { useAppearance, AppearancePref } from '../context/AppearanceContext'
 import FadeIn from '../components/FadeIn'
 import Header from '../components/Header'
@@ -132,6 +132,15 @@ export default function SettingsScreen() {
             <SegRow<string> first Icon={Coins} label="מטבע" value={d.currency} onPick={(v) => d.setCurrency(v)} options={[['₪', '₪'], ['$', '$'], ['€', '€'], ['£', '£']]} />
             <SegRow<AppearancePref> Icon={Palette} label="מראה" value={pref} onPick={setPref} options={[['light', 'בהיר'], ['dark', 'כהה'], ['auto', 'אוטומטי']]} />
             <SegRow<string> Icon={Languages} label="שפה" value="he" onPick={() => {}} options={[['he', 'עברית']]} />
+          </Card>
+
+          <SectionTitle>משכורת</SectionTitle>
+          <Card>
+            <SegRow<string> first Icon={CalendarDays} label="הכנסה שנכנסת ב-1 עד 15 לחודש שייכת ל" value={d.incomeMonthMode || ''}
+              onPick={(v) => d.setIncomeMonthMode(v as IncomeMonthMode)} options={[['previous', 'החודש הקודם'], ['received', 'החודש שבו נכנסה']]} />
+            <Text style={{ fontSize: 12, color: c.text2, textAlign: 'right', paddingHorizontal: 14, paddingBottom: 14, lineHeight: 18 }}>
+              למשל משכורת של אוקטובר שנכנסת ב-10 בנובמבר. אפשר תמיד לשנות לתנועה מסוימת בלחיצה על החודש בחלון ההוספה.
+            </Text>
           </Card>
         </FadeIn>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native'
 import { useTheme } from '../theme'
 import { displayCurrency } from '../lib/money'
 import Touchable from './Touchable'
@@ -14,7 +14,7 @@ export default function BudgetModal({ visible, current, monthLabel, onClose, onS
   useEffect(() => { if (visible) { setVal(current ? String(current) : ''); setBusy(false) } }, [visible, current])
   const onKey = useCallback((k: string) => setVal(prev => applyKey(prev, k)), [])
   const n = parseFloat(val) || 0
-  const save = async () => { if (!(n > 0)) return; setBusy(true); try { await onSave(n); onClose() } catch { setBusy(false) } }
+  const save = () => { if (!(n > 0)) return; onSave(n).catch(() => Alert.alert('השמירה נכשלה', 'בדקו את החיבור לאינטרנט ונסו שוב.')); onClose() }
   return (
     <BottomSheet visible={visible} onClose={onClose} minHeight={SHEET_MIN_HEIGHT}>
       <Text style={{ fontSize: 18, fontWeight: '700', color: c.text, textAlign: 'center' }}>תקציב ל{monthLabel}</Text>

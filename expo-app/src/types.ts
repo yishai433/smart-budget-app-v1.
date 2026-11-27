@@ -12,6 +12,7 @@ export interface Transaction {
   createdByName?: string
   createdAt?: { seconds: number } | null
   isRecurring?: boolean
+  forMonth?: string        // 'YYYY-MM' the money belongs to (e.g. salary for last month); defaults to date's month
 }
 
 export interface Household {

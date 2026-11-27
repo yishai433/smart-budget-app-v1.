@@ -7,7 +7,7 @@ import { formatAmount, money } from '../lib/money'
 import { categoryOf } from '../categories'
 import { useData } from '../context/DataContext'
 import { useAuth } from '../context/AuthContext'
-import { shiftMonthKey } from '../lib/month'
+import { shiftMonthKey, txMonth } from '../lib/month'
 import FadeIn from '../components/FadeIn'
 import Header from '../components/Header'
 import MonthSwitcher from '../components/MonthSwitcher'
@@ -48,7 +48,7 @@ export default function ReportsScreen() {
     return keys.map(k => {
       let inc = 0, exp = 0
       d.transactions.forEach(t => {
-        if (!t.date?.startsWith(k)) return
+        if (txMonth(t) !== k) return
         if (t.type === 'income') inc += t.amount || 0; else exp += t.amount || 0
       })
       return { key: k, inc, exp }
