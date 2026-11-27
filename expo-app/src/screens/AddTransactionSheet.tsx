@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react'
-import { View, Text, TextInput, ScrollView, StyleSheet, ActivityIndicator, Animated } from 'react-native'
+import { View, Text, TextInput, ScrollView, StyleSheet, ActivityIndicator, Animated, Keyboard, Pressable } from 'react-native'
+import useKeyboardHeight from '../lib/useKeyboardHeight'
 import { X, Trash2 } from 'lucide-react-native'
 import { useTheme, Theme } from '../theme'
 import { CATEGORIES, Category } from '../categories'
@@ -33,6 +34,8 @@ export default function AddTransactionSheet({ visible, onClose, editTx }: { visi
   const [busy, setBusy] = useState(false)
   const [contentH, setContentH] = useState(0)
   const scrollY = useRef(new Animated.Value(0)).current
+  // While typing a description the system keyboard takes the keypad's place.
+  const typing = useKeyboardHeight() > 0
 
   useEffect(() => {
     if (!visible) return
@@ -58,7 +61,8 @@ export default function AddTransactionSheet({ visible, onClose, editTx }: { visi
   const cats = CATEGORIES[type]
   const fillers = (3 - (cats.length % 3)) % 3
 
-  const GRID_H = 168
+  // Two full rows while the keyboard is up (still scrollable), three otherwise.
+  const GRID_H = typing ? 116 : 168
   const TRACK_H = GRID_H - 8
   const canScroll = contentH > GRID_H + 2
   const thumbH = canScroll ? Math.max(30, (GRID_H / contentH) * TRACK_H) : 0
@@ -86,9 +90,9 @@ export default function AddTransactionSheet({ visible, onClose, editTx }: { visi
         })}
       </View>
 
-      <View style={s.amountWrap}>
+      <Pressable style={s.amountWrap} onPress={Keyboard.dismiss}>
         <AmountDisplay value={amount} currency={displayCurrency()} size={32} curSize={18} c={c} caretHeight={30} />
-      </View>
+      </Pressable>
 
       <View style={{ position: 'relative' }}>
         <ScrollView style={{ height: GRID_H }} contentContainerStyle={[s.grid, { paddingRight: 10 }]} keyboardShouldPersistTaps="handled"
@@ -106,9 +110,9 @@ export default function AddTransactionSheet({ visible, onClose, editTx }: { visi
       </View>
 
       <TextInput style={[s.desc, { backgroundColor: c.bg, color: c.text }]} value={desc} onChangeText={setDesc}
-        placeholder="תיאור (לא חובה)" placeholderTextColor={c.text3} textAlign="right" returnKeyType="done" />
+        placeholder="תיאור (לא חובה)" placeholderTextColor={c.text3} textAlign="right" returnKeyType="done" blurOnSubmit onSubmitEditing={Keyboard.dismiss} />
 
-      <NumPad onKey={onKey} />
+      {!typing && <NumPad onKey={onKey} />}
 
       <Touchable onPress={save} disabled={!canSave} scale={0.98} style={[s.save, { backgroundColor: c.primary, opacity: canSave ? 1 : 0.4 }]}>
         {busy ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>{editTx ? 'עדכון' : 'שמירה'}</Text>}

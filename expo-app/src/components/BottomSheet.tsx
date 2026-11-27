@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, ReactNode } from 'react'
-import { View, Modal, StyleSheet, Pressable, Animated, Easing, Dimensions, KeyboardAvoidingView, Platform } from 'react-native'
+import { View, Modal, StyleSheet, Pressable, Animated, Easing, Dimensions, Platform } from 'react-native'
+import useKeyboardHeight from '../lib/useKeyboardHeight'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '../theme'
 
@@ -16,6 +17,9 @@ export default function BottomSheet({ visible, onClose, children, avoidKeyboard,
   const [mounted, setMounted] = useState(visible)
   const entrance = useRef(new Animated.Value(SCREEN_H)).current
   const backdrop = useRef(new Animated.Value(0)).current
+  const kb = useKeyboardHeight()
+  // iOS: lift the sheet's content above the keyboard (animated in sync with it).
+  const lift = avoidKeyboard && Platform.OS === 'ios' && kb > 0
 
   useEffect(() => {
     if (visible) {
@@ -38,7 +42,7 @@ export default function BottomSheet({ visible, onClose, children, avoidKeyboard,
   if (!mounted) return null
 
   const sheet = (
-    <Animated.View style={[styles.sheet, { backgroundColor: c.card, paddingBottom: insets.bottom + 14, minHeight, transform: [{ translateY: entrance }] }]}>
+    <Animated.View style={[styles.sheet, { backgroundColor: c.card, paddingBottom: lift ? kb + 10 : insets.bottom + 14, minHeight: lift ? undefined : minHeight, maxHeight: SCREEN_H - insets.top - 6, transform: [{ translateY: entrance }] }]}>
       <View style={styles.handle} />
       {children}
     </Animated.View>
@@ -49,9 +53,7 @@ export default function BottomSheet({ visible, onClose, children, avoidKeyboard,
       <View style={{ flex: 1, justifyContent: 'flex-end' }}>
         <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#000', opacity: backdrop.interpolate({ inputRange: [0, 1], outputRange: [0, 0.45] }) }]} />
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        {avoidKeyboard
-          ? <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>{sheet}</KeyboardAvoidingView>
-          : sheet}
+        {sheet}
       </View>
     </Modal>
   )
