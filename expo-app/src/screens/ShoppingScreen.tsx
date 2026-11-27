@@ -1,7 +1,7 @@
-import { useState, useMemo, useCallback, memo, useDeferredValue, useEffect } from 'react'
-import { View, Text, ScrollView, TextInput, StyleSheet, Alert, Keyboard, ActivityIndicator } from 'react-native'
+import { useState, useMemo, useCallback, memo, useDeferredValue, useEffect, useRef } from 'react'
+import { View, Text, ScrollView, TextInput, StyleSheet, Alert, Keyboard, ActivityIndicator, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Check, ScanLine, Plus, ListChecks, Clock, Trash2, ChevronLeft, ShoppingCart, Save, Store, ChevronDown, HelpCircle, X } from 'lucide-react-native'
+import { Check, ScanLine, Plus, ListChecks, Clock, Trash2, ChevronLeft, ShoppingCart, Save, Store, HelpCircle, X } from 'lucide-react-native'
 import { useTheme, radius, Theme } from '../theme'
 import { useData } from '../context/DataContext'
 import { useAuth } from '../context/AuthContext'
@@ -139,9 +139,17 @@ export default function ShoppingScreen() {
     return set
   }, [d.shoppingItems, d.lastTrip, d.savedBaskets, d.transactions])
   const hits = useMemo(() => (q.trim().length >= 2 && idx ? searchProducts(idx, q, store, { limit: 40, prefer }) : []), [q, idx, store, prefer])
-  const [showAll, setShowAll] = useState(false)
-  useEffect(() => { setShowAll(false) }, [q])
-  const shownHits = showAll ? hits : hits.slice(0, 5)
+  // The results get their own scrolling box that fits between the search line and the
+  // keyboard (or the bottom of the screen), so the page itself never has to move.
+  const { height: winH } = useWindowDimensions()
+  const hitsWrap = useRef<View>(null)
+  const hitsScroll = useRef<ScrollView>(null)
+  const [hitsTop, setHitsTop] = useState(0)
+  const measureHits = () => hitsWrap.current?.measureInWindow((_x, y) => { if (y > 0) setHitsTop(y) })
+  const hasHits = hits.length > 0
+  useEffect(() => { if (hasHits) { measureHits(); const t = setTimeout(() => hitsScroll.current?.flashScrollIndicators(), 350); return () => clearTimeout(t) } }, [hasHits, kb])
+  useEffect(() => { hitsScroll.current?.scrollTo({ y: 0, animated: false }) }, [q])
+  const hitsMax = Math.max(180, winH - hitsTop - 34 - (kb ? kb + 14 : insets.bottom + 90))
 
   const items = d.shoppingItems
   const toBuy = items.filter(i => !i.checked)
@@ -226,13 +234,22 @@ export default function ShoppingScreen() {
           <View style={[s.addBox, { backgroundColor: c.card, borderColor: c.border }]}>
             <TextInput style={{ flex: 1, height: 52, color: c.text, fontSize: 16 }} placeholder="הוספת מוצר, למשל: חלב" placeholderTextColor={c.text3}
               value={text} onChangeText={setText} onSubmitEditing={addTyped} returnKeyType="done" blurOnSubmit={false} textAlign="right" />
+            {text ? (
+              <Touchable onPress={() => setText('')} scale={0.85} style={s.clearBtn}>
+                <View style={[s.clearDot, { backgroundColor: c.text3 }]}><X size={13} color="#fff" strokeWidth={3} /></View>
+              </Touchable>
+            ) : null}
             <Touchable onPress={() => setScanning(true)} scale={0.88} style={s.scanBtn}><ScanLine size={21} color={c.text2} /></Touchable>
             <Touchable onPress={addTyped} scale={0.88} style={[s.plus, { backgroundColor: c.primary, opacity: text.trim() ? 1 : 0.35 }]}><Plus size={20} color="#fff" strokeWidth={2.5} /></Touchable>
           </View>
-          {hits.length > 0 && (
-            <View style={[s.card, { backgroundColor: c.card, borderColor: c.border, marginTop: 8 }]}>
-              <Text style={{ fontSize: 11.5, color: c.text2, fontWeight: '700', textAlign: 'right', paddingHorizontal: 14, paddingTop: 10 }}>בחרו מוצר · המחיר ב{storeName}</Text>
-              {shownHits.map((h, i) => (
+          {hasHits && (
+            <View ref={hitsWrap} onLayout={measureHits} style={[s.card, { backgroundColor: c.card, borderColor: c.border, marginTop: 8 }]}>
+              <Text style={{ fontSize: 11.5, color: c.text2, fontWeight: '700', textAlign: 'right', paddingHorizontal: 14, paddingTop: 10, paddingBottom: 4 }}>
+                {hits.length} מוצרים · המחיר ב{storeName} · גוללים כאן
+              </Text>
+              <ScrollView ref={hitsScroll} style={{ maxHeight: hitsMax }} nestedScrollEnabled persistentScrollbar indicatorStyle="black"
+                keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator>
+              {hits.map((h, i) => (
                 <Touchable key={h.code} onPress={() => addHit(h)} scale={0.98} style={[s.hit, i ? { borderTopColor: c.sep, borderTopWidth: StyleSheet.hairlineWidth } : null]}>
                   <Plus size={15} color={c.primary} strokeWidth={2.6} />
                   <View style={{ flex: 1 }}>
@@ -246,12 +263,7 @@ export default function ShoppingScreen() {
                     : <Text style={{ fontSize: 12, color: c.text3 }}>לא בסניף</Text>}
                 </Touchable>
               ))}
-              {!showAll && hits.length > 5 && (
-                <Touchable onPress={() => setShowAll(true)} scale={0.98} style={[s.more, { borderTopColor: c.sep }]}>
-                  <Text style={{ fontSize: 13.5, fontWeight: '700', color: c.primary }}>עוד {hits.length - 5} מוצרים</Text>
-                  <ChevronDown size={15} color={c.primary} />
-                </Touchable>
-              )}
+              </ScrollView>
             </View>
           )}
           {text.trim().length >= 2 && store && status === 'loading' ? <ActivityIndicator color={c.primary} style={{ marginTop: 10 }} /> : null}
@@ -372,6 +384,8 @@ const s = StyleSheet.create({
   more: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 12, borderTopWidth: StyleSheet.hairlineWidth },
   hit: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12 },
   addBox: { flexDirection: 'row-reverse', alignItems: 'center', borderWidth: 1, borderRadius: 16, paddingRight: 14, paddingLeft: 6, gap: 4, marginTop: 14 },
+  clearBtn: { width: 32, height: 40, alignItems: 'center', justifyContent: 'center' },
+  clearDot: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   scanBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   plus: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   label: { fontSize: 12.5, fontWeight: '700', textAlign: 'right', marginTop: 16, marginBottom: 8, paddingHorizontal: 4 },

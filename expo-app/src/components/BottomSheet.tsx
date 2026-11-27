@@ -50,7 +50,9 @@ export default function BottomSheet({ visible, onClose, children, avoidKeyboard,
   if (!mounted) return null
 
   const sheet = (
-    <Animated.View style={[styles.sheet, { backgroundColor: c.card, paddingBottom: lift ? kb + 10 : insets.bottom + 14, minHeight, maxHeight: SCREEN_H - insets.top - 6, transform: [{ translateY: entrance }] }]}>
+    <Animated.View style={[styles.sheet, { backgroundColor: c.card, paddingBottom: lift ? kb + 10 : insets.bottom + 14,
+      // grow by the keyboard's height, so the content keeps its room above it (capped by maxHeight)
+      minHeight: minHeight != null ? minHeight + (lift ? kb : 0) : undefined, maxHeight: SCREEN_H - insets.top - 6, transform: [{ translateY: entrance }] }]}>
       <View style={styles.handle} />
       {content ? children : <View style={{ height: minHeight ? minHeight - 40 : 120 }} />}
     </Animated.View>
