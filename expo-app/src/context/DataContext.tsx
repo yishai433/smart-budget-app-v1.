@@ -4,7 +4,8 @@ import {
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from './AuthContext'
-import { Household, Transaction, ShoppingItem, SavingsGoal } from '../types'
+import { Household, Transaction, ShoppingItem, SavingsGoal, LaterItem, SavedBasket, BasketItem } from '../types'
+import { guessShoppingCategory } from '../lib/shopCategories'
 import { currentMonthKey, monthKeyOf, txMonth } from '../lib/month'
 import { createInviteCode, redeemInviteCode, RedeemResult } from '../lib/invites'
 
@@ -47,6 +48,17 @@ interface DataValue {
   joinByCode: (code: string) => Promise<RedeemResult>
   partnerName: string | null
   incomeMonthMode: IncomeMonthMode | null
+  laterItems: LaterItem[]
+  addLaterItem: (name: string) => Promise<void>
+  deleteLaterItem: (id: string) => Promise<void>
+  moveLaterToList: (items: LaterItem[]) => Promise<void>
+  savedBaskets: SavedBasket[]
+  lastTrip: BasketItem[]
+  saveBasket: (name: string, items: BasketItem[], id?: string) => Promise<void>
+  deleteBasket: (id: string) => Promise<void>
+  loadBasket: (items: BasketItem[]) => Promise<number>
+  clearShoppingList: () => Promise<void>
+  checkoutShopping: (total: number, opts: { addExpense: boolean; supermarket: string }) => Promise<void>
   setIncomeMonthMode: (m: IncomeMonthMode) => Promise<void>
 }
 
@@ -63,6 +75,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [shoppingItems, setShoppingItems] = useState<ShoppingItem[]>([])
   const [partnerName, setPartnerName] = useState<string | null>(null)
+  const [laterItems, setLaterItems] = useState<LaterItem[]>([])
   const [ready, setReady] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState(currentMonthKey())
   const [resolveBump, setResolveBump] = useState(0)
@@ -141,6 +154,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }, () => {})
   }, [activeHouseholdId])
 
+  // Live "later" list: things to buy some day, kept apart from the active list.
+  useEffect(() => {
+    if (!activeHouseholdId) return
+    const q = query(collection(db, 'laterListItems'), where('householdId', '==', activeHouseholdId))
+    return onSnapshot(q, (snap) => {
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() })) as LaterItem[]
+      items.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0))
+      setLaterItems(items)
+    }, () => {})
+  }, [activeHouseholdId])
+
   const addShoppingItem: DataValue['addShoppingItem'] = async (data) => {
     if (!activeHouseholdId) return
     const { checked, ...rest } = data
@@ -148,6 +172,65 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }
   const updateShoppingItem: DataValue['updateShoppingItem'] = async (id, data) => { await updateDoc(doc(db, 'shoppingItems', id), data) }
   const deleteShoppingItem: DataValue['deleteShoppingItem'] = async (id) => { await deleteDoc(doc(db, 'shoppingItems', id)) }
+  const addLaterItem: DataValue['addLaterItem'] = async (name) => {
+    const n = name.trim(); if (!activeHouseholdId || !n) return
+    await addDoc(collection(db, 'laterListItems'), { name: n, category: guessShoppingCategory(n), householdId: activeHouseholdId, createdAt: serverTimestamp() })
+  }
+  const deleteLaterItem: DataValue['deleteLaterItem'] = async (id) => { await deleteDoc(doc(db, 'laterListItems', id)) }
+  const moveLaterToList: DataValue['moveLaterToList'] = async (items) => {
+    if (!activeHouseholdId) return
+    await Promise.all(items.map(async it => {
+      await addDoc(collection(db, 'shoppingItems'), { name: it.name, category: it.category || guessShoppingCategory(it.name), quantity: 1, estimatedPrice: 0, otherLabel: '', householdId: activeHouseholdId, checked: false, createdAt: serverTimestamp() })
+      await deleteDoc(doc(db, 'laterListItems', it.id))
+    }))
+  }
+
+  const savedBaskets: SavedBasket[] = Object.entries(household?.shoppingBaskets || {})
+    .map(([id, b]) => ({ id, ...b })).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+  const lastTrip: BasketItem[] = household?.shoppingTemplate || []
+  const clean = (items: BasketItem[]): BasketItem[] => items.map(({ name, category, quantity, estimatedPrice }) =>
+    ({ name, category: category || guessShoppingCategory(name), quantity: quantity || 1, estimatedPrice: estimatedPrice || 0 }))
+  const saveBasket: DataValue['saveBasket'] = async (name, items, id) => {
+    if (!activeHouseholdId) return
+    const key = id || Math.random().toString(36).slice(2, 10)
+    const b = { name: name.trim() || 'סל', items: clean(items), updatedAt: Date.now() }
+    try { await updateDoc(doc(db, 'households', activeHouseholdId), { [`shoppingBaskets.${key}`]: b }) }
+    catch { await setDoc(doc(db, 'households', activeHouseholdId), { shoppingBaskets: { [key]: b } }, { merge: true }) }
+  }
+  const deleteBasket: DataValue['deleteBasket'] = async (id) => {
+    if (!activeHouseholdId) return
+    await updateDoc(doc(db, 'households', activeHouseholdId), { [`shoppingBaskets.${id}`]: deleteField() })
+  }
+  // Adds a basket's items to the list as "to buy", skipping names already on the list.
+  const loadBasket: DataValue['loadBasket'] = async (items) => {
+    if (!activeHouseholdId) return 0
+    const have = new Set(shoppingItems.map(i => i.name.trim()))
+    const add = clean(items).filter(i => !have.has(i.name.trim()))
+    await Promise.all(add.map(i => addDoc(collection(db, 'shoppingItems'), { ...i, otherLabel: '', householdId: activeHouseholdId, checked: false, createdAt: serverTimestamp() })))
+    return add.length
+  }
+  const clearShoppingList: DataValue['clearShoppingList'] = async () => {
+    await Promise.all(shoppingItems.map(i => deleteDoc(doc(db, 'shoppingItems', i.id))))
+  }
+  // Finish a trip: remember the list (and prices) for next time, optionally record the
+  // expense with the items, then empty the list. Same data shape as the website.
+  const checkoutShopping: DataValue['checkoutShopping'] = async (total, { addExpense, supermarket }) => {
+    if (!activeHouseholdId) return
+    const template = clean(shoppingItems).map(i => ({ ...i, otherLabel: '' }))
+    const jobs: Promise<unknown>[] = [updateDoc(doc(db, 'households', activeHouseholdId), { shoppingTemplate: template })]
+    if (addExpense && total > 0 && user) {
+      const d = new Date()
+      const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      jobs.push(addDoc(collection(db, 'transactions'), {
+        type: 'expense', category: 'food', amount: Math.round(total * 100) / 100, description: supermarket.trim() || 'קניות בסופר', date,
+        isRecurring: false, isShoppingTrip: true, items: shoppingItems.filter(i => i.checked).length ? clean(shoppingItems.filter(i => i.checked)) : template,
+        householdId: activeHouseholdId, createdBy: user.uid, createdByName: (user.displayName || '').split(' ')[0], createdAt: serverTimestamp(),
+      }))
+    }
+    jobs.push(...shoppingItems.map(i => deleteDoc(doc(db, 'shoppingItems', i.id))))
+    await Promise.all(jobs)
+  }
+
   const clearChecked: DataValue['clearChecked'] = async () => { await Promise.all(shoppingItems.filter(i => i.checked).map(i => deleteDoc(doc(db, 'shoppingItems', i.id)))) }
 
   const monthKey = selectedMonth
@@ -246,6 +329,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     monthTransactions, totalIncome, totalExpenses, balance: totalIncome - totalExpenses,
     monthlyBudget, effectiveCategoryBudgets, setMonthlyBudget, setCategoryBudget, addTransaction, updateTransaction, deleteTransaction,
     shoppingItems, addShoppingItem, updateShoppingItem, deleteShoppingItem, clearChecked, uid: user?.uid ?? null, currency, setCurrency, savingsGoals, addGoal, depositGoal, deleteGoal, createInvite, joinByCode, partnerName, incomeMonthMode, setIncomeMonthMode,
+    laterItems, addLaterItem, deleteLaterItem, moveLaterToList, savedBaskets, lastTrip, saveBasket, deleteBasket, loadBasket, clearShoppingList, checkoutShopping,
   }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

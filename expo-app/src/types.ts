@@ -12,6 +12,8 @@ export interface Transaction {
   createdByName?: string
   createdAt?: { seconds: number } | null
   isRecurring?: boolean
+  isShoppingTrip?: boolean
+  items?: BasketItem[]
   forMonth?: string        // 'YYYY-MM' the money belongs to (e.g. salary for last month); defaults to date's month
 }
 
@@ -27,7 +29,13 @@ export interface Household {
   priceStores?: string[]
   splitEnabled?: boolean
   settings?: Record<string, unknown>
+  shoppingTemplate?: BasketItem[]
+  shoppingBaskets?: Record<string, { name: string; items: BasketItem[]; updatedAt?: number }>
 }
+
+export interface BasketItem { name: string; category?: string; quantity?: number; estimatedPrice?: number; otherLabel?: string }
+export interface SavedBasket { id: string; name: string; items: BasketItem[]; updatedAt?: number }
+export interface LaterItem { id: string; householdId: string; name: string; category?: string; createdAt?: { seconds: number } | null }
 
 export interface ShoppingItem {
   id: string
