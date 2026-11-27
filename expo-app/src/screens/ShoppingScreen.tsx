@@ -1,7 +1,7 @@
-import { useState, useMemo, useCallback, memo } from 'react'
-import { View, Text, ScrollView, TextInput, StyleSheet, Alert, Keyboard } from 'react-native'
+import { useState, useMemo, useCallback, memo, useDeferredValue, useEffect } from 'react'
+import { View, Text, ScrollView, TextInput, StyleSheet, Alert, Keyboard, ActivityIndicator } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Check, ScanLine, Plus, ListChecks, Clock, Trash2, ChevronLeft, ShoppingCart, Save } from 'lucide-react-native'
+import { Check, ScanLine, Plus, ListChecks, Clock, Trash2, ChevronLeft, ShoppingCart, Save, Store, ChevronDown } from 'lucide-react-native'
 import { useTheme, radius, Theme } from '../theme'
 import { useData } from '../context/DataContext'
 import { useAuth } from '../context/AuthContext'
@@ -16,17 +16,19 @@ import ItemEditSheet from '../components/shopping/ItemEditSheet'
 import LaterSheet from '../components/shopping/LaterSheet'
 import BasketsSheet from '../components/shopping/BasketsSheet'
 import CheckoutSheet from '../components/shopping/CheckoutSheet'
+import StorePicker from '../components/shopping/StorePicker'
+import { usePriceIndex, searchProducts, autoMatch, priceAt, refreshPriceIndex, ProductHit } from '../lib/priceIndex'
+import { storeLabel } from '../lib/stores'
 import type { ShoppingItem } from '../types'
 
-const lineTotal = (i: ShoppingItem) => (i.estimatedPrice || 0) * (i.quantity || 1)
 const fail = () => Alert.alert('הפעולה נכשלה', 'בדקו את החיבור לאינטרנט ונסו שוב.')
 
 // One list row. Memoized so ticking one item doesn't re-render the whole list.
-const ItemRow = memo(function ItemRow({ item, inCart, first, c, onToggle, onOpen }: {
-  item: ShoppingItem; inCart: boolean; first: boolean; c: Theme; onToggle: (i: ShoppingItem) => void; onOpen: (i: ShoppingItem) => void
+const ItemRow = memo(function ItemRow({ item, unit, inCart, first, c, onToggle, onOpen }: {
+  item: ShoppingItem; unit: number; inCart: boolean; first: boolean; c: Theme; onToggle: (i: ShoppingItem) => void; onOpen: (i: ShoppingItem) => void
 }) {
-  const t = lineTotal(item)
   const q = item.quantity || 1
+  const t = unit * q
   return (
     <View style={[s.row, first ? null : { borderTopColor: c.sep, borderTopWidth: StyleSheet.hairlineWidth }]}>
       <Touchable onPress={() => onToggle(item)} scale={0.85} style={s.checkHit}>
@@ -39,8 +41,13 @@ const ItemRow = memo(function ItemRow({ item, inCart, first, c, onToggle, onOpen
           <Text numberOfLines={1} style={{ fontSize: 16, fontWeight: '500', textAlign: 'right', color: inCart ? c.text3 : c.text, textDecorationLine: inCart ? 'line-through' : 'none' }}>
             {item.name}{q > 1 ? <Text style={{ color: c.text2, fontWeight: '700' }}>{`  ×${q}`}</Text> : null}
           </Text>
+          {item.matchedName && item.matchedName !== item.name && !item.priceManual ? (
+            <Text numberOfLines={1} style={{ fontSize: 11.5, color: c.text3, textAlign: 'right', marginTop: 2 }}>{item.matchedName}</Text>
+          ) : null}
         </View>
-        {t > 0 ? <Text style={{ fontSize: 14.5, fontWeight: '700', color: inCart ? c.text3 : c.text }}>{formatAmount(t)}</Text> : null}
+        {t > 0
+          ? <Text style={{ fontSize: 14.5, fontWeight: '700', color: inCart ? c.text3 : c.text }}>{formatAmount(t)}</Text>
+          : <Text style={{ fontSize: 12, color: c.text3 }}>אין מחיר</Text>}
       </Touchable>
     </View>
   )
@@ -85,6 +92,32 @@ export default function ShoppingScreen() {
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const names = [user?.displayName || user?.email?.split('@')[0] || 'אני', d.partnerName || ''].filter(Boolean)
 
+  const [storeOpen, setStoreOpen] = useState(false)
+  const { idx, status } = usePriceIndex(d.activeHouseholdId)
+  const store = d.activeStore
+  // A newly picked branch is downloaded by the server in about a minute: check again then.
+  const storesKey = d.priceStores.join(',')
+  useEffect(() => {
+    if (!storesKey) return
+    refreshPriceIndex(d.activeHouseholdId)
+    const t = setTimeout(() => refreshPriceIndex(d.activeHouseholdId), 75000)
+    return () => clearTimeout(t)
+  }, [storesKey])
+  const storeName = storeLabel(store, idx?.labels)
+
+  // The price per unit we show: the user's own price if they typed one, otherwise today's
+  // price at the chosen branch, otherwise whatever was saved with the item.
+  const unitPrice = useCallback((i: ShoppingItem) => {
+    if (i.priceManual) return i.estimatedPrice || 0
+    if (i.code && idx) return priceAt(idx, i.code, store) ?? 0
+    return i.estimatedPrice || 0
+  }, [idx, store])
+  const lineTotal = (i: ShoppingItem) => unitPrice(i) * (i.quantity || 1)
+
+  // Live product search at the chosen branch while typing.
+  const q = useDeferredValue(text)
+  const hits = useMemo(() => (q.trim().length >= 2 && idx ? searchProducts(idx, q, store, 6) : []), [q, idx, store])
+
   const items = d.shoppingItems
   const toBuy = items.filter(i => !i.checked)
   const inCart = items.filter(i => i.checked)
@@ -98,18 +131,19 @@ export default function ShoppingScreen() {
     return SHOP_CATS.filter(sc => by[sc.id]).map(sc => ({ cat: sc, items: by[sc.id] }))
   }, [items])
 
-  // "Bought last time" suggestions not on the list now.
-  const suggestions = useMemo(() => {
-    const have = new Set(items.map(i => i.name.trim()))
-    const out: typeof d.lastTrip = []
-    ;[...d.lastTrip, ...d.savedBaskets.flatMap(b => b.items)].forEach(p => { if (!have.has(p.name.trim()) && !out.some(o => o.name === p.name)) out.push(p) })
-    return out.slice(0, 10)
-  }, [items, d.lastTrip, d.savedBaskets])
-
+  const addHit = (h: ProductHit) => {
+    setText('')
+    d.addShoppingItem({ name: h.name, code: h.code, category: guessShoppingCategory(h.name), quantity: 1, estimatedPrice: h.price ?? 0, priceManual: false, checked: false }).catch(fail)
+  }
+  // Typed a plain word: keep the word, and attach the closest product's price at this branch.
   const addTyped = () => {
     const n = text.trim(); if (!n) return
     setText('')
-    d.addShoppingItem({ name: n, category: guessShoppingCategory(n), quantity: 1, estimatedPrice: 0, checked: false }).catch(fail)
+    const m = idx && store ? autoMatch(idx, n, store) : null
+    d.addShoppingItem({
+      name: n, category: guessShoppingCategory(n), quantity: 1, estimatedPrice: m?.price ?? 0, priceManual: false, checked: false,
+      ...(m ? { code: m.code, matchedName: m.name } : {}),
+    }).catch(fail)
   }
   const onToggle = useCallback((i: ShoppingItem) => { d.updateShoppingItem(i.id, { checked: !i.checked }).catch(fail) }, [d.updateShoppingItem])
   const onOpen = useCallback((i: ShoppingItem) => { Keyboard.dismiss(); setEditing(i) }, [])
@@ -131,6 +165,31 @@ export default function ShoppingScreen() {
           </Text>
         </FadeIn>
 
+        {/* Where we shop: prices follow this branch */}
+        <FadeIn delay={30}>
+          <Touchable onPress={() => setStoreOpen(true)} scale={0.98} style={[s.storeBar, { backgroundColor: c.card, borderColor: c.border }]}>
+            <View style={[s.storeIcon, { backgroundColor: c.primaryLight }]}><Store size={18} color={c.primary} /></View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 11.5, color: c.text2, fontWeight: '600', textAlign: 'right' }}>{store ? 'קונים ב' : 'מחירים אוטומטיים'}</Text>
+              <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: '800', color: c.text, textAlign: 'right' }}>{store ? storeName : 'בחרו את הסופר שלכם'}</Text>
+              {store ? (
+                <Text style={{ fontSize: 11.5, color: status === 'ready' ? c.success : c.text2, textAlign: 'right', marginTop: 1 }}>
+                  {status === 'loading' ? 'טוען מחירים…' : status === 'ready' ? `מחירים עדכניים${idx?.updatedAt ? ` · ${new Date(idx.updatedAt).toLocaleDateString('he-IL')}` : ''}` : 'המחירים נטענים בשרת'}
+                </Text>
+              ) : null}
+            </View>
+            {store && status !== 'ready' && status !== 'loading' ? (
+              <Touchable onPress={() => refreshPriceIndex(d.activeHouseholdId)} scale={0.9} style={[s.smallBtn, { backgroundColor: c.bg }]}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: c.primary }}>רענון</Text>
+              </Touchable>
+            ) : null}
+            <View style={[s.smallBtn, { backgroundColor: c.bg, flexDirection: 'row-reverse', gap: 2 }]}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: c.primary }}>{store ? 'החלפה' : 'בחירה'}</Text>
+              <ChevronDown size={14} color={c.primary} />
+            </View>
+          </Touchable>
+        </FadeIn>
+
         {/* Add a product */}
         <FadeIn delay={50}>
           <View style={[s.addBox, { backgroundColor: c.card, borderColor: c.border }]}>
@@ -139,24 +198,22 @@ export default function ShoppingScreen() {
             <Touchable onPress={() => setScanning(true)} scale={0.88} style={s.scanBtn}><ScanLine size={21} color={c.text2} /></Touchable>
             <Touchable onPress={addTyped} scale={0.88} style={[s.plus, { backgroundColor: c.primary, opacity: text.trim() ? 1 : 0.35 }]}><Plus size={20} color="#fff" strokeWidth={2.5} /></Touchable>
           </View>
-        </FadeIn>
-
-        {/* Bought last time */}
-        {suggestions.length > 0 && (
-          <FadeIn delay={90}>
-            <Text style={[s.label, { color: c.text2 }]}>קניתם בפעם הקודמת · לחצו להוספה</Text>
-            <View style={s.suggWrap}>
-              {suggestions.map(p => (
-                <Touchable key={p.name} scale={0.93} onPress={() => d.loadBasket([p]).catch(fail)}>
-                  <View style={[s.sugg, { backgroundColor: c.card, borderColor: c.border }]}>
-                    <Plus size={13} color={c.primary} strokeWidth={2.6} />
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: c.text }}>{p.name}</Text>
-                  </View>
+          {hits.length > 0 && (
+            <View style={[s.card, { backgroundColor: c.card, borderColor: c.border, marginTop: 8 }]}>
+              <Text style={{ fontSize: 11.5, color: c.text2, fontWeight: '700', textAlign: 'right', paddingHorizontal: 14, paddingTop: 10 }}>בחרו מוצר · המחיר ב{storeName}</Text>
+              {hits.map((h, i) => (
+                <Touchable key={h.code} onPress={() => addHit(h)} scale={0.98} style={[s.hit, i ? { borderTopColor: c.sep, borderTopWidth: StyleSheet.hairlineWidth } : null]}>
+                  <Plus size={15} color={c.primary} strokeWidth={2.6} />
+                  <Text numberOfLines={1} style={{ flex: 1, fontSize: 14.5, color: c.text, textAlign: 'right' }}>{h.name}</Text>
+                  {h.price != null
+                    ? <Text style={{ fontSize: 14.5, fontWeight: '800', color: c.text }}>{formatAmount(h.price)}</Text>
+                    : <Text style={{ fontSize: 12, color: c.text3 }}>לא בסניף</Text>}
                 </Touchable>
               ))}
             </View>
-          </FadeIn>
-        )}
+          )}
+          {text.trim().length >= 2 && store && status === 'loading' ? <ActivityIndicator color={c.primary} style={{ marginTop: 10 }} /> : null}
+        </FadeIn>
 
         {/* First use: explain how it works */}
         {empty && (
@@ -166,7 +223,7 @@ export default function ShoppingScreen() {
                 <View style={[s.emptyIcon, { backgroundColor: c.primaryLight }]}><ShoppingCart size={28} color={c.primary} /></View>
                 <Text style={{ fontSize: 17, fontWeight: '800', color: c.text, marginTop: 10 }}>איך זה עובד?</Text>
               </View>
-              <Step c={c} n={1} title="מוסיפים מוצרים" sub="כותבים בשורה למעלה או סורקים ברקוד. המוצרים מסתדרים לבד לפי מחלקות בסופר." />
+              <Step c={c} n={1} title="מוסיפים מוצרים" sub="כותבים בשורה למעלה (למשל: חלב) ובוחרים מהרשימה. המחיר בסניף שלכם נכנס לבד." />
               <Step c={c} n={2} title="בסופר מסמנים ✓" sub="כל מוצר שנכנס לעגלה מסמנים בעיגול שלידו." />
               <Step c={c} n={3} title="לוחצים &quot;סיימתי קנייה&quot;" sub="הסכום נרשם אוטומטית בהוצאות, והרשימה נשמרת לפעם הבאה." />
               <Touchable onPress={() => setBasketsOpen(true)} scale={0.97} style={[s.primaryBtn, { backgroundColor: c.primary }]}>
@@ -187,7 +244,7 @@ export default function ShoppingScreen() {
               <Text style={{ fontSize: 13.5, fontWeight: '800', color: c.text }}>{cat.label}</Text>
             </View>
             <View style={[s.card, { backgroundColor: c.card, borderColor: c.border }]}>
-              {gi.map((it, i) => <ItemRow key={it.id} item={it} inCart={false} first={i === 0} c={c} onToggle={onToggle} onOpen={onOpen} />)}
+              {gi.map((it, i) => <ItemRow key={it.id} item={it} unit={unitPrice(it)} inCart={false} first={i === 0} c={c} onToggle={onToggle} onOpen={onOpen} />)}
             </View>
           </View>
         ))}
@@ -200,7 +257,7 @@ export default function ShoppingScreen() {
               <Text style={{ fontSize: 13.5, fontWeight: '800', color: c.text2 }}>כבר בעגלה ({inCart.length})</Text>
             </View>
             <View style={[s.card, { backgroundColor: c.card, borderColor: c.border }]}>
-              {inCart.map((it, i) => <ItemRow key={it.id} item={it} inCart first={i === 0} c={c} onToggle={onToggle} onOpen={onOpen} />)}
+              {inCart.map((it, i) => <ItemRow key={it.id} item={it} unit={unitPrice(it)} inCart first={i === 0} c={c} onToggle={onToggle} onOpen={onOpen} />)}
             </View>
           </View>
         )}
@@ -229,16 +286,21 @@ export default function ShoppingScreen() {
       )}
 
       <BarcodeScanner visible={scanning} onClose={() => setScanning(false)} />
-      <ItemEditSheet item={editing} onClose={() => setEditing(null)} />
+      <ItemEditSheet item={editing} branchPrice={editing?.code && idx ? priceAt(idx, editing.code, store) : null} storeName={storeName} onClose={() => setEditing(null)} />
+      <StorePicker visible={storeOpen} labels={idx?.labels} onClose={() => setStoreOpen(false)} />
       <LaterSheet visible={laterOpen} onClose={() => setLaterOpen(false)} />
       <BasketsSheet visible={basketsOpen} onClose={() => setBasketsOpen(false)} onLoaded={() => {}} />
-      <CheckoutSheet visible={checkoutOpen} total={cartTotal} count={inCart.length} onClose={() => setCheckoutOpen(false)} onDone={() => {}} />
+      <CheckoutSheet visible={checkoutOpen} total={cartTotal} count={inCart.length} defaultStore={storeName} priceOf={unitPrice} onClose={() => setCheckoutOpen(false)} onDone={() => {}} />
     </View>
   )
 }
 
 const s = StyleSheet.create({
-  addBox: { flexDirection: 'row-reverse', alignItems: 'center', borderWidth: 1, borderRadius: 16, paddingRight: 14, paddingLeft: 6, gap: 4, marginTop: 16 },
+  storeBar: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 16, padding: 12, marginTop: 14 },
+  storeIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  smallBtn: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, alignItems: 'center' },
+  hit: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12 },
+  addBox: { flexDirection: 'row-reverse', alignItems: 'center', borderWidth: 1, borderRadius: 16, paddingRight: 14, paddingLeft: 6, gap: 4, marginTop: 10 },
   scanBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   plus: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   label: { fontSize: 12.5, fontWeight: '700', textAlign: 'right', marginTop: 16, marginBottom: 8, paddingHorizontal: 4 },

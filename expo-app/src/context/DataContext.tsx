@@ -58,7 +58,10 @@ interface DataValue {
   deleteBasket: (id: string) => Promise<void>
   loadBasket: (items: BasketItem[]) => Promise<number>
   clearShoppingList: () => Promise<void>
-  checkoutShopping: (total: number, opts: { addExpense: boolean; supermarket: string }) => Promise<void>
+  checkoutShopping: (total: number, opts: { addExpense: boolean; supermarket: string; priceOf?: (i: ShoppingItem) => number }) => Promise<void>
+  priceStores: string[]
+  activeStore: string
+  setActiveStore: (key: string) => Promise<void>
   setIncomeMonthMode: (m: IncomeMonthMode) => Promise<void>
 }
 
@@ -188,8 +191,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const savedBaskets: SavedBasket[] = Object.entries(household?.shoppingBaskets || {})
     .map(([id, b]) => ({ id, ...b })).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
   const lastTrip: BasketItem[] = household?.shoppingTemplate || []
-  const clean = (items: BasketItem[]): BasketItem[] => items.map(({ name, category, quantity, estimatedPrice }) =>
-    ({ name, category: category || guessShoppingCategory(name), quantity: quantity || 1, estimatedPrice: estimatedPrice || 0 }))
+  const clean = (items: BasketItem[]): BasketItem[] => items.map(({ name, category, quantity, estimatedPrice, code }) =>
+    ({ name, category: category || guessShoppingCategory(name), quantity: quantity || 1, estimatedPrice: estimatedPrice || 0, ...(code ? { code } : {}) }))
   const saveBasket: DataValue['saveBasket'] = async (name, items, id) => {
     if (!activeHouseholdId) return
     const key = id || Math.random().toString(36).slice(2, 10)
@@ -214,21 +217,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }
   // Finish a trip: remember the list (and prices) for next time, optionally record the
   // expense with the items, then empty the list. Same data shape as the website.
-  const checkoutShopping: DataValue['checkoutShopping'] = async (total, { addExpense, supermarket }) => {
+  const checkoutShopping: DataValue['checkoutShopping'] = async (total, { addExpense, supermarket, priceOf }) => {
     if (!activeHouseholdId) return
-    const template = clean(shoppingItems).map(i => ({ ...i, otherLabel: '' }))
+    const priced = priceOf ? shoppingItems.map(i => ({ ...i, estimatedPrice: priceOf(i) })) : shoppingItems
+    const template = clean(priced).map(i => ({ ...i, otherLabel: '' }))
     const jobs: Promise<unknown>[] = [updateDoc(doc(db, 'households', activeHouseholdId), { shoppingTemplate: template })]
     if (addExpense && total > 0 && user) {
       const d = new Date()
       const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
       jobs.push(addDoc(collection(db, 'transactions'), {
         type: 'expense', category: 'food', amount: Math.round(total * 100) / 100, description: supermarket.trim() || 'קניות בסופר', date,
-        isRecurring: false, isShoppingTrip: true, items: shoppingItems.filter(i => i.checked).length ? clean(shoppingItems.filter(i => i.checked)) : template,
+        isRecurring: false, isShoppingTrip: true, items: priced.filter(i => i.checked).length ? clean(priced.filter(i => i.checked)) : template,
         householdId: activeHouseholdId, createdBy: user.uid, createdByName: (user.displayName || '').split(' ')[0], createdAt: serverTimestamp(),
       }))
     }
     jobs.push(...shoppingItems.map(i => deleteDoc(doc(db, 'shoppingItems', i.id))))
     await Promise.all(jobs)
+  }
+
+  // Supermarket branches whose prices the home server keeps for this household, and the one we shop at now.
+  const priceStores: string[] = household?.priceStores?.length ? household.priceStores : []
+  const activeStore = (household?.settings?.shopStore as string) && priceStores.includes(household?.settings?.shopStore as string)
+    ? (household?.settings?.shopStore as string) : (priceStores[0] || '')
+  const setActiveStore: DataValue['setActiveStore'] = async (key) => {
+    if (!activeHouseholdId) return
+    const stores = priceStores.includes(key) ? priceStores : [...priceStores, key]
+    await setDoc(doc(db, 'households', activeHouseholdId), { priceStores: stores, settings: { shopStore: key } }, { merge: true })
   }
 
   const clearChecked: DataValue['clearChecked'] = async () => { await Promise.all(shoppingItems.filter(i => i.checked).map(i => deleteDoc(doc(db, 'shoppingItems', i.id)))) }
@@ -329,7 +343,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     monthTransactions, totalIncome, totalExpenses, balance: totalIncome - totalExpenses,
     monthlyBudget, effectiveCategoryBudgets, setMonthlyBudget, setCategoryBudget, addTransaction, updateTransaction, deleteTransaction,
     shoppingItems, addShoppingItem, updateShoppingItem, deleteShoppingItem, clearChecked, uid: user?.uid ?? null, currency, setCurrency, savingsGoals, addGoal, depositGoal, deleteGoal, createInvite, joinByCode, partnerName, incomeMonthMode, setIncomeMonthMode,
-    laterItems, addLaterItem, deleteLaterItem, moveLaterToList, savedBaskets, lastTrip, saveBasket, deleteBasket, loadBasket, clearShoppingList, checkoutShopping,
+    laterItems, addLaterItem, deleteLaterItem, moveLaterToList, savedBaskets, lastTrip, saveBasket, deleteBasket, loadBasket, clearShoppingList, checkoutShopping, priceStores, activeStore, setActiveStore,
   }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

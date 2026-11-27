@@ -29,11 +29,12 @@ export interface Household {
   priceStores?: string[]
   splitEnabled?: boolean
   settings?: Record<string, unknown>
+  priceStores?: string[]
   shoppingTemplate?: BasketItem[]
   shoppingBaskets?: Record<string, { name: string; items: BasketItem[]; updatedAt?: number }>
 }
 
-export interface BasketItem { name: string; category?: string; quantity?: number; estimatedPrice?: number; otherLabel?: string }
+export interface BasketItem { name: string; category?: string; quantity?: number; estimatedPrice?: number; otherLabel?: string; code?: string }
 export interface SavedBasket { id: string; name: string; items: BasketItem[]; updatedAt?: number }
 export interface LaterItem { id: string; householdId: string; name: string; category?: string; createdAt?: { seconds: number } | null }
 
@@ -46,6 +47,9 @@ export interface ShoppingItem {
   estimatedPrice?: number
   otherLabel?: string
   barcode?: string
+  matchedName?: string     // the store's product name when the item was matched automatically
+  code?: string            // product code in the price index (prices follow the chosen branch)
+  priceManual?: boolean    // the user typed the price; don't replace it with the branch price
   checked?: boolean
   createdAt?: { seconds: number } | null
 }

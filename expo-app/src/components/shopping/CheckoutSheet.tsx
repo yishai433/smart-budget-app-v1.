@@ -1,20 +1,21 @@
 import { useState, useEffect, useMemo } from 'react'
-import { View, Text, TextInput, ScrollView, StyleSheet, Switch, Keyboard, Alert } from 'react-native'
+import { View, Text, TextInput, StyleSheet, Switch, Keyboard, Alert } from 'react-native'
 import { X } from 'lucide-react-native'
 import { useTheme } from '../../theme'
 import { useData } from '../../context/DataContext'
 import { money } from '../../lib/money'
 import BottomSheet from '../BottomSheet'
 import Touchable from '../Touchable'
+import type { ShoppingItem } from '../../types'
 
 // Finish a trip: shows the total, optionally records it as a food expense with the
 // supermarket's name, remembers the list for next time and clears it.
-export default function CheckoutSheet({ visible, total, count, onClose, onDone }: { visible: boolean; total: number; count: number; onClose: () => void; onDone: () => void }) {
+export default function CheckoutSheet({ visible, total, count, defaultStore, priceOf, onClose, onDone }: { visible: boolean; total: number; count: number; defaultStore: string; priceOf: (i: ShoppingItem) => number; onClose: () => void; onDone: () => void }) {
   const c = useTheme()
   const d = useData()
   const [addExpense, setAddExpense] = useState(true)
   const [store, setStore] = useState('')
-  useEffect(() => { if (visible) { setAddExpense(true); setStore('') } }, [visible])
+  useEffect(() => { if (visible) { setAddExpense(true); setStore(defaultStore) } }, [visible])
 
   // Recent supermarkets from past trips, so the name is one tap.
   const recent = useMemo(() => {
@@ -28,7 +29,7 @@ export default function CheckoutSheet({ visible, total, count, onClose, onDone }
 
   const confirm = () => {
     Keyboard.dismiss()
-    d.checkoutShopping(total, { addExpense, supermarket: store }).catch(() => Alert.alert('השמירה נכשלה', 'בדקו את החיבור לאינטרנט ונסו שוב.'))
+    d.checkoutShopping(total, { addExpense, supermarket: store, priceOf }).catch(() => Alert.alert('השמירה נכשלה', 'בדקו את החיבור לאינטרנט ונסו שוב.'))
     onClose(); onDone()
   }
 
@@ -56,15 +57,15 @@ export default function CheckoutSheet({ visible, total, count, onClose, onDone }
 
       <Text style={{ fontSize: 13, fontWeight: '700', color: c.text2, textAlign: 'right', marginTop: 16, marginBottom: 8 }}>באיזה סופר קניתם?</Text>
       {recent.length > 0 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ flexGrow: 0, marginBottom: 8, transform: [{ scaleX: -1 }] }} contentContainerStyle={{ gap: 8 }}>
+        <View style={{ flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
           {recent.map(n => (
-            <Touchable key={n} onPress={() => setStore(n)} scale={0.94} style={{ transform: [{ scaleX: -1 }] }}>
+            <Touchable key={n} onPress={() => setStore(n)} scale={0.94}>
               <View style={[s.chip, { backgroundColor: store === n ? c.primaryLight : c.bg, borderColor: store === n ? c.primary : 'transparent' }]}>
                 <Text style={{ fontSize: 13, fontWeight: '600', color: c.text }}>{n}</Text>
               </View>
             </Touchable>
           ))}
-        </ScrollView>
+        </View>
       )}
       <TextInput style={[s.input, { backgroundColor: c.bg, color: c.text }]} placeholder="שם הסופר (לא חובה)" placeholderTextColor={c.text3}
         value={store} onChangeText={setStore} textAlign="right" returnKeyType="done" onSubmitEditing={Keyboard.dismiss} />
