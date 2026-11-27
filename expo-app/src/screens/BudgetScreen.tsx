@@ -8,13 +8,14 @@ import { categoryOf } from '../categories'
 import { useData } from '../context/DataContext'
 import { useAuth } from '../context/AuthContext'
 import Ring from '../components/Ring'
-import Bar from '../components/Bar'
 import FadeIn from '../components/FadeIn'
 import Header from '../components/Header'
 import MonthSwitcher from '../components/MonthSwitcher'
 import Touchable from '../components/Touchable'
 import SwipeToDelete from '../components/SwipeToDelete'
 import WhatsNew from '../components/WhatsNew'
+import CategoryRings from '../components/CategoryRings'
+import { useAppearance } from '../context/AppearanceContext'
 import ActivitySheet from '../components/ActivitySheet'
 import AddTransactionSheet from './AddTransactionSheet'
 import BudgetModal from '../components/BudgetModal'
@@ -30,6 +31,7 @@ export default function BudgetScreen() {
   const insets = useSafeAreaInsets()
   const { user } = useAuth()
   const d = useData()
+  const { showSavings } = useAppearance()
   const [adding, setAdding] = useState(false)
   const [editTx, setEditTx] = useState<Transaction | null>(null)
   const [budgetOpen, setBudgetOpen] = useState(false)
@@ -97,32 +99,12 @@ export default function BudgetScreen() {
 
         {cats.length > 0 && (
           <FadeIn delay={220}>
-            <Text style={[s.section, { color: c.text }]}>קטגוריות</Text>
-            <View style={[s.card, { backgroundColor: c.card, borderColor: c.border }]}>
-              {cats.map((r, i) => {
-                const cat = categoryOf(r.id)
-                const b = d.effectiveCategoryBudgets[r.id]
-                const p = b ? Math.round((r.spent / b) * 100) : 0
-                const ov = b && r.spent > b
-                return (
-                  <Touchable key={r.id} scale={0.98} onPress={() => setCatBudget({ id: r.id, label: cat.label, current: b ?? null })}
-                    style={[st_row(c), i === 0 ? null : { borderTopColor: c.sep, borderTopWidth: StyleSheet.hairlineWidth }]}>
-                    <View style={[s.icon, { backgroundColor: cat.color + '22' }]}><Text style={{ fontSize: 17 }}>{cat.emoji}</Text></View>
-                    <View style={{ flex: 1 }}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 7 }}>
-                        <Text style={{ fontSize: 14, fontWeight: '600', color: c.text }}>{cat.label}</Text>
-                        <Text style={{ fontSize: 13, color: ov ? c.danger : c.text2 }}>{money(r.spent)}{b ? <Text style={{ color: c.text3 }}>  /  {money(b)}</Text> : null}</Text>
-                      </View>
-                      <Bar pct={p} color={ov ? c.danger : cat.color} track={c.bg} delay={200 + i * 60} />
-                    </View>
-                  </Touchable>
-                )
-              })}
-            </View>
+            <CategoryRings cats={cats} budgets={d.effectiveCategoryBudgets} total={d.totalExpenses}
+              onPick={(id, label, b) => setCatBudget({ id, label, current: b })} />
           </FadeIn>
         )}
 
-        <SavingsGoals />
+        {showSavings ? <SavingsGoals /> : null}
 
         <FadeIn delay={300}>
           <Text style={[s.section, { color: c.text }]}>תנועות</Text>

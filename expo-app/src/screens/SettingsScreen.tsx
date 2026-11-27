@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { View, Text, ScrollView, StyleSheet, Alert, TextInput, ActivityIndicator } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Users, LogOut, Palette, Languages, Coins, UserPlus, LogIn, CalendarDays, History, ChevronLeft } from 'lucide-react-native'
+import { Users, LogOut, Palette, Languages, Coins, UserPlus, LogIn, CalendarDays, History, ChevronLeft, PiggyBank } from 'lucide-react-native'
 import { useTheme, radius, Theme } from '../theme'
 import { useAuth } from '../context/AuthContext'
 import { useData, IncomeMonthMode } from '../context/DataContext'
@@ -104,7 +104,7 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets()
   const { user, logout } = useAuth()
   const d = useData()
-  const { pref, setPref } = useAppearance()
+  const { pref, setPref, showSavings, setShowSavings } = useAppearance()
   const me = user?.displayName || user?.email?.split('@')[0] || 'אני'
   const names = [me, d.partnerName || ''].filter(Boolean)
   const shared = (d.household?.members?.length || 1) > 1
@@ -134,6 +134,7 @@ export default function SettingsScreen() {
             <SegRow<string> first Icon={Coins} label="מטבע" value={d.currency} onPick={(v) => d.setCurrency(v)} options={[['₪', '₪'], ['$', '$'], ['€', '€'], ['£', '£']]} />
             <SegRow<AppearancePref> Icon={Palette} label="מראה" value={pref} onPick={setPref} options={[['light', 'בהיר'], ['dark', 'כהה'], ['auto', 'אוטומטי']]} />
             <SegRow<string> Icon={Languages} label="שפה" value="he" onPick={() => {}} options={[['he', 'עברית']]} />
+            <SegRow<string> Icon={PiggyBank} label="יעדי חיסכון בעמוד התקציב" value={showSavings ? 'on' : 'off'} onPick={(v) => setShowSavings(v === 'on')} options={[['off', 'מוסתר'], ['on', 'מוצג']]} />
           </Card>
 
           <SectionTitle>משכורת</SectionTitle>
