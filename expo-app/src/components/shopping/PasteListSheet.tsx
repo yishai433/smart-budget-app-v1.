@@ -7,7 +7,7 @@ import { useData } from '../../context/DataContext'
 import { formatAmount } from '../../lib/money'
 import { guessShoppingCategory } from '../../lib/shopCategories'
 import { parseList, ParsedLine } from '../../lib/listImport'
-import { PriceIndex, searchProducts, autoMatch, priceAt } from '../../lib/priceIndex'
+import { PriceIndex, searchProducts, autoMatch, priceAt, fuzzyMatch } from '../../lib/priceIndex'
 import BottomSheet, { SHEET_TALL } from '../BottomSheet'
 import useKeyboardHeight from '../../lib/useKeyboardHeight'
 import Touchable from '../Touchable'
@@ -24,6 +24,7 @@ function matchLine(idx: PriceIndex | null, l: ParsedLine, store: string, prefer:
   if (idx && l.name) {
     const m = autoMatch(idx, l.name, store, prefer)
       || searchProducts(idx, l.name, store, { limit: 8, prefer }).find(h => h.exact && !h.variant && h.branches > 0)
+      || fuzzyMatch(idx, l.name, store, prefer)
     if (m) return { line: l, code: m.code, product: m.name, price: m.price, on: true }
   }
   return { line: l, price: null, on: !!l.name }

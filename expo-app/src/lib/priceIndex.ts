@@ -194,6 +194,63 @@ export function usePriceIndex(hh: string | null): State {
   return s
 }
 
+// ---- forgiving match for free-text lists ----
+// People write "רכז רימונים", "מיכלי גז", "בקבוק מים גדול"; the catalog says "רכז רימון",
+// "מיכל גז", "מים מינרליים 1.5 ל". So: compare word stems (plural / construct endings and final
+// letters folded), ignore filler words, and accept a product that has all but one of the words.
+const FINAL: Record<string, string> = { 'ם': 'מ', 'ן': 'נ', 'ץ': 'צ', 'ף': 'פ', 'ך': 'כ' }
+export function stem(w: string): string {
+  let s = w.replace(/[םןץףך]/g, ch => FINAL[ch])
+  if (s.length <= 3) return s
+  const m = s.match(/(יות|ימ|ות|ית|י|ה|ת)$/)
+  if (m && s.length - m[1].length >= 2) s = s.slice(0, -m[1].length)
+  if (s.length > 3 && s.endsWith('י')) s = s.slice(0, -1)
+  return s
+}
+const FILLER = new Set(['של', 'עם', 'גדול', 'גדולה', 'גדולים', 'גדולות', 'קטן', 'קטנה', 'קטנים', 'קטנות', 'בקבוק', 'בקבוקים', 'שישיית', 'שישייה', 'שישיה', 'מארז', 'חבילת', 'חבילה', 'חבילות', 'אריזת', 'אריזה', 'אריזות', 'יחידות', 'יחידה', 'קצת', 'הרבה', 'טוב', 'טובה', 'רגיל', 'רגילה', 'רגילים'])
+type StemRow = PriceRow & { _st?: string[] }
+const stemsOf = (r: StemRow) => r._st || (r._st = r.toks.map(stem))
+
+export function fuzzyMatch(idx: PriceIndex | null, query: string, store: string, prefer?: Set<string>): ProductHit | null {
+  if (!idx) return null
+  const q = norm(query)
+  let words = q.split(' ').filter(w => w && !UNIT.test(w))
+  const useful = words.filter(w => !FILLER.has(w))
+  if (useful.length) words = useful
+  if (!words.length) return null
+  const ws = words.map(stem)
+  const need = ws.length <= 2 ? ws.length : ws.length - 1
+  // "שישיית מים" wants the multipack, "בקבוק גדול" the big bottle
+  const wantPack = /(שישי|מארז|חבילת|חבילה)/.test(q)
+  const wantBig = /(^| )גדול/.test(q)
+  const staple = STAPLES.find(([k]) => k.test(words.join(' ')))?.[1]
+  const si = idx.keys.indexOf(store)
+  let best: { r: PriceRow; k: number; cover: number } | null = null
+  for (const r of idx.rows) {
+    if (!r.prices.some(p => p != null)) continue
+    const st = stemsOf(r as StemRow)
+    let cover = 0
+    for (const w of ws) if (st.some(t => t === w || (w.length >= 3 && t.startsWith(w)) || (t.length >= 3 && w.startsWith(t)))) cover++
+    if (cover < need) continue
+    const extra = r.toks.filter(t => !UNIT.test(t) && !BRAND.has(t)).length - cover
+    let k = cover * 100 - Math.min(extra, 8) * 6
+    if (st[0] === ws[0]) k += 25
+    if (VARIANT.test(r.joined)) k -= 40
+    if (ALT.test(r.joined) && !words.some(w => ALT.test(w))) k -= 25
+    if (si >= 0 && r.prices[si] != null) k += 30
+    if (staple && staple.test(r.joined)) k += 45
+    if (prefer?.has(r.code)) k += 200
+    const pack = /\d\s*[*x×]\s*\d|מארז|שישי/.test(r.joined)
+    if (pack) k += wantPack ? 30 : -15
+    if (wantBig && /(^| )(1 5|1\.5|2) ?(ל|ליטר)( |$)/.test(r.joined)) k += 20
+    if (!best || k > best.k) best = { r, k, cover }
+  }
+  if (!best) return null
+  const r = best.r
+  const ps = r.prices.filter((p): p is number => p != null)
+  return { code: r.code, name: r.name, price: si >= 0 ? r.prices[si] ?? null : null, min: Math.min(...ps), branches: ps.length, cheapKey: null, variant: false, exact: best.cover === ws.length }
+}
+
 // Best automatic match for a plain word like "milk": the top-ranked everyday product that the
 // chosen branch sells (something bought before wins, then the basic version).
 export function autoMatch(idx: PriceIndex | null, query: string, store: string, prefer?: Set<string>): ProductHit | null {

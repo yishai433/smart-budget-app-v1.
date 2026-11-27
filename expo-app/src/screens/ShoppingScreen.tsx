@@ -20,7 +20,7 @@ import StorePicker from '../components/shopping/StorePicker'
 import PasteListSheet from '../components/shopping/PasteListSheet'
 import BasketCompareSheet from '../components/shopping/BasketCompareSheet'
 import { compareBasket } from '../lib/listImport'
-import { usePriceIndex, searchProducts, autoMatch, priceAt, refreshPriceIndex, ProductHit } from '../lib/priceIndex'
+import { usePriceIndex, searchProducts, autoMatch, fuzzyMatch, priceAt, refreshPriceIndex, ProductHit } from '../lib/priceIndex'
 import { storeLabel } from '../lib/stores'
 import useKeyboardHeight from '../lib/useKeyboardHeight'
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -223,7 +223,7 @@ export default function ShoppingScreen() {
   const addTyped = () => {
     const n = textRef.current.trim(); if (!n) return
     clearSearch()
-    const m = idx && store ? autoMatch(idx, n, store, prefer) : null
+    const m = idx && store ? (autoMatch(idx, n, store, prefer) || fuzzyMatch(idx, n, store, prefer)) : null
     d.addShoppingItem({
       name: n, category: guessShoppingCategory(n), quantity: 1, estimatedPrice: m?.price ?? 0, priceManual: false, checked: false,
       ...(m ? { code: m.code, matchedName: m.name } : {}),
