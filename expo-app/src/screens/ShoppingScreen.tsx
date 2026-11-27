@@ -19,6 +19,7 @@ import CheckoutSheet from '../components/shopping/CheckoutSheet'
 import StorePicker from '../components/shopping/StorePicker'
 import { usePriceIndex, searchProducts, autoMatch, priceAt, refreshPriceIndex, ProductHit } from '../lib/priceIndex'
 import { storeLabel } from '../lib/stores'
+import useKeyboardHeight from '../lib/useKeyboardHeight'
 import type { ShoppingItem } from '../types'
 
 const fail = () => Alert.alert('הפעולה נכשלה', 'בדקו את החיבור לאינטרנט ונסו שוב.')
@@ -93,6 +94,8 @@ export default function ShoppingScreen() {
   const names = [user?.displayName || user?.email?.split('@')[0] || 'אני', d.partnerName || ''].filter(Boolean)
 
   const [storeOpen, setStoreOpen] = useState(false)
+  // While the keyboard is up it hides the bottom of the page: make room for it so everything can still be scrolled to.
+  const kb = useKeyboardHeight()
   const { idx, status } = usePriceIndex(d.activeHouseholdId)
   const store = d.activeStore
   // A newly picked branch is downloaded by the server in about a minute: check again then.
@@ -156,8 +159,8 @@ export default function ShoppingScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingTop: insets.top + 12, paddingBottom: inCart.length ? 110 : 40 }}
-        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingTop: insets.top + 12, paddingBottom: (inCart.length ? 110 : 40) + kb }}
+        keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
         <FadeIn>
           <Header title="קניות" names={names} />
           <Text style={{ fontSize: 14, color: c.text2, textAlign: 'right', marginTop: -6 }}>
