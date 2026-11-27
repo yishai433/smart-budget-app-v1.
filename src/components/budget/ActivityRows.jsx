@@ -40,6 +40,11 @@ export default function ActivityRows({ items, showSelf = false }) {
         text: `${he ? 'תקציב חודשי' : 'Monthly budget'} ${monthLabel(a.month, he ? 'he' : 'en')}`,
         detail: `${a.before == null ? '—' : money(a.before)} ← ${money(a.after)}`,
       }
+      case 'catBudget': return {
+        icon: '₪',
+        text: `${he ? 'תקציב קטגוריה' : 'Category budget'}: ${cat(a.cat || 'other')}`,
+        detail: `${a.before ? money(a.before) : '—'} ← ${a.after ? money(a.after) : '—'}`,
+      }
       case 'settle': return { icon: '⇄', text: he ? `${nameOf(a.from)} החזיר/ה ל${nameOf(a.to)} ${money(a.amount)}` : `${nameOf(a.from)} paid back ${nameOf(a.to)} ${money(a.amount)}` }
       default: return { icon: '•', text: a.kind }
     }

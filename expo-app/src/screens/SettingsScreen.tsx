@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { View, Text, ScrollView, StyleSheet, Alert, TextInput, ActivityIndicator } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Users, LogOut, Palette, Languages, Coins, UserPlus, LogIn, CalendarDays } from 'lucide-react-native'
+import { Users, LogOut, Palette, Languages, Coins, UserPlus, LogIn, CalendarDays, History, ChevronLeft } from 'lucide-react-native'
 import { useTheme, radius, Theme } from '../theme'
 import { useAuth } from '../context/AuthContext'
 import { useData, IncomeMonthMode } from '../context/DataContext'
@@ -9,6 +9,7 @@ import { useAppearance, AppearancePref } from '../context/AppearanceContext'
 import FadeIn from '../components/FadeIn'
 import Header from '../components/Header'
 import Touchable from '../components/Touchable'
+import ActivitySheet from '../components/ActivitySheet'
 
 function SectionTitle({ children }: { children: string }) {
   const c = useTheme()
@@ -107,6 +108,7 @@ export default function SettingsScreen() {
   const me = user?.displayName || user?.email?.split('@')[0] || 'אני'
   const names = [me, d.partnerName || ''].filter(Boolean)
   const shared = (d.household?.members?.length || 1) > 1
+  const [historyOpen, setHistoryOpen] = useState(false)
   const confirmLogout = () => Alert.alert('יציאה', 'להתנתק מהחשבון?', [{ text: 'ביטול', style: 'cancel' }, { text: 'יציאה', style: 'destructive', onPress: () => logout() }])
 
   return (
@@ -159,6 +161,19 @@ export default function SettingsScreen() {
             </View>
           </Card>
           {!shared ? <ShareJoin /> : null}
+          <View style={{ marginTop: 10 }}><Card>
+            <Touchable onPress={() => setHistoryOpen(true)} scale={0.98} style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 12, padding: 16 }}>
+              <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: c.primaryLight, alignItems: 'center', justifyContent: 'center' }}><History size={17} color={c.primary} /></View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: c.text, textAlign: 'right' }}>מה השתנה בבית</Text>
+                <Text style={{ fontSize: 12.5, color: c.text2, textAlign: 'right', marginTop: 2 }}>
+                  {d.activity.length ? `${d.activity.length} שינויים ב-30 הימים האחרונים` : 'הוצאות, הכנסות, תקציב וחיסכון: מי שינה מה'}
+                </Text>
+              </View>
+              {d.unseenActivity.length ? <View style={{ minWidth: 22, height: 22, borderRadius: 11, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 }}><Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>{d.unseenActivity.length}</Text></View> : null}
+              <ChevronLeft size={18} color={c.text3} />
+            </Touchable>
+          </Card></View>
         </FadeIn>
 
         <FadeIn delay={240}>
@@ -170,6 +185,7 @@ export default function SettingsScreen() {
 
         <FadeIn delay={300}><Text style={{ color: c.text3, fontSize: 12, textAlign: 'center', marginTop: 20 }}>תקציב חכם · React Native</Text></FadeIn>
       </ScrollView>
+      <ActivitySheet visible={historyOpen} onClose={() => setHistoryOpen(false)} />
     </View>
   )
 }

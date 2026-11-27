@@ -14,6 +14,8 @@ import Header from '../components/Header'
 import MonthSwitcher from '../components/MonthSwitcher'
 import Touchable from '../components/Touchable'
 import SwipeToDelete from '../components/SwipeToDelete'
+import WhatsNew from '../components/WhatsNew'
+import ActivitySheet from '../components/ActivitySheet'
 import AddTransactionSheet from './AddTransactionSheet'
 import BudgetModal from '../components/BudgetModal'
 import SavingsGoals from '../components/SavingsGoals'
@@ -32,6 +34,7 @@ export default function BudgetScreen() {
   const [editTx, setEditTx] = useState<Transaction | null>(null)
   const [budgetOpen, setBudgetOpen] = useState(false)
   const [detail, setDetail] = useState<DetailKind | null>(null)
+  const [activityOpen, setActivityOpen] = useState(false)
   const [catBudget, setCatBudget] = useState<{ id: string; label: string; current: number | null } | null>(null)
 
   const names = [user?.displayName || user?.email?.split('@')[0] || 'אני', d.partnerName || ''].filter(Boolean)
@@ -55,6 +58,7 @@ export default function BudgetScreen() {
         <FadeIn>
           <Header title="תקציב" names={names} />
           <MonthSwitcher monthKey={d.monthKey} isCurrentMonth={d.isCurrentMonth} onPrev={() => d.shiftMonth(-1)} onNext={() => d.shiftMonth(1)} onToday={d.goToCurrentMonth} />
+          <WhatsNew onOpen={() => setActivityOpen(true)} />
         </FadeIn>
 
         <FadeIn delay={60}>
@@ -162,6 +166,7 @@ export default function BudgetScreen() {
         <Plus size={26} color="#fff" strokeWidth={2.4} />
       </Touchable>
 
+      <ActivitySheet visible={activityOpen} onClose={() => setActivityOpen(false)} />
       <SummaryDetail kind={detail} onClose={() => setDetail(null)} onEdit={(tx) => { setDetail(null); setTimeout(() => setEditTx(tx), 350) }} />
       <AddTransactionSheet visible={adding} onClose={() => setAdding(false)} />
       <AddTransactionSheet visible={!!editTx} editTx={editTx} onClose={() => setEditTx(null)} />

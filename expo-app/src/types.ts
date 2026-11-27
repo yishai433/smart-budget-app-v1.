@@ -32,6 +32,16 @@ export interface Household {
   priceStores?: string[]
   shoppingTemplate?: BasketItem[]
   shoppingBaskets?: Record<string, { name: string; items: BasketItem[]; updatedAt?: number }>
+  activity?: Record<string, Omit<Activity, 'id'>>
+  activitySeen?: Record<string, number>
+}
+
+// One entry of the household's change log (shared with the website: household.activity[id]).
+export interface TxSnap { type: 'income' | 'expense'; amount: number; category: string; description: string; date: string }
+export interface Activity {
+  id: string; kind: string; at: number; by: string; name: string; avatar?: string | null
+  txId?: string; before?: TxSnap | number | null; after?: TxSnap | number; month?: string
+  goal?: { name: string; target?: number }; delta?: number; cat?: string; trip?: boolean
 }
 
 export interface BasketItem { name: string; category?: string; quantity?: number; estimatedPrice?: number; otherLabel?: string; code?: string }

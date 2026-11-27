@@ -4,7 +4,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from './AuthContext'
-import { Household, Transaction, ShoppingItem, SavingsGoal, LaterItem, SavedBasket, BasketItem } from '../types'
+import { Household, Transaction, ShoppingItem, SavingsGoal, LaterItem, SavedBasket, BasketItem, Activity, TxSnap } from '../types'
 import { guessShoppingCategory } from '../lib/shopCategories'
 import { currentMonthKey, monthKeyOf, txMonth } from '../lib/month'
 import { createInviteCode, redeemInviteCode, RedeemResult } from '../lib/invites'
@@ -65,6 +65,9 @@ interface DataValue {
   activeStore: string
   setActiveStore: (key: string) => Promise<void>
   addStores: (keys: string[]) => Promise<number>
+  activity: Activity[]              // the household's change log, newest first (30 days)
+  unseenActivity: Activity[]        // what the others changed since I last looked
+  markActivitySeen: () => Promise<void>
   removeStore: (key: string) => Promise<void>
   setIncomeMonthMode: (m: IncomeMonthMode) => Promise<void>
 }
@@ -246,6 +249,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
     jobs.push(...shoppingItems.map(i => deleteDoc(doc(db, 'shoppingItems', i.id))))
     await Promise.all(jobs)
+    if (addExpense && total > 0) logActivity({ kind: 'add', trip: true, after: snap({ type: 'expense', category: 'food', amount: Math.round(total * 100) / 100, description: supermarket.trim() || 'קניות בסופר' }) })
   }
 
   // Supermarket branches whose prices the home server keeps for this household, and the one we shop at now.
@@ -306,16 +310,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const id = Math.random().toString(36).slice(2, 10)
     const color = GOAL_COLORS[savingsGoals.length % GOAL_COLORS.length]
     const goal = { name, target, saved: 0, date: '', color }
+    logActivity({ kind: 'goalAdd', goal: { name, target } })
     try { await updateDoc(doc(db, 'households', activeHouseholdId), { [`savingsGoals.${id}`]: goal }) }
     catch { await setDoc(doc(db, 'households', activeHouseholdId), { savingsGoals: { [id]: goal } }, { merge: true }) }
   }
   const depositGoal: DataValue['depositGoal'] = async (id, delta) => {
     if (!activeHouseholdId) return
     await updateDoc(doc(db, 'households', activeHouseholdId), { [`savingsGoals.${id}.saved`]: increment(delta) })
+    if (delta) logActivity({ kind: 'goalDeposit', goal: { name: household?.savingsGoals?.[id]?.name || '' }, delta })
   }
   const deleteGoal: DataValue['deleteGoal'] = async (id) => {
     if (!activeHouseholdId) return
+    const gname = household?.savingsGoals?.[id]?.name || ''
     await updateDoc(doc(db, 'households', activeHouseholdId), { [`savingsGoals.${id}`]: deleteField() })
+    logActivity({ kind: 'goalDelete', goal: { name: gname } })
   }
 
   const createInvite: DataValue['createInvite'] = async () => {
@@ -343,8 +351,45 @@ export function DataProvider({ children }: { children: ReactNode }) {
     catch { await setDoc(doc(db, 'households', activeHouseholdId), { settings: { incomeMonth: m } }, { merge: true }) }
   }
 
+  // ---- change log (same place and shape as the website, so both show the same history) ----
+  // Only changes that matter are recorded: money in / out, budgets, savings, deletions, and
+  // edits that change an amount, a category or income/expense (not a typo in a description).
+  const actorName = user?.displayName || user?.email?.split('@')[0] || ''
+  const logActivity = async (entry: Omit<Activity, 'id' | 'at' | 'by' | 'name'>) => {
+    if (!user || !activeHouseholdId) return
+    try {
+      const at = Date.now()
+      const id = `${at.toString(36)}${Math.random().toString(36).slice(2, 5)}`
+      const rec = { ...entry, at, by: user.uid, name: actorName, avatar: null }
+      const cutoff = at - 30 * 86400000
+      const patch: Record<string, unknown> = { [`activity.${id}`]: rec }
+      Object.entries(household?.activity || {}).forEach(([k, a]) => { if (((a as { at?: number }).at || 0) < cutoff) patch[`activity.${k}`] = deleteField() })
+      const ref = doc(db, 'households', activeHouseholdId)
+      try { await updateDoc(ref, patch) } catch { await setDoc(ref, { activity: { [id]: rec } }, { merge: true }) }
+    } catch { /* the log is best-effort */ }
+  }
+  const snap = (t: Partial<Transaction>): TxSnap => ({
+    type: (t.type as TxSnap['type']) || 'expense', amount: Number(t.amount) || 0, category: t.category || 'other',
+    description: t.description || '', date: t.date || '',
+  })
+  const myUid = user?.uid
+  const seenAt = household?.activitySeen?.[myUid || '']
+  const markActivitySeen: DataValue['markActivitySeen'] = async () => {
+    if (!activeHouseholdId || !myUid) return
+    const ref = doc(db, 'households', activeHouseholdId)
+    try { await updateDoc(ref, { [`activitySeen.${myUid}`]: Date.now() }) }
+    catch { await setDoc(ref, { activitySeen: { [myUid]: Date.now() } }, { merge: true }) }
+  }
+  // first time on this phone/account: start counting from now instead of showing old history as new
+  useEffect(() => { if (household && myUid && seenAt === undefined) markActivitySeen().catch(() => {}) }, [household?.id, myUid, seenAt])
+  const activity: Activity[] = useMemo(() => Object.entries(household?.activity || {})
+    .map(([id, a]) => ({ id, ...a }) as Activity).sort((a, b) => b.at - a.at), [household?.activity])
+  const unseenActivity = useMemo(() => activity.filter(a => a.by !== myUid && a.at > (seenAt ?? Infinity)), [activity, myUid, seenAt])
+
   const setCategoryBudget = async (catId: string, amount: number) => {
     if (!activeHouseholdId) return
+    const prevCat = household?.categoryBudgets?.[catId] ?? null
+    if ((prevCat || 0) !== (amount > 0 ? amount : 0)) logActivity({ kind: 'catBudget', cat: catId, before: prevCat, after: amount > 0 ? amount : 0 })
     const ref = doc(db, 'households', activeHouseholdId)
     try { await updateDoc(ref, { [`categoryBudgets.${catId}`]: amount > 0 ? amount : deleteField() }) }
     catch { if (amount > 0) await setDoc(ref, { categoryBudgets: { [catId]: amount } }, { merge: true }) }
@@ -352,26 +397,40 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const setMonthlyBudget = async (amount: number) => {
     if (!activeHouseholdId) return
+    const prevB = household?.monthlyBudgets?.[monthKey] ?? null
+    if (prevB !== amount) logActivity({ kind: 'budget', month: monthKey, before: prevB, after: amount })
     try { await updateDoc(doc(db, 'households', activeHouseholdId), { [`monthlyBudgets.${monthKey}`]: amount }) }
     catch { await setDoc(doc(db, 'households', activeHouseholdId), { monthlyBudgets: { [monthKey]: amount } }, { merge: true }) }
   }
 
   const addTransaction: DataValue['addTransaction'] = async (data) => {
     if (!user || !activeHouseholdId) return
-    await addDoc(collection(db, 'transactions'), {
+    const ref = await addDoc(collection(db, 'transactions'), {
       ...data, householdId: activeHouseholdId, createdBy: user.uid,
       createdByName: (user.displayName || '').split(' ')[0], createdAt: serverTimestamp(),
     })
+    logActivity({ kind: 'add', txId: ref.id, after: snap(data) })
   }
-  const updateTransaction: DataValue['updateTransaction'] = async (id, data) => { await updateDoc(doc(db, 'transactions', id), data) }
-  const deleteTransaction: DataValue['deleteTransaction'] = async (id) => { await deleteDoc(doc(db, 'transactions', id)) }
+  const updateTransaction: DataValue['updateTransaction'] = async (id, data) => {
+    const old = transactions.find(t => t.id === id)
+    await updateDoc(doc(db, 'transactions', id), data)
+    if (old) {
+      const b = snap(old), a = snap({ ...old, ...data })
+      if (a.amount !== b.amount || a.type !== b.type || a.category !== b.category) logActivity({ kind: 'edit', txId: id, before: b, after: a })
+    }
+  }
+  const deleteTransaction: DataValue['deleteTransaction'] = async (id) => {
+    const old = transactions.find(t => t.id === id)
+    await deleteDoc(doc(db, 'transactions', id))
+    if (old) logActivity({ kind: 'delete', txId: id, before: snap(old) })
+  }
 
   const value: DataValue = {
     ready, household, activeHouseholdId, transactions, monthKey, isCurrentMonth, shiftMonth, goToCurrentMonth,
     monthTransactions, totalIncome, totalExpenses, balance: totalIncome - totalExpenses,
     monthlyBudget, effectiveCategoryBudgets, setMonthlyBudget, setCategoryBudget, addTransaction, updateTransaction, deleteTransaction,
     shoppingItems, addShoppingItem, updateShoppingItem, deleteShoppingItem, clearChecked, uid: user?.uid ?? null, currency, setCurrency, savingsGoals, addGoal, depositGoal, deleteGoal, createInvite, joinByCode, partnerName, incomeMonthMode, setIncomeMonthMode,
-    laterItems, addLaterItem, deleteLaterItem, setLaterReminder, moveLaterToList, savedBaskets, lastTrip, saveBasket, deleteBasket, loadBasket, clearShoppingList, checkoutShopping, priceStores, activeStore, setActiveStore, addStores, removeStore,
+    laterItems, addLaterItem, deleteLaterItem, setLaterReminder, moveLaterToList, savedBaskets, lastTrip, saveBasket, deleteBasket, loadBasket, clearShoppingList, checkoutShopping, priceStores, activeStore, setActiveStore, addStores, removeStore, activity, unseenActivity, markActivitySeen,
   }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
