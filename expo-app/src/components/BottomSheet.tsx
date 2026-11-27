@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, ReactNode } from 'react'
-import { InteractionManager } from 'react-native'
 import { View, Modal, StyleSheet, Pressable, Animated, Easing, Dimensions, Platform, Keyboard } from 'react-native'
 import useKeyboardHeight from '../lib/useKeyboardHeight'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -29,7 +28,6 @@ export default function BottomSheet({ visible, onClose, children, avoidKeyboard,
       setMounted(true)
       entrance.setValue(SCREEN_H)
       backdrop.setValue(0)
-      const task = InteractionManager.runAfterInteractions(() => setContent(true))
       Animated.parallel([
         Animated.timing(backdrop, { toValue: 1, duration: 280, useNativeDriver: true }),
         // easeOutExpo: quick to rise, soft to settle.
@@ -42,10 +40,9 @@ export default function BottomSheet({ visible, onClose, children, avoidKeyboard,
         Animated.timing(entrance, { toValue: SCREEN_H, duration: 250, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
       ]).start(() => { setMounted(false); setContent(false) })
     }
-    if (visible) return () => {}
   }, [visible])
 
-  // Also show content as soon as the first frame passes, in case interactions never settle.
+  // Build the heavy content on the next frame, so the slide starts unblocked.
   useEffect(() => { if (mounted && !content) { const r = requestAnimationFrame(() => setContent(true)); return () => cancelAnimationFrame(r) } }, [mounted, content])
 
   if (!mounted) return null
