@@ -123,7 +123,7 @@ export default function ReportsScreen() {
                 <Text style={[s.cardTitle, { color: c.text }]}>תזרים החודש</Text>
                 <View style={{ marginTop: 16, gap: 14 }}>
                   <FlowRow c={c} label="הכנסות" amount={d.totalIncome} pct={(d.totalIncome / flowMax) * 100} color={c.accent2Dark} delay={200} />
-                  <FlowRow c={c} label="הוצאות" amount={d.totalExpenses} pct={(d.totalExpenses / flowMax) * 100} color={c.primary} delay={280} />
+                  <FlowRow c={c} label="הוצאות" amount={d.totalExpenses} pct={(d.totalExpenses / flowMax) * 100} color={c.danger} delay={280} />
                 </View>
                 <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', marginTop: 18, paddingTop: 14, borderTopWidth: 1, borderTopColor: c.sep }}>
                   <Text style={{ fontSize: 14, color: c.text2 }}>נשאר בסוף החודש</Text>

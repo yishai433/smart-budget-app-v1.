@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from 'react'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { View, Text, Animated, StyleSheet } from 'react-native'
 import Svg, { Circle } from 'react-native-svg'
 import { ChevronDown } from 'lucide-react-native'
@@ -38,6 +39,9 @@ export default function CategoryRings({ cats, budgets, total, onPick }: {
 }) {
   const c = useTheme()
   const [all, setAll] = useState(false)
+  // "tap a category to set its budget" is said once, the first time, and never again
+  const [hint, setHint] = useState(false)
+  useEffect(() => { AsyncStorage.getItem('sb-cat-hint').then(v => { if (v !== '1') { setHint(true); AsyncStorage.setItem('sb-cat-hint', '1').catch(() => {}) } }).catch(() => {}) }, [])
   const shown = all ? cats : cats.slice(0, 6)
   const withBudget = cats.filter(r => budgets[r.id])
   const over = withBudget.filter(r => r.spent > budgets[r.id]).length
@@ -46,9 +50,8 @@ export default function CategoryRings({ cats, budgets, total, onPick }: {
     <View>
       <View style={s.head}>
         <Text style={{ fontSize: 17, fontWeight: '700', color: c.text }}>קטגוריות</Text>
-        <Text style={{ fontSize: 12.5, color: over ? c.danger : c.text2, fontWeight: '600' }}>
-          {withBudget.length ? (over ? `${over} בחריגה` : 'הכל בתוך התקציב 👌') : 'לחצו על קטגוריה לקביעת תקציב'}
-        </Text>
+        {over ? <Text style={{ fontSize: 12.5, color: c.danger, fontWeight: '700' }}>{over} בחריגה</Text>
+          : hint && !withBudget.length ? <Text style={{ fontSize: 12.5, color: c.text2, fontWeight: '600' }}>לחצו על קטגוריה לקביעת תקציב</Text> : null}
       </View>
       <View style={[s.card, { backgroundColor: c.card, borderColor: c.border }]}>
         <View style={s.grid}>
@@ -73,7 +76,10 @@ function Tile({ r, b, total, c, i, onPick }: { r: CatRow; b?: number; total: num
   return (
     <Touchable onPress={() => onPick(r.id, cat.label, b ?? null)} scale={0.95} containerStyle={s.cell} style={s.tile}>
       <CatRing pct={pct} color={tone} track={c.bg} faded={!b} delay={150 + i * 70}>
-        <Text style={{ fontSize: 24 }}>{cat.emoji}</Text>
+        <Text style={{ fontSize: 19 }}>{cat.emoji}</Text>
+        <Text style={{ fontSize: 11, fontWeight: '800', color: b ? tone : c.text3, marginTop: -1 }}>
+          {b ? (pct > 100 ? `${Math.round(pct)}%` : `${Math.max(0, 100 - Math.round(pct))}%`) : `${Math.round(pct)}%`}
+        </Text>
       </CatRing>
       <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: '700', color: c.text, marginTop: 7 }}>{cat.label}</Text>
       {b ? (
@@ -81,12 +87,12 @@ function Tile({ r, b, total, c, i, onPick }: { r: CatRow; b?: number; total: num
           <Text numberOfLines={1} style={{ fontSize: 13.5, fontWeight: '800', color: left < 0 ? c.danger : c.text, marginTop: 2 }}>
             {left < 0 ? `−${formatAmount(-left)}` : formatAmount(left)}
           </Text>
-          <Text style={{ fontSize: 11, color: left < 0 ? c.danger : c.text3, marginTop: 1 }}>{left < 0 ? 'חריגה' : 'נשארו'}</Text>
+          <Text style={{ fontSize: 11, color: left < 0 ? c.danger : c.text3, marginTop: 1 }}>{left < 0 ? 'חריגה' : `נשארו מ-${formatAmount(b)}`}</Text>
         </>
       ) : (
         <>
           <Text numberOfLines={1} style={{ fontSize: 13.5, fontWeight: '700', color: c.text2, marginTop: 2 }}>{formatAmount(r.spent)}</Text>
-          <Text style={{ fontSize: 11, color: c.text3, marginTop: 1 }}>הוצאו · בלי תקציב</Text>
+          <Text style={{ fontSize: 11, color: c.text3, marginTop: 1 }}>מההוצאות · בלי תקציב</Text>
         </>
       )}
     </Touchable>

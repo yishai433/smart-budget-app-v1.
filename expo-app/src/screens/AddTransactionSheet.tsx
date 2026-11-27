@@ -30,7 +30,7 @@ export default function AddTransactionSheet({ visible, onClose, editTx }: { visi
   const c = useTheme()
   const { addTransaction, updateTransaction, deleteTransaction, incomeMonthMode, setIncomeMonthMode } = useData()
   const [type, setType] = useState<TxType>('expense')
-  const [category, setCategory] = useState('food')
+  const [category, setCategory] = useState('other')
   const [amount, setAmount] = useState('')
   // Description is uncontrolled: typing doesn't re-render the sheet on every letter.
   const [descInit, setDescInit] = useState('')
@@ -55,7 +55,7 @@ export default function AddTransactionSheet({ visible, onClose, editTx }: { visi
       setDescInit(editTx.description || ''); descRef.current = editTx.description || ''
       setForMonth(editTx.forMonth || recvKey)
     } else {
-      setType('expense'); setCategory('food'); setAmount('')
+      setType('expense'); setCategory('other'); setAmount('')
       setDescInit(''); descRef.current = ''
       setForMonth(incomeMonthMode === 'previous' ? prevKey : recvKey)
     }
@@ -107,9 +107,9 @@ export default function AddTransactionSheet({ visible, onClose, editTx }: { visi
         {(['expense', 'income'] as TxType[]).map(t => {
           const on = type === t
           return (
-            <Touchable key={t} containerStyle={{ flex: 1 }} scale={0.97} onPress={() => { setType(t); setCategory(CATEGORIES[t][0].id) }}
-              style={[s.segBtn, on && { backgroundColor: t === 'income' ? c.accent2Dark : c.primary }]}>
-              <Text style={{ fontWeight: '700', fontSize: 15, color: on ? '#fff' : c.text2 }}>{t === 'expense' ? 'הוצאה' : 'הכנסה'}</Text>
+            <Touchable key={t} containerStyle={{ flex: 1 }} scale={0.97} onPress={() => { setType(t); setCategory(t === 'expense' ? 'other' : CATEGORIES[t][0].id) }}
+              style={[s.segBtn, on && { backgroundColor: t === 'income' ? c.accent2Dark : c.danger }]}>
+              <Text style={{ fontWeight: '700', fontSize: 14, color: on ? '#fff' : c.text2 }}>{t === 'expense' ? 'הוצאה' : 'הכנסה'}</Text>
             </Touchable>
           )
         })}
@@ -157,7 +157,7 @@ export default function AddTransactionSheet({ visible, onClose, editTx }: { visi
         <NumPad onKey={onKey} />
       </View>
 
-      <Touchable onPress={save} disabled={!canSave} scale={0.98} style={[s.save, { backgroundColor: c.primary, opacity: canSave ? 1 : 0.4 }]}>
+      <Touchable onPress={save} disabled={!canSave} scale={0.98} style={[s.save, { backgroundColor: type === 'expense' ? c.danger : c.accent2Dark, opacity: canSave ? 1 : 0.4 }]}>
         <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>{editTx ? 'עדכון' : 'שמירה'}</Text>
       </Touchable>
     </BottomSheet>
@@ -169,7 +169,7 @@ const s = StyleSheet.create({
   title: { fontSize: 18, fontWeight: '700' },
   x: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   seg: { flexDirection: 'row', borderRadius: 999, padding: 4, gap: 4, marginBottom: 2 },
-  segBtn: { paddingVertical: 10, borderRadius: 999, alignItems: 'center' },
+  segBtn: { paddingVertical: 7, borderRadius: 999, alignItems: 'center' },
   amountRow: { position: 'relative', justifyContent: 'center' },
   amountWrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 6 },
   monthPos: { position: 'absolute', left: 0, top: 0, bottom: 0, justifyContent: 'center' },
