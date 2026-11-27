@@ -17,7 +17,7 @@ export default function BottomSheet({ visible, onClose, children, avoidKeyboard,
   const [mounted, setMounted] = useState(visible)
   const entrance = useRef(new Animated.Value(SCREEN_H)).current
   const backdrop = useRef(new Animated.Value(0)).current
-  const kb = useKeyboardHeight(!!avoidKeyboard && mounted)
+  const kb = useKeyboardHeight(!!avoidKeyboard && visible)
   // iOS: lift the sheet's content above the keyboard (animated in sync with it).
   const lift = avoidKeyboard && Platform.OS === 'ios' && kb > 0
 

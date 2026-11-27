@@ -40,7 +40,7 @@ export default function CheckoutSheet({ visible, total, count, onClose, onDone }
       </View>
 
       <View style={{ alignItems: 'center', paddingVertical: 10 }}>
-        <Text style={{ fontSize: 13, color: c.text2, fontWeight: '600' }}>{count} פריטים בסל</Text>
+        <Text style={{ fontSize: 13, color: c.text2, fontWeight: '600' }}>{count} מוצרים בעגלה</Text>
         <Text style={{ fontSize: 40, fontWeight: '800', color: c.text, marginTop: 4 }}>{money(total)}</Text>
       </View>
 

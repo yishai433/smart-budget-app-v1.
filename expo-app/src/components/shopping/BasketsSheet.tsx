@@ -24,7 +24,7 @@ function BasketCard({ c, Icon, tint, name, items, onLoad, onDelete, onSave }: {
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 15.5, fontWeight: '700', color: c.text, textAlign: 'right' }}>{name}</Text>
           <Text style={{ fontSize: 12.5, color: c.text2, marginTop: 2, textAlign: 'right' }}>
-            {items.length} פריטים{total > 0 ? ` · כ-${formatAmount(total)}` : ''}{emojis ? `  ${emojis}` : ''}
+            {items.length} מוצרים{total > 0 ? ` · כ-${formatAmount(total)}` : ''}{emojis ? `  ${emojis}` : ''}
           </Text>
         </View>
       </View>
@@ -56,16 +56,16 @@ export default function BasketsSheet({ visible, onClose, onLoaded }: { visible: 
     Keyboard.dismiss(); d.saveBasket(n, current).catch(fail); setName('')
   }
   const confirmDelete = (id: string, nm: string) =>
-    Alert.alert('מחיקת סל', `למחוק את "${nm}"?`, [{ text: 'ביטול', style: 'cancel' }, { text: 'מחיקה', style: 'destructive', onPress: () => d.deleteBasket(id).catch(fail) }])
+    Alert.alert('מחיקת רשימה', `למחוק את "${nm}"?`, [{ text: 'ביטול', style: 'cancel' }, { text: 'מחיקה', style: 'destructive', onPress: () => d.deleteBasket(id).catch(fail) }])
   const overwrite = (id: string, nm: string) =>
-    Alert.alert('עדכון סל', `לשמור את הרשימה הנוכחית (${current.length} פריטים) במקום התוכן של "${nm}"?`, [{ text: 'ביטול', style: 'cancel' }, { text: 'עדכון', onPress: () => d.saveBasket(nm, current, id).catch(fail) }])
+    Alert.alert('עדכון רשימה', `לשמור את הרשימה הנוכחית (${current.length} פריטים) במקום התוכן של "${nm}"?`, [{ text: 'ביטול', style: 'cancel' }, { text: 'עדכון', onPress: () => d.saveBasket(nm, current, id).catch(fail) }])
 
   return (
     <BottomSheet visible={visible} onClose={onClose} avoidKeyboard minHeight={SHEET_MIN_HEIGHT}>
       <View style={s.header}>
         <View>
-          <Text style={[s.title, { color: c.text }]}>סלים שמורים</Text>
-          <Text style={{ fontSize: 12.5, color: c.text2, marginTop: 2 }}>הכינו פעם אחת, טענו בלחיצה בכל קנייה</Text>
+          <Text style={[s.title, { color: c.text }]}>רשימות שמורות</Text>
+          <Text style={{ fontSize: 12.5, color: c.text2, marginTop: 2 }}>רשימה שחוזרת על עצמה? שמרו אותה פעם אחת וטענו בלחיצה</Text>
         </View>
         <Touchable onPress={onClose} scale={0.9} style={[s.x, { backgroundColor: c.bg }]}><X size={18} color={c.text2} /></Touchable>
       </View>
@@ -80,16 +80,16 @@ export default function BasketsSheet({ visible, onClose, onLoaded }: { visible: 
           <BasketCard c={c} Icon={History} tint={c.accent2Light} name="הקנייה האחרונה" items={d.lastTrip} onLoad={() => load(d.lastTrip)} />
         )}
         {d.savedBaskets.length === 0 && (
-          <BasketCard c={c} Icon={Sparkles} tint={c.primaryLight} name="סל בסיסי לבית" items={STARTER_BASKET} onLoad={() => load(STARTER_BASKET)} />
+          <BasketCard c={c} Icon={Sparkles} tint={c.primaryLight} name="רשימה בסיסית לבית (מוכנה)" items={STARTER_BASKET} onLoad={() => load(STARTER_BASKET)} />
         )}
       </ScrollView>
 
       <View style={[s.saveBox, { borderTopColor: c.sep }]}>
         <Text style={{ fontSize: 13, fontWeight: '700', color: c.text2, textAlign: 'right', marginBottom: 8 }}>
-          {current.length ? `שמירת הרשימה הנוכחית (${current.length} פריטים) כסל` : 'כדי לשמור סל, הוסיפו קודם פריטים לרשימה'}
+          {current.length ? `לשמור את הרשימה הנוכחית (${current.length} מוצרים)` : 'כדי לשמור רשימה, הוסיפו קודם מוצרים'}
         </Text>
         <View style={[s.saveRow, { backgroundColor: c.bg, opacity: current.length ? 1 : 0.5 }]}>
-          <TextInput style={{ flex: 1, height: 46, color: c.text, fontSize: 15 }} placeholder="שם הסל, למשל: קנייה שבועית" placeholderTextColor={c.text3}
+          <TextInput style={{ flex: 1, height: 46, color: c.text, fontSize: 15 }} placeholder="שם, למשל: קנייה שבועית" placeholderTextColor={c.text3}
             value={name} onChangeText={setName} editable={current.length > 0} textAlign="right" returnKeyType="done" onSubmitEditing={saveCurrent} />
           <Touchable onPress={saveCurrent} disabled={!name.trim() || !current.length} scale={0.94} style={[s.saveBtn, { backgroundColor: c.primary }]}>
             <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>שמירה</Text>
