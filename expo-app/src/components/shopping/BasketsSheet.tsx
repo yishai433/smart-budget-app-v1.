@@ -5,7 +5,7 @@ import { useTheme, Theme } from '../../theme'
 import { useData } from '../../context/DataContext'
 import { STARTER_BASKET, shopCat } from '../../lib/shopCategories'
 import { formatAmount } from '../../lib/money'
-import BottomSheet, { SHEET_MIN_HEIGHT } from '../BottomSheet'
+import BottomSheet, { SHEET_TALL } from '../BottomSheet'
 import Touchable from '../Touchable'
 import type { BasketItem } from '../../types'
 
@@ -78,7 +78,7 @@ export default function BasketsSheet({ visible, onClose, onLoaded }: { visible: 
     Alert.alert('עדכון רשימה', `לשמור את הרשימה הנוכחית (${current.length} פריטים) במקום התוכן של "${nm}"?`, [{ text: 'ביטול', style: 'cancel' }, { text: 'עדכון', onPress: () => d.saveBasket(nm, current, id).catch(fail) }])
 
   return (
-    <BottomSheet visible={visible} onClose={onClose} avoidKeyboard minHeight={SHEET_MIN_HEIGHT}>
+    <BottomSheet visible={visible} onClose={onClose} avoidKeyboard minHeight={SHEET_TALL}>
       <View style={s.header}>
         <View>
           <Text style={[s.title, { color: c.text }]}>רשימות שמורות</Text>

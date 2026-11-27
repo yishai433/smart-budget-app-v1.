@@ -11,7 +11,7 @@ import { db } from '../firebase'
 
 export interface PriceRow { code: string; name: string; prices: (number | null)[]; toks: string[]; first: string; joined: string }
 export interface PriceIndex { v: string; keys: string[]; labels: Record<string, string>; rows: PriceRow[]; byCode: Map<string, PriceRow>; updatedAt: number | null }
-export interface ProductHit { code: string; name: string; price: number | null; min: number; branches: number; variant: boolean; exact: boolean; bought?: boolean; basic?: boolean }
+export interface ProductHit { code: string; name: string; price: number | null; min: number; branches: number; cheapKey: string | null; variant: boolean; exact: boolean; bought?: boolean; basic?: boolean }
 
 // ---- decoding (manual, so it works the same on every JS engine) ----
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
@@ -109,13 +109,16 @@ export function searchProducts(idx: PriceIndex | null, query: string, store: str
     if (t === 9) continue
     const ps = r.prices.filter((p): p is number => p != null)
     const price = si >= 0 ? r.prices[si] ?? null : null
+    // which of the household's branches sells it cheapest (ties go to the chosen branch)
+    let ci = -1
+    r.prices.forEach((p, i) => { if (p != null && (ci < 0 || p < (r.prices[ci] as number) || (p === r.prices[ci] && i === si))) ci = i })
     const extra = r.toks.filter(w => !words.includes(w) && !UNIT.test(w) && !BRAND.has(w)).length
     const alt = ALT.test(r.joined) && !words.some(w => ALT.test(w))
     const variant = VARIANT.test(r.joined) && !words.some(w => VARIANT.test(w))
     let k = t * 100 + (variant ? 60 : 0) + (alt ? 35 : 0) + Math.min(extra, 8) * 7 + (price == null ? 400 : 0)
     if (staple && staple.test(r.joined)) k -= 45
     if (prefer?.has(r.code)) k -= 250
-    scored.push({ code: r.code, name: r.name, variant, exact: t === 0, price, min: ps.length ? Math.min(...ps) : Infinity, branches: ps.length, bought: !!prefer?.has(r.code), basic: !!staple && staple.test(r.joined), _k: k })
+    scored.push({ code: r.code, name: r.name, variant, exact: t === 0, price, min: ps.length ? Math.min(...ps) : Infinity, branches: ps.length, cheapKey: ci >= 0 ? idx.keys[ci] : null, bought: !!prefer?.has(r.code), basic: !!staple && staple.test(r.joined), _k: k })
   }
   return scored
     .sort((a, b) => a._k - b._k || b.branches - a.branches || (a.price ?? a.min) - (b.price ?? b.min) || a.name.length - b.name.length)

@@ -4,7 +4,7 @@ import { X, Check, Search } from 'lucide-react-native'
 import { useTheme, Theme } from '../../theme'
 import { useData } from '../../context/DataContext'
 import { loadCatalog, StoreInfo, CHAIN, cityName, storeLabel } from '../../lib/stores'
-import BottomSheet from '../BottomSheet'
+import BottomSheet, { SHEET_TALL } from '../BottomSheet'
 import Touchable from '../Touchable'
 
 const Row = memo(function Row({ s, on, c, onPick }: { s: { k: string; title: string; sub: string }; on: boolean; c: Theme; onPick: (k: string) => void }) {
@@ -46,13 +46,13 @@ export default function StorePicker({ visible, labels, onClose }: { visible: boo
   }
 
   return (
-    <BottomSheet visible={visible} onClose={onClose} avoidKeyboard minHeight={480}>
+    <BottomSheet visible={visible} onClose={onClose} avoidKeyboard minHeight={SHEET_TALL}>
       <View style={st.header}>
         <Text style={[st.title, { color: c.text }]}>איפה קונים?</Text>
         <Touchable onPress={onClose} scale={0.9} style={[st.x, { backgroundColor: c.bg }]}><X size={18} color={c.text2} /></Touchable>
       </View>
       <Text style={{ fontSize: 13, color: c.text2, textAlign: 'right', marginBottom: 12, lineHeight: 19 }}>
-        המחירים ברשימה נלקחים מהסניף שתבחרו, ומתעדכנים לבד כל בוקר.
+        המחירים ברשימה נלקחים מהסניף שתבחרו, ומתעדכנים לבד כל בוקר. בכל מוצר נראה גם איפה הוא הכי זול מבין הסניפים שלכם, אז כדאי להוסיף כאן כמה סניפים קרובים.
       </Text>
 
       <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>

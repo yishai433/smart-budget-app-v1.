@@ -5,7 +5,7 @@ import { useTheme, Theme } from '../../theme'
 import { useData } from '../../context/DataContext'
 import { shopCat } from '../../lib/shopCategories'
 import { ensurePermission, scheduleReminder, cancelReminder, reminderLabel } from '../../lib/reminders'
-import BottomSheet, { SHEET_MIN_HEIGHT } from '../BottomSheet'
+import BottomSheet, { SHEET_TALL } from '../BottomSheet'
 import Touchable from '../Touchable'
 import type { LaterItem } from '../../types'
 
@@ -117,7 +117,7 @@ export default function LaterSheet({ visible, onClose }: { visible: boolean; onC
   const remove = (i: LaterItem) => { cancelReminder(i.id); d.deleteLaterItem(i.id).catch(fail) }
 
   return (
-    <BottomSheet visible={visible} onClose={onClose} avoidKeyboard minHeight={SHEET_MIN_HEIGHT}>
+    <BottomSheet visible={visible} onClose={onClose} avoidKeyboard minHeight={SHEET_TALL}>
       <View style={s.header}>
         <View>
           <Text style={[s.title, { color: c.text }]}>לקנות בהמשך</Text>

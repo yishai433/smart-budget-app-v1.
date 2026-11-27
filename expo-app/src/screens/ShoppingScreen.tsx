@@ -58,6 +58,25 @@ const ItemRow = memo(function ItemRow({ item, unit, inCart, first, c, onToggle, 
   )
 })
 
+// Under each product: where it's cheapest among the household's branches.
+function Cheapest({ h, store, labels, c }: { h: ProductHit; store: string; labels?: Record<string, string>; c: Theme }) {
+  if (!h.cheapKey || !isFinite(h.min)) return null
+  const here = h.cheapKey === store || (h.price != null && h.price <= h.min)
+  if (here) {
+    if (h.branches < 2) return null
+    return <Text style={[s.cheap, { color: c.primary }]}>✓ הכי זול כאן (מתוך {h.branches} סניפים)</Text>
+  }
+  const save = h.price != null ? h.price - h.min : 0
+  return (
+    <View style={[s.cheapBox, { backgroundColor: c.primaryLight }]}>
+      <Text numberOfLines={1} style={[s.cheap, { color: c.primary, marginTop: 0 }]}>
+        {`הכי זול: ${formatAmount(h.min)} ב${storeLabel(h.cheapKey, labels)}`}
+      </Text>
+      {save > 0.005 ? <Text style={[s.cheap, { color: c.text2, marginTop: 0 }]}>{`חוסכים ${formatAmount(save)}`}</Text> : null}
+    </View>
+  )
+}
+
 function Step({ n, title, sub, c }: { n: number; title: string; sub: string; c: Theme }) {
   return (
     <View style={s.step}>
@@ -149,6 +168,15 @@ export default function ShoppingScreen() {
   const hasHits = hits.length > 0
   useEffect(() => { if (hasHits) { measureHits(); const t = setTimeout(() => hitsScroll.current?.flashScrollIndicators(), 350); return () => clearTimeout(t) } }, [hasHits, kb])
   useEffect(() => { hitsScroll.current?.scrollTo({ y: 0, animated: false }) }, [q])
+  // Typing a product lifts the search line to the top of the screen, so the results sit
+  // where the eye is and have the most room above the keyboard.
+  const pageRef = useRef<ScrollView>(null)
+  const addY = useRef(0)
+  const [searching, setSearching] = useState(false)
+  const liftSearch = () => {
+    setSearching(true)
+    setTimeout(() => { pageRef.current?.scrollTo({ y: Math.max(0, addY.current - 8), animated: true }); setTimeout(measureHits, 380) }, 60)
+  }
   const hitsMax = Math.max(180, winH - hitsTop - 34 - (kb ? kb + 14 : insets.bottom + 90))
 
   const items = d.shoppingItems
@@ -189,7 +217,8 @@ export default function ShoppingScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingTop: insets.top + 12, paddingBottom: (inCart.length ? 110 : 40) + kb }}
+      <ScrollView ref={pageRef} onScrollEndDrag={measureHits} onMomentumScrollEnd={measureHits}
+        contentContainerStyle={{ padding: 16, paddingTop: insets.top + 12, paddingBottom: (inCart.length ? 110 : 40) + kb + (searching ? winH : 0) }}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
         <FadeIn>
           <Header title="קניות" names={names} />
@@ -230,12 +259,14 @@ export default function ShoppingScreen() {
         </FadeIn>
 
         {/* Add a product */}
+        <View onLayout={e => { addY.current = e.nativeEvent.layout.y }}>
         <FadeIn delay={50}>
           <View style={[s.addBox, { backgroundColor: c.card, borderColor: c.border }]}>
             <TextInput style={{ flex: 1, height: 52, color: c.text, fontSize: 16 }} placeholder="הוספת מוצר, למשל: חלב" placeholderTextColor={c.text3}
-              value={text} onChangeText={setText} onSubmitEditing={addTyped} returnKeyType="done" blurOnSubmit={false} textAlign="right" />
+              value={text} onChangeText={setText} onSubmitEditing={addTyped} returnKeyType="done" blurOnSubmit={false} textAlign="right"
+              onFocus={liftSearch} onBlur={() => { if (!text) setSearching(false) }} />
             {text ? (
-              <Touchable onPress={() => setText('')} scale={0.85} style={s.clearBtn}>
+              <Touchable onPress={() => { setText(''); if (!Keyboard.isVisible()) setSearching(false) }} scale={0.85} style={s.clearBtn}>
                 <View style={[s.clearDot, { backgroundColor: c.text3 }]}><X size={13} color="#fff" strokeWidth={3} /></View>
               </Touchable>
             ) : null}
@@ -257,6 +288,7 @@ export default function ShoppingScreen() {
                     {h.bought || (i === 0 && h.basic) ? (
                       <Text style={{ fontSize: 11, fontWeight: '700', color: h.bought ? c.accent2Dark : c.primary, textAlign: 'right', marginTop: 2 }}>{h.bought ? 'קניתם בעבר' : 'הכי בסיסי'}</Text>
                     ) : null}
+                    <Cheapest h={h} store={store} labels={idx?.labels} c={c} />
                   </View>
                   {h.price != null
                     ? <Text style={{ fontSize: 14.5, fontWeight: '800', color: c.text }}>{formatAmount(h.price)}</Text>
@@ -268,6 +300,7 @@ export default function ShoppingScreen() {
           )}
           {text.trim().length >= 2 && store && status === 'loading' ? <ActivityIndicator color={c.primary} style={{ marginTop: 10 }} /> : null}
         </FadeIn>
+        </View>
 
         {/* How it works: shown until dismissed, reopened from the ? button */}
         {guide && (
@@ -384,6 +417,8 @@ const s = StyleSheet.create({
   more: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 12, borderTopWidth: StyleSheet.hairlineWidth },
   hit: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12 },
   addBox: { flexDirection: 'row-reverse', alignItems: 'center', borderWidth: 1, borderRadius: 16, paddingRight: 14, paddingLeft: 6, gap: 4, marginTop: 14 },
+  cheap: { fontSize: 11.5, fontWeight: '700', textAlign: 'right', marginTop: 3 },
+  cheapBox: { alignSelf: 'flex-end', maxWidth: '100%', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, marginTop: 4 },
   clearBtn: { width: 32, height: 40, alignItems: 'center', justifyContent: 'center' },
   clearDot: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   scanBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },

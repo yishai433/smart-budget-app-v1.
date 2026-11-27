@@ -10,6 +10,8 @@ const SCREEN_H = Dimensions.get('window').height
 // the same light, natural motion instead of the stuttery native Modal slide.
 // Shared comfortable height so every amount sheet opens to the same spot.
 export const SHEET_MIN_HEIGHT = Math.round(SCREEN_H * 0.74)
+// Lists and pickers open almost to the top, so their content sits where the eye is, not at the thumb's edge.
+export const SHEET_TALL = Math.round(SCREEN_H * 0.88)
 
 export default function BottomSheet({ visible, onClose, children, avoidKeyboard, minHeight }: { visible: boolean; onClose: () => void; children: ReactNode; avoidKeyboard?: boolean; minHeight?: number }) {
   const c = useTheme()
