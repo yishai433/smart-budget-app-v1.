@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react'
 import { View, Text, Modal, TextInput, ActivityIndicator, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native'
 import { CameraView, useCameraPermissions, BarcodeScanningResult } from 'expo-camera'
-import { X, Search, Check } from 'lucide-react-native'
+import { X, Search, Check, ChevronRight } from 'lucide-react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '../theme'
 import { useData } from '../context/DataContext'
 import { askPriceServer, PriceResult } from '../lib/priceApi'
@@ -12,6 +13,7 @@ type Stage = 'scan' | 'looking' | 'result' | 'notfound' | 'error'
 
 export default function BarcodeScanner({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const c = useTheme()
+  const insets = useSafeAreaInsets()
   const d = useData()
   const [perm, requestPerm] = useCameraPermissions()
   const [stage, setStage] = useState<Stage>('scan')
@@ -58,11 +60,14 @@ export default function BarcodeScanner({ visible, onClose }: { visible: boolean;
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={close}>
       <View style={{ flex: 1, backgroundColor: c.bg }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 56 }}>
-          <Text style={{ fontSize: 20, fontWeight: '700', color: c.text }}>סריקת מוצר</Text>
-          <Touchable onPress={close} scale={0.9} style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: c.card, alignItems: 'center', justifyContent: 'center' }}>
-            <X size={18} color={c.text} />
+        {/* Back is on the start side (right, in Hebrew) and large, so nothing floating over the corner can hide it */}
+        <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 14, paddingTop: Math.max(insets.top + 12, 50) }}>
+          <Touchable onPress={close} scale={0.95} style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 2, paddingVertical: 8, paddingLeft: 14, paddingRight: 8, borderRadius: 999, backgroundColor: c.card }}>
+            <ChevronRight size={20} color={c.primary} />
+            <Text style={{ fontSize: 15, fontWeight: '700', color: c.primary }}>חזרה</Text>
           </Touchable>
+          <Text style={{ fontSize: 20, fontWeight: '700', color: c.text }}>סריקת מוצר</Text>
+          <View style={{ width: 40 }} />
         </View>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, padding: 20, paddingTop: 0 }}>
           {stage === 'scan' && (
@@ -135,6 +140,10 @@ export default function BarcodeScanner({ visible, onClose }: { visible: boolean;
             </View>
           )}
         </KeyboardAvoidingView>
+        <Touchable onPress={close} scale={0.98} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginHorizontal: 20, marginBottom: insets.bottom + 14, paddingVertical: 14, borderRadius: 16, backgroundColor: c.card, borderWidth: 1, borderColor: c.border }}>
+          <X size={17} color={c.text2} />
+          <Text style={{ fontSize: 15, fontWeight: '700', color: c.text }}>סגירה וחזרה לקניות</Text>
+        </Touchable>
       </View>
     </Modal>
   )

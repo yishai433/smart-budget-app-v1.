@@ -200,7 +200,7 @@ export default function ShoppingScreen() {
   const searching = focused || hasText
   const showingHits = q.trim().length >= 2
   useEffect(() => { pageRef.current?.scrollTo({ y: 0, animated: false }); const t = setTimeout(measureHits, 60); return () => clearTimeout(t) }, [searching])
-  const hitsMax = Math.max(180, winH - hitsTop - 34 - (kb ? kb + 14 : insets.bottom + 90))
+  const hitsMax = Math.max(180, winH - hitsTop - 34 - (kb ? kb + 14 : insets.bottom + 96))
 
   const items = d.shoppingItems
   const toBuy = items.filter(i => !i.checked)
@@ -250,7 +250,7 @@ export default function ShoppingScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <ScrollView ref={pageRef} onScrollEndDrag={measureHits} onMomentumScrollEnd={measureHits}
+      <ScrollView ref={pageRef} onScrollEndDrag={measureHits} onMomentumScrollEnd={measureHits} scrollEnabled={!searching}
         contentContainerStyle={{ padding: 16, paddingTop: insets.top + 12, paddingBottom: (inCart.length ? 110 : 40) + kb }}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
         <FadeIn>
@@ -434,7 +434,7 @@ export default function ShoppingScreen() {
         </>}
       </ScrollView>
 
-      {inCart.length > 0 && (
+      {inCart.length > 0 && !searching && (
         <View pointerEvents="box-none" style={s.footer}>
           <Touchable onPress={() => { Keyboard.dismiss(); setCheckoutOpen(true) }} scale={0.97} style={[s.checkout, { backgroundColor: c.primary }]}>
             <View>
