@@ -12,5 +12,5 @@ export default function Caret({ color, height = 36 }: { color: string; height?: 
     loop.start()
     return () => loop.stop()
   }, [])
-  return <Animated.View style={{ width: 2.5, height, borderRadius: 2, backgroundColor: color, opacity: o, marginHorizontal: 3 }} />
+  return <Animated.View style={{ width: 2.5, height, borderRadius: 2, backgroundColor: color, opacity: o, marginHorizontal: 1 }} />
 }

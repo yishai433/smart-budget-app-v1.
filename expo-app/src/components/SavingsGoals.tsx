@@ -9,7 +9,7 @@ import Touchable from './Touchable'
 import FadeIn from './FadeIn'
 import BottomSheet, { SHEET_MIN_HEIGHT } from './BottomSheet'
 import NumPad, { applyKey } from './NumPad'
-import Caret from './Caret'
+import AmountDisplay from './AmountDisplay'
 import type { SavingsGoal } from '../types'
 
 export default function SavingsGoals() {
@@ -99,9 +99,7 @@ function DepositGoal({ goal, onClose }: { goal: SavingsGoal | null; onClose: () 
         <Touchable onPress={remove} scale={0.9} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: c.dangerLight, alignItems: 'center', justifyContent: 'center' }}><Trash2 size={16} color={c.danger} /></Touchable>
       </View>
       <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 90 }}>
-        <Text style={{ fontSize: 24, fontWeight: '700', color: c.text3 }}>{displayCurrency()}</Text>
-        <Text style={{ fontSize: 48, fontWeight: '800', color: amount === '' ? c.text3 : c.text }}>{amount === '' ? '0' : amount}</Text>
-        <Caret color={c.primary} height={44} />
+        <AmountDisplay value={amount} currency={displayCurrency()} size={48} curSize={24} c={c} caretHeight={44} />
       </View>
       <NumPad onKey={onKey} />
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>

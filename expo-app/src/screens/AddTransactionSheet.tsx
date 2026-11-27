@@ -9,7 +9,7 @@ import { todayISO } from '../lib/month'
 import Touchable from '../components/Touchable'
 import BottomSheet from '../components/BottomSheet'
 import NumPad, { applyKey } from '../components/NumPad'
-import Caret from '../components/Caret'
+import AmountDisplay from '../components/AmountDisplay'
 import type { TxType, Transaction } from '../types'
 
 // A single category chip. Memoized so typing the amount doesn't re-render all chips.
@@ -87,9 +87,7 @@ export default function AddTransactionSheet({ visible, onClose, editTx }: { visi
       </View>
 
       <View style={s.amountWrap}>
-        <Text style={[s.cur, { color: c.text3 }]}>{displayCurrency()}</Text>
-        <Text style={[s.amount, { color: amount === '' ? c.text3 : c.text }]}>{amount === '' ? '0' : amount}</Text>
-        <Caret color={c.primary} height={30} />
+        <AmountDisplay value={amount} currency={displayCurrency()} size={32} curSize={18} c={c} caretHeight={30} />
       </View>
 
       <View style={{ position: 'relative' }}>
