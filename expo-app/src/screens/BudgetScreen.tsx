@@ -16,6 +16,7 @@ import Touchable from '../components/Touchable'
 import AddTransactionSheet from './AddTransactionSheet'
 import BudgetModal from '../components/BudgetModal'
 import SavingsGoals from '../components/SavingsGoals'
+import SummaryDetail, { DetailKind } from '../components/SummaryDetail'
 import { monthLabel } from '../lib/month'
 import type { Transaction } from '../types'
 
@@ -29,6 +30,7 @@ export default function BudgetScreen() {
   const [adding, setAdding] = useState(false)
   const [editTx, setEditTx] = useState<Transaction | null>(null)
   const [budgetOpen, setBudgetOpen] = useState(false)
+  const [detail, setDetail] = useState<DetailKind | null>(null)
   const [catBudget, setCatBudget] = useState<{ id: string; label: string; current: number | null } | null>(null)
 
   const names = [user?.displayName || user?.email?.split('@')[0] || 'אני', d.partnerName || ''].filter(Boolean)
@@ -82,9 +84,9 @@ export default function BudgetScreen() {
 
         <FadeIn delay={140}>
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-            <Kpi c={c} Icon={Wallet} label="חיסכון" value={money(d.balance)} color={d.balance >= 0 ? c.accent2Dark : c.danger} tint={c.accent2Light} iconColor={c.accent2Dark} />
-            <Kpi c={c} Icon={ArrowUpRight} label="הוצאות" value={money(d.totalExpenses)} color={c.danger} tint={c.bg} iconColor={c.text2} />
-            <Kpi c={c} Icon={ArrowDownLeft} label="הכנסות" value={money(d.totalIncome)} color={c.accent2Dark} tint={c.accent2Light} iconColor={c.accent2Dark} />
+            <Kpi c={c} Icon={Wallet} label="חיסכון" onPress={() => setDetail('savings')} value={money(d.balance)} color={d.balance >= 0 ? c.accent2Dark : c.danger} tint={c.accent2Light} iconColor={c.accent2Dark} />
+            <Kpi c={c} Icon={ArrowUpRight} label="הוצאות" onPress={() => setDetail('expense')} value={money(d.totalExpenses)} color={c.danger} tint={c.bg} iconColor={c.text2} />
+            <Kpi c={c} Icon={ArrowDownLeft} label="הכנסות" onPress={() => setDetail('income')} value={money(d.totalIncome)} color={c.accent2Dark} tint={c.accent2Light} iconColor={c.accent2Dark} />
           </View>
         </FadeIn>
 
@@ -151,6 +153,7 @@ export default function BudgetScreen() {
         <Plus size={26} color="#fff" strokeWidth={2.4} />
       </Touchable>
 
+      <SummaryDetail kind={detail} onClose={() => setDetail(null)} onEdit={(tx) => { setDetail(null); setTimeout(() => setEditTx(tx), 350) }} />
       <AddTransactionSheet visible={adding} onClose={() => setAdding(false)} />
       <AddTransactionSheet visible={!!editTx} editTx={editTx} onClose={() => setEditTx(null)} />
       <BudgetModal visible={budgetOpen} current={budget} monthLabel={monthLabel(d.monthKey)} onClose={() => setBudgetOpen(false)} onSave={(nn) => d.setMonthlyBudget(nn)} />
@@ -159,13 +162,14 @@ export default function BudgetScreen() {
   )
 }
 
-function Kpi({ c, Icon, label, value, color, tint, iconColor }: { c: Theme; Icon: typeof Wallet; label: string; value: string; color: string; tint: string; iconColor: string }) {
+function Kpi({ c, Icon, label, value, color, tint, iconColor, onPress }: { c: Theme; Icon: typeof Wallet; label: string; value: string; color: string; tint: string; iconColor: string; onPress?: () => void }) {
   return (
-    <View style={{ flex: 1, borderWidth: 1, borderColor: c.border, backgroundColor: c.card, borderRadius: radius.lg, padding: 12, alignItems: 'flex-end' }}>
+    <Touchable onPress={onPress} scale={0.96} containerStyle={{ flex: 1 }}
+      style={{ borderWidth: 1, borderColor: c.border, backgroundColor: c.card, borderRadius: radius.lg, padding: 12, alignItems: 'flex-end' }}>
       <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: tint, alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}><Icon size={15} color={iconColor} strokeWidth={2.2} /></View>
       <Text style={{ fontSize: 11, fontWeight: '600', color: c.text2 }}>{label}</Text>
       <Text style={{ fontSize: 14, fontWeight: '700', color, marginTop: 2 }}>{value}</Text>
-    </View>
+    </Touchable>
   )
 }
 
