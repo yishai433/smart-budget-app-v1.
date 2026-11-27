@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, memo, useEffect, useRef } from 'react'
 import { View, Text, ScrollView, TextInput, StyleSheet, Alert, Keyboard, ActivityIndicator, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Check, ScanLine, Plus, ListChecks, Clock, Trash2, ChevronLeft, ShoppingCart, Save, Store, HelpCircle, X, ClipboardPaste, Trophy } from 'lucide-react-native'
+import { Check, ScanLine, Plus, ListChecks, Clock, Trash2, ChevronLeft, ShoppingCart, Save, Store, HelpCircle, X, ClipboardPaste, Trophy, Search } from 'lucide-react-native'
 import { useTheme, radius, Theme } from '../theme'
 import { useData } from '../context/DataContext'
 import { useAuth } from '../context/AuthContext'
@@ -128,8 +128,17 @@ export default function ShoppingScreen() {
   const clearSearch = useCallback(() => {
     inputRef.current?.clear(); textRef.current = ''
     if (qTimer.current) clearTimeout(qTimer.current)
-    setHasText(false); setQ('')
+    setHasText(false); setQ(''); setLinkTo(null)
   }, [])
+  // Finding a product for an item that's already on the list (one we couldn't price): the
+  // search opens with its name, and the product picked is attached to that item.
+  const [linkTo, setLinkTo] = useState<ShoppingItem | null>(null)
+  const [seed, setSeed] = useState({ k: 0, v: '' })
+  const findFor = (i: ShoppingItem) => {
+    setLinkTo(i)
+    textRef.current = i.name; setHasText(true); setQ(i.name)
+    setSeed(x => ({ k: x.k + 1, v: i.name }))
+  }
   useEffect(() => () => { if (qTimer.current) clearTimeout(qTimer.current) }, [])
   const [scanning, setScanning] = useState(false)
   const [editing, setEditing] = useState<ShoppingItem | null>(null)
@@ -204,6 +213,7 @@ export default function ShoppingScreen() {
 
   const items = d.shoppingItems
   const toBuy = items.filter(i => !i.checked)
+  const unpriced = toBuy.filter(i => !i.code && !i.priceManual && !(i.estimatedPrice && i.estimatedPrice > 0))
   const inCart = items.filter(i => i.checked)
   const toBuyTotal = toBuy.reduce((a, i) => a + lineTotal(i), 0)
   const cartTotal = inCart.reduce((a, i) => a + lineTotal(i), 0)
@@ -216,7 +226,12 @@ export default function ShoppingScreen() {
   }, [items])
 
   const addHit = (h: ProductHit) => {
+    const target = linkTo
     clearSearch()
+    if (target) {
+      d.updateShoppingItem(target.id, { code: h.code, matchedName: h.name, estimatedPrice: h.price ?? 0, priceManual: false }).catch(fail)
+      return
+    }
     d.addShoppingItem({ name: h.name, code: h.code, category: guessShoppingCategory(h.name), quantity: 1, estimatedPrice: h.price ?? 0, priceManual: false, checked: false }).catch(fail)
   }
   // Typed a plain word: keep the word, and attach the closest product's price at this branch.
@@ -308,10 +323,33 @@ export default function ShoppingScreen() {
           </FadeIn>
         )}
 
+        {/* Items we couldn't find a product for: don't forget them, and find them yourself */}
+        {!searching && unpriced.length > 0 && (
+          <FadeIn delay={45}>
+            <View style={[s.missCard, { backgroundColor: c.card, borderColor: c.warning }]}>
+              <Text style={{ fontSize: 14.5, fontWeight: '800', color: c.text, textAlign: 'right' }}>
+                אל תשכחו: {unpriced.length === 1 ? 'מוצר אחד' : `${unpriced.length} מוצרים`} בלי מחיר
+              </Text>
+              <Text style={{ fontSize: 12.5, color: c.text2, textAlign: 'right', marginTop: 2, lineHeight: 18 }}>
+                לא מצאנו אותם בסופרים שלכם. הם ברשימה. לחצו על מוצר כדי לחפש אותו בעצמכם ולצרף מחיר.
+              </Text>
+              <View style={s.missWrap}>
+                {unpriced.slice(0, 12).map(i => (
+                  <Touchable key={i.id} onPress={() => findFor(i)} scale={0.94} style={[s.missChip, { backgroundColor: c.bg, borderColor: c.border }]}>
+                    <Search size={13} color={c.primary} />
+                    <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: '600', color: c.text, maxWidth: 150 }}>{i.name}</Text>
+                  </Touchable>
+                ))}
+              </View>
+            </View>
+          </FadeIn>
+        )}
+
         {/* Add a product */}
         <FadeIn delay={50}>
           <View style={[s.addBox, { backgroundColor: c.card, borderColor: c.border }]}>
             <TextInput style={{ flex: 1, height: 52, color: c.text, fontSize: 16 }} placeholder="הוספת מוצר, למשל: חלב" placeholderTextColor={c.text3}
+              key={seed.k} defaultValue={seed.v} autoFocus={seed.k > 0}
               ref={inputRef} onChangeText={onType} onSubmitEditing={addTyped} returnKeyType="done" blurOnSubmit={false} textAlign="right"
               onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
             {hasText ? (
@@ -322,6 +360,12 @@ export default function ShoppingScreen() {
             <Touchable onPress={() => setScanning(true)} scale={0.88} style={s.scanBtn}><ScanLine size={21} color={c.text2} /></Touchable>
             <Touchable onPress={addTyped} scale={0.88} style={[s.plus, { backgroundColor: c.primary, opacity: hasText ? 1 : 0.35 }]}><Plus size={20} color="#fff" strokeWidth={2.5} /></Touchable>
           </View>
+          {linkTo ? (
+            <View style={[s.linkBar, { backgroundColor: c.primaryLight }]}>
+              <Text numberOfLines={1} style={{ flex: 1, fontSize: 12.5, fontWeight: '700', color: c.primary, textAlign: 'right' }}>בוחרים מוצר עבור "{linkTo.name}" שברשימה · אפשר לשנות את החיפוש</Text>
+              <Touchable onPress={clearSearch} scale={0.9}><Text style={{ fontSize: 12.5, fontWeight: '700', color: c.text2 }}>ביטול</Text></Touchable>
+            </View>
+          ) : null}
           {hasHits && (
             <View ref={hitsWrap} onLayout={measureHits} style={[s.card, { backgroundColor: c.card, borderColor: c.border, marginTop: 8 }]}>
               <Text style={{ fontSize: 11.5, color: c.text2, fontWeight: '700', textAlign: 'right', paddingHorizontal: 14, paddingTop: 10, paddingBottom: 4 }}>
@@ -480,6 +524,10 @@ const s = StyleSheet.create({
   cheapBox: { alignSelf: 'flex-end', maxWidth: '100%', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, marginTop: 4 },
   bestCard: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 16, padding: 12, marginTop: 12 },
   bestIcon: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  missCard: { borderWidth: 1.5, borderRadius: 16, padding: 14, marginTop: 12 },
+  missWrap: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 7, marginTop: 10 },
+  missChip: { flexDirection: 'row-reverse', alignItems: 'center', gap: 5, borderWidth: 1, borderRadius: 999, paddingHorizontal: 11, paddingVertical: 7 },
+  linkBar: { flexDirection: 'row-reverse', alignItems: 'center', gap: 8, marginTop: 8, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7 },
   clearBtn: { width: 32, height: 40, alignItems: 'center', justifyContent: 'center' },
   clearDot: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   scanBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
