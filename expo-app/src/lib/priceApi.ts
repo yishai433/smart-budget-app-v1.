@@ -25,3 +25,30 @@ export function askPriceServer(householdId: string, uid: string, payload: Record
     })()
   })
 }
+
+export interface ReceiptAnswer { status: string; text?: string; error?: string }
+
+// Send a receipt photo (base64 JPEG, no data: prefix) to the home server and get its text back.
+// OCR plus a possible one-time language download can take a while, so the timeout is generous
+// and intermediate "reading" updates don't end the wait.
+export function scanReceiptServer(householdId: string, uid: string, imageBase64: string, onStatus?: (s: string) => void, timeoutMs = 90000): Promise<string> {
+  return new Promise((resolve, reject) => {
+    ;(async () => {
+      try {
+        const ref = await addDoc(collection(db, 'receiptScans'), {
+          householdId, by: uid || '', status: 'pending', image: imageBase64, createdAt: serverTimestamp(),
+        })
+        let done = false
+        const timer = setTimeout(() => { if (!done) { done = true; unsub(); deleteDoc(ref).catch(() => {}); reject(new Error('timeout')) } }, timeoutMs)
+        const unsub = onSnapshot(ref, (snap) => {
+          const d = snap.data() as ReceiptAnswer | undefined
+          if (!d || done) return
+          if (d.status === 'pending' || d.status === 'reading') { onStatus?.(d.status); return }
+          done = true; clearTimeout(timer); unsub(); deleteDoc(ref).catch(() => {})
+          if (d.status === 'error') reject(new Error(d.error || 'קריאת הקבלה נכשלה'))
+          else resolve(d.text || '')
+        }, (e) => { if (!done) { done = true; clearTimeout(timer); reject(e) } })
+      } catch (e) { reject(e) }
+    })()
+  })
+}

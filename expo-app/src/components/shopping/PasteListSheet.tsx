@@ -16,7 +16,7 @@ interface Match { line: ParsedLine; code?: string; product?: string; price: numb
 
 // The closest real product for one line of the list: its barcode if it has one, otherwise the
 // everyday product at the chosen branch, otherwise the best match sold at any compared branch.
-function matchLine(idx: PriceIndex | null, l: ParsedLine, store: string, prefer: Set<string>): Match {
+function matchLine(idx: PriceIndex | null, l: ParsedLine, store: string, prefer: Set<string>, keepPrice?: boolean): Match {
   if (idx && l.code) {
     const r = idx.byCode.get(l.code.replace(/^0+/, ''))
     if (r) return { line: l, code: r.code, product: r.name, price: priceAt(idx, r.code, store), on: true }
@@ -25,14 +25,17 @@ function matchLine(idx: PriceIndex | null, l: ParsedLine, store: string, prefer:
     const m = autoMatch(idx, l.name, store, prefer)
       || searchProducts(idx, l.name, store, { limit: 8, prefer }).find(h => h.exact && !h.variant && h.branches > 0)
       || fuzzyMatch(idx, l.name, store, prefer)
-    if (m) return { line: l, code: m.code, product: m.name, price: m.price, on: true }
+    if (m) return { line: l, code: m.code, product: m.name, price: keepPrice && l.price != null ? l.price : m.price, on: true }
   }
-  return { line: l, price: null, on: !!l.name }
+  // no catalog match: for a receipt we still know what was paid, so keep that price
+  return { line: l, price: keepPrice && l.price != null ? l.price : null, on: !!l.name }
 }
 
 // Paste a whole shopping list (or pick a text / CSV file) and add it in one go, with prices.
-export default function PasteListSheet({ visible, idx, store, prefer, onClose, onAdded }: {
+export default function PasteListSheet({ visible, idx, store, prefer, onClose, onAdded, seedLines, title }: {
   visible: boolean; idx: PriceIndex | null; store: string; prefer: Set<string>; onClose: () => void; onAdded: (n: number) => void
+  seedLines?: ParsedLine[] | null    // when set (a scanned receipt), skip the paste box and match these, keeping their prices
+  title?: string
 }) {
   const c = useTheme()
   const d = useData()
@@ -50,6 +53,17 @@ export default function PasteListSheet({ visible, idx, store, prefer, onClose, o
   const boxH = Math.round(Math.max(130, Math.min(winH * 0.42, winH - kb - 330)))
 
   useEffect(() => { if (!visible) { textRef.current = ''; setSeed(x => ({ k: x.k + 1, v: '' })); setHasText(false); hasTextRef.current = false; setMatches(null); setBusy(false) } }, [visible])
+  const fromReceipt = !!seedLines
+  useEffect(() => {
+    if (!visible || !seedLines || !seedLines.length) return
+    setBusy(true)
+    const out: Match[] = []; let i = 0
+    const step = () => {
+      for (const end = Math.min(seedLines.length, i + 4); i < end; i++) out.push(matchLine(idx, seedLines[i], store, prefer, true))
+      if (i < seedLines.length) setTimeout(step, 0); else { setMatches(out); setBusy(false) }
+    }
+    setTimeout(step, 30)
+  }, [visible, seedLines])
 
   const pickFile = async () => {
     try {
@@ -96,7 +110,7 @@ export default function PasteListSheet({ visible, idx, store, prefer, onClose, o
       const batch = String(Date.now())
       await Promise.all(chosen.map(m => d.addShoppingItem({
         name: m.line.name || m.product || '', category: guessShoppingCategory(m.line.name || m.product || ''), quantity: m.line.qty,
-        estimatedPrice: m.price ?? 0, priceManual: false, checked: false, batch,
+        estimatedPrice: m.price ?? 0, priceManual: fromReceipt && m.price != null, checked: false, batch,
         ...(m.code ? { code: m.code, matchedName: m.product } : {}),
       })))
       onAdded(chosen.length)
@@ -109,7 +123,7 @@ export default function PasteListSheet({ visible, idx, store, prefer, onClose, o
     <BottomSheet visible={visible} onClose={onClose} avoidKeyboard minHeight={SHEET_TALL}>
       <View style={s.header}>
         <View style={{ flex: 1 }}>
-          <Text style={[s.title, { color: c.text }]}>{matches ? 'בדיקה לפני הוספה' : 'הדבקת רשימה'}</Text>
+          <Text style={[s.title, { color: c.text }]}>{matches ? 'בדיקה לפני הוספה' : (title || 'הדבקת רשימה')}</Text>
           <Text style={{ fontSize: 12.5, color: c.text2, marginTop: 2, textAlign: 'right' }}>
             {matches ? `${matches.filter(m => m.code).length} מתוך ${matches.length} זוהו עם מחיר` : 'רשימה קבועה, הודעה, קובץ מהסופר: מוצר בכל שורה'}
           </Text>
@@ -117,7 +131,12 @@ export default function PasteListSheet({ visible, idx, store, prefer, onClose, o
         <Touchable onPress={onClose} scale={0.9} style={[s.x, { backgroundColor: c.bg }]}><X size={18} color={c.text2} /></Touchable>
       </View>
 
-      {!matches ? (
+      {!matches && fromReceipt ? (
+        <View style={{ paddingVertical: 50, alignItems: 'center' }}>
+          <ActivityIndicator color={c.primary} size="large" />
+          <Text style={{ marginTop: 14, fontSize: 14, color: c.text2 }}>מתאים את מוצרי הקבלה…</Text>
+        </View>
+      ) : !matches ? (
         <View>
           {/* actions first, at eye level: continue, or open a file */}
           <View style={s.btns}>

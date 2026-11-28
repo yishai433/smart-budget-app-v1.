@@ -4,7 +4,16 @@
   "private": true,
   "type": "module",
   "description": "שרת ביתי לתקציב חכם: מקשיב ל-Firestore ושולח התראות Push",
-  "scripts": { "start": "node index.js", "test": "node test.js" },
-  "dependencies": { "firebase-admin": "^12.7.0" },
-  "engines": { "node": ">=20" }
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "tesseract.js": "^5.1.1",
+    "jimp": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
 }

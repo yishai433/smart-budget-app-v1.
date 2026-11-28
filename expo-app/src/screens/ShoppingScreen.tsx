@@ -1,7 +1,9 @@
 import { useState, useMemo, useCallback, memo, useEffect, useRef } from 'react'
-import { View, Text, ScrollView, TextInput, StyleSheet, Alert, Keyboard, ActivityIndicator, useWindowDimensions } from 'react-native'
+import * as ImagePicker from 'expo-image-picker'
+import * as ImageManipulator from 'expo-image-manipulator'
+import { View, Text, ScrollView, TextInput, StyleSheet, Alert, Keyboard, ActivityIndicator, useWindowDimensions, Modal } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Check, ScanLine, Plus, ListChecks, Clock, Trash2, ChevronLeft, ShoppingCart, Save, Store, HelpCircle, X, ClipboardPaste, Trophy, Search } from 'lucide-react-native'
+import { Check, ScanLine, Plus, ListChecks, Clock, Trash2, ChevronLeft, ShoppingCart, Save, Store, HelpCircle, X, ClipboardPaste, Trophy, Search, Receipt } from 'lucide-react-native'
 import { useTheme, radius, Theme } from '../theme'
 import { useData } from '../context/DataContext'
 import { useAuth } from '../context/AuthContext'
@@ -19,7 +21,8 @@ import CheckoutSheet from '../components/shopping/CheckoutSheet'
 import StorePicker from '../components/shopping/StorePicker'
 import PasteListSheet from '../components/shopping/PasteListSheet'
 import BasketCompareSheet from '../components/shopping/BasketCompareSheet'
-import { compareBasket } from '../lib/listImport'
+import { compareBasket, parseReceipt, ParsedLine } from '../lib/listImport'
+import { scanReceiptServer } from '../lib/priceApi'
 import { usePriceIndex, searchProducts, autoMatch, fuzzyMatch, priceAt, refreshPriceIndex, ProductHit } from '../lib/priceIndex'
 import { storeLabel } from '../lib/stores'
 import useKeyboardHeight from '../lib/useKeyboardHeight'
@@ -156,6 +159,8 @@ export default function ShoppingScreen() {
 
   const [storeOpen, setStoreOpen] = useState(false)
   const [pasteOpen, setPasteOpen] = useState(false)
+  const [receiptLines, setReceiptLines] = useState<ParsedLine[] | null>(null)
+  const [scanStatus, setScanStatus] = useState<string | null>(null)
   const [compareOpen, setCompareOpen] = useState(false)
   // "How it works" stays until the user dismisses it; the ? button brings it back.
   const [guide, setGuide] = useState(false)
@@ -283,6 +288,38 @@ export default function ShoppingScreen() {
   const bestB = basket.branches[0]
   const mineB = basket.branches.find(b => b.key === store)
   const basketSave = bestB && mineB && bestB.key !== store ? mineB.total - bestB.total : 0
+  // Scan a receipt: snap/pick a photo → the home server reads the text → we pull out the lines
+  // and open the same review sheet, keeping the prices printed on the receipt.
+  const scanReceipt = async (fromCamera: boolean) => {
+    try {
+      const perm = fromCamera ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync()
+      if (!perm.granted) { Alert.alert('אין הרשאה', fromCamera ? 'כדי לצלם צריך לאשר גישה למצלמה בהגדרות.' : 'כדי לבחור תמונה צריך לאשר גישה לתמונות בהגדרות.'); return }
+      const res = fromCamera
+        ? await ImagePicker.launchCameraAsync({ quality: 1, allowsEditing: false })
+        : await ImagePicker.launchImageLibraryAsync({ quality: 1, allowsEditing: false, mediaTypes: ImagePicker.MediaTypeOptions.Images })
+      if (res.canceled || !res.assets?.length) return
+      setScanStatus('מכין את התמונה…')
+      const m = await ImageManipulator.manipulateAsync(res.assets[0].uri, [{ resize: { width: 1240 } }], { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG, base64: true })
+      if (!m.base64) throw new Error('no image')
+      if (m.base64.length > 950000) { setScanStatus(null); Alert.alert('התמונה גדולה מדי', 'נסו לצלם מקרוב יותר רק את חלק המוצרים של הקבלה.'); return }
+      setScanStatus('קורא את הקבלה… (כמה שניות)')
+      const text = await scanReceiptServer(d.activeHouseholdId || '', user?.uid || '', m.base64, st => setScanStatus(st === 'reading' ? 'קורא את הקבלה…' : 'ממתין לשרת…'))
+      const lines = parseReceipt(text)
+      setScanStatus(null)
+      if (!lines.length) { Alert.alert('לא זוהו מוצרים', 'הקריאה לא הצליחה לזהות שורות מוצר. נסו לצלם ישר, בתאורה טובה, שכל שורה תהיה ברורה.'); return }
+      setReceiptLines(lines)
+    } catch (e: unknown) {
+      setScanStatus(null)
+      const msg = e instanceof Error ? e.message : ''
+      Alert.alert('הסריקה נכשלה', msg === 'timeout' ? 'השרת לא הגיב בזמן. ודאו שהשרת הביתי פועל ונסו שוב.' : 'משהו השתבש. נסו שוב, או הדביקו את הרשימה ידנית.')
+    }
+  }
+  const askReceiptSource = () => Alert.alert('סריקת קבלה', 'מאיפה לקחת את הקבלה?', [
+    { text: 'מצלמה', onPress: () => scanReceipt(true) },
+    { text: 'מהגלריה', onPress: () => scanReceipt(false) },
+    { text: 'ביטול', style: 'cancel' },
+  ])
+
   const onPasted = (n: number) => {
     setPasteOpen(false)
     if (idx && idx.keys.length) setTimeout(() => setCompareOpen(true), 450)
@@ -457,6 +494,9 @@ export default function ShoppingScreen() {
               <Touchable onPress={() => setBasketsOpen(true)} scale={0.97} style={[s.primaryBtn, { backgroundColor: c.primary, paddingHorizontal: 22, alignSelf: 'stretch' }]}>
                 <ListChecks size={18} color="#fff" /><Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>לרשימות השמורות</Text>
               </Touchable>
+              <Touchable onPress={askReceiptSource} scale={0.97} style={[s.primaryBtn, { backgroundColor: c.primary, paddingHorizontal: 22, alignSelf: 'stretch', marginTop: 8 }]}>
+                <Receipt size={18} color="#fff" /><Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>סריקת קבלה</Text>
+              </Touchable>
               <Touchable onPress={() => setPasteOpen(true)} scale={0.97} style={[s.primaryBtn, { backgroundColor: c.primaryLight, paddingHorizontal: 22, alignSelf: 'stretch', marginTop: 8 }]}>
                 <ClipboardPaste size={18} color={c.primary} /><Text style={{ color: c.primary, fontWeight: '700', fontSize: 15 }}>הדבקת רשימה או קובץ</Text>
               </Touchable>
@@ -497,7 +537,8 @@ export default function ShoppingScreen() {
         {/* More options, spelled out */}
         <Text style={[s.label, { color: c.text2, marginTop: 26 }]}>עוד אפשרויות</Text>
         <View style={[s.card, { backgroundColor: c.card, borderColor: c.border }]}>
-          <MenuRow first c={c} Icon={ClipboardPaste} title="הדבקת רשימה או קובץ" sub="כל הרשימה בבת אחת, עם מחירים והשוואה" onPress={() => setPasteOpen(true)} />
+          <MenuRow first c={c} Icon={Receipt} title="סריקת קבלה" sub="צלמו קבלה והמוצרים ייכנסו לבד, עם המחירים" onPress={askReceiptSource} />
+          <MenuRow c={c} Icon={ClipboardPaste} title="הדבקת רשימה או קובץ" sub="כל הרשימה בבת אחת, עם מחירים והשוואה" onPress={() => setPasteOpen(true)} />
           {!empty && idx && idx.keys.length > 0 ? <MenuRow c={c} Icon={Trophy} title="איפה הסל הכי זול?" sub="כל הרשימה מול כל הסופרים שבחרתם" onPress={() => setCompareOpen(true)} /> : null}
           <MenuRow c={c} Icon={ListChecks} title="רשימות שמורות" sub="קנייה שבועית, שבת... טוענים בלחיצה" onPress={() => setBasketsOpen(true)} badge={d.savedBaskets.length || undefined} />
           {!empty && <MenuRow c={c} Icon={Save} title="לשמור את הרשימה הזאת" sub="כדי לטעון אותה שוב בקנייה הבאה" onPress={() => setBasketsOpen(true)} />}
@@ -548,6 +589,17 @@ export default function ShoppingScreen() {
       <ItemEditSheet item={editing} branchPrice={editing?.code && idx ? priceAt(idx, editing.code, store) : null} storeName={storeName} onClose={() => setEditing(null)} />
       <StorePicker visible={storeOpen} labels={idx?.labels} onClose={() => setStoreOpen(false)} />
       <PasteListSheet visible={pasteOpen} idx={idx} store={store} prefer={prefer} onClose={() => setPasteOpen(false)} onAdded={onPasted} />
+      <PasteListSheet visible={!!receiptLines} idx={idx} store={store} prefer={prefer} seedLines={receiptLines} title="מוצרי הקבלה"
+        onClose={() => setReceiptLines(null)} onAdded={onPasted} />
+      <Modal visible={!!scanStatus} transparent animationType="fade" onRequestClose={() => {}}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ backgroundColor: c.card, borderRadius: 20, paddingVertical: 28, paddingHorizontal: 34, alignItems: 'center', gap: 14, maxWidth: 300 }}>
+            <ActivityIndicator color={c.primary} size="large" />
+            <Text style={{ fontSize: 15, fontWeight: '700', color: c.text, textAlign: 'center' }}>{scanStatus}</Text>
+            <Text style={{ fontSize: 12.5, color: c.text2, textAlign: 'center' }}>בפעם הראשונה זה עשוי לקחת עד דקה</Text>
+          </View>
+        </View>
+      </Modal>
       <BasketCompareSheet visible={compareOpen} result={basket} labels={idx?.labels} onClose={() => setCompareOpen(false)}
         onAddStores={() => { setCompareOpen(false); setTimeout(() => setStoreOpen(true), 350) }} />
       <LaterSheet visible={laterOpen} onClose={() => setLaterOpen(false)} />

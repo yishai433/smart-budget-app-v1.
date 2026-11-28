@@ -5,7 +5,7 @@ import type { PriceIndex } from './priceIndex'
 // boxes, comma-separated lists on one line, CSV / spreadsheet rows (name + quantity columns),
 // and barcodes anywhere in a line (used to find the exact product).
 
-export interface ParsedLine { name: string; qty: number; code?: string }
+export interface ParsedLine { name: string; qty: number; code?: string; price?: number }
 
 // words that make a number part of the product, not a quantity ("1 ליטר", "500 גרם", "3%")
 const UNIT_AFTER = /^(%|ל(יטר)?['׳]?|ליטר|מ"?ל|מל|ג(רם)?['׳]?|גרם|ק"?ג|קג|קילו|מ"?ג|יח(ידות)?['׳]?|פריטים|שקית|שקיות|זוגות|מטר|cm|ml|l|g|kg|גלילים|כביסות|קפסולות)/i
@@ -109,4 +109,42 @@ export function compareBasket(idx: PriceIndex | null, lines: BasketLine[]): Bask
     .filter(b => b.found >= Math.ceil(rows.length * 0.5))
     .sort((a, b) => a.total - b.total)
   return { branches, split: Math.round(split * 100) / 100, splitFound: rows.length, priced: rows.length, lines: lines.length }
+}
+
+
+// ---- reading a scanned receipt (OCR text) ----
+// Receipts list one product per line with its price, mixed with headers, totals and noise. We
+// keep the lines that look like a bought product (some Hebrew/Latin letters + a money amount)
+// and drop the rest. The printed price is kept as the item's price — it's what was actually paid.
+const SKIP_RE = /(סה["'`]?כ|סיכום|לתשלום|תשלום|מזומן|אשראי|עובר ושב|עו["']?ש|ויזה|ישראכרט|מאסטרקארד|דיינרס|אמריקן|כרטיס|עודף|מע["'`]?מ|חסכת|חסכון|חיסכון|הנחה|הנחת|מועדון|נקוד|נקודות|ברקוד|קופה|קופ\.|אמצעי|קוד|מספר עסקה|עסקה|חשבונית|קבלה|שובר|תאריך|שעה|טלפון|טל[:\.]|כתובת|רח[\.׳]|ח\.?פ|עוסק|ת\.?ז|www|\.co|פריטים|כמות פריט|תודה|להתראות|שמור|בברכה|סניף|ח-ן|יתרה|זיכוי)/i
+// a money amount like 12.90 / 12,90 / 3.5 ; agorot optional but we prefer two decimals
+const MONEY = /(?:^|[\s₪])(\d{1,4}[.,]\d{2})(?!\d)/g
+
+export function parseReceipt(text: string): ParsedLine[] {
+  const rawLines = String(text || '').replace(/\r/g, '').split('\n')
+  const out: ParsedLine[] = []
+  for (let raw of rawLines) {
+    let line = raw.replace(/[|*•·●▪]/g, ' ').replace(/\s+/g, ' ').trim()
+    if (line.length < 3 || SKIP_RE.test(line)) continue
+    // all money amounts on the line; the item price is the largest (qty×unit lines show the total too)
+    const amounts = [...line.matchAll(MONEY)].map(m => Number(m[1].replace(',', '.'))).filter(n => n > 0 && n < 1000)
+    if (!amounts.length) continue
+    const price = Math.max(...amounts)
+    // name = the line with the numbers / units stripped out
+    // keep useful tokens like "3%" and "1ל" (they help the match); only strip prices, long codes,
+    // the "xN" quantity and stray symbols, then trim leftover punctuation at the ends
+    let name = line.replace(/\d{1,4}[.,]\d{2}/g, ' ')
+      .replace(/\b\d{6,}\b/g, ' ')
+      .replace(/(?:^|\s)[xX×*]\s*\d+(?:\.\d+)?/g, ' ')
+      .replace(/[₪:#@=]/g, ' ')
+      .replace(/\s+/g, ' ').replace(/^[\s.,\-–]+|[\s.,\-–]+$/g, '').trim()
+    const letters = (name.match(/[֐-׿a-zA-Z]/g) || []).length
+    if (letters < 2) continue
+    // quantity: "2 X 5.90" or a leading small count
+    let qty = 1
+    const qm = line.match(/(\d{1,2})\s*[xX×*]\s*\d/)
+    if (qm) qty = Math.max(1, Math.min(99, Number(qm[1])))
+    out.push({ name: name.slice(0, 48), qty, price })
+  }
+  return out.slice(0, 120)
 }

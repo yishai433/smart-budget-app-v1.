@@ -112,6 +112,13 @@ service cloud.firestore {
       allow read, delete: if isMember(resource.data.householdId);
     }
 
+    // receipt photos: the app uploads one, the home server reads the text off it
+    match /receiptScans/{id} {
+      allow create: if isSignedIn() && isMember(request.resource.data.householdId)
+                    && request.resource.data.status == 'pending';
+      allow read, update, delete: if isMember(resource.data.householdId);
+    }
+
     // list of supermarket branches, written by the home server only
     match /priceCatalog/{id} {
       allow read: if isSignedIn();

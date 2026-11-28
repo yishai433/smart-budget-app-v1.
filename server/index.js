@@ -10,6 +10,7 @@ import {
   monthLabelHe, prevMonthKey, isShabbat,
 } from './logic.js'
 import { getDueRecurring } from './recurring.js'
+import { ocrReceipt } from './receipt.js'
 import { STORES, refreshAll, lookup, loadStore, validKey, refreshCatalog, loadCatalog, catalogAge, searchProducts, compareBasket, warm, buildIndex } from './prices.js'
 
 const KEY_FILE = process.env.GOOGLE_APPLICATION_CREDENTIALS || '/run/secrets/firebase.json'
@@ -373,6 +374,38 @@ async function runPrices() {
   try { await refreshAll(DATA_DIR, log, wantedKeys()); await warm(DATA_DIR, wantedKeys(), log); await rebuildAllIndexes() } finally { pricesRunning = false }
 }
 
+// ── receipt photos: the app uploads a photo, we read the text off it (OCR) and hand it back,
+//    then the app pulls out the products and matches them to the price catalog ──
+function watchReceipts() {
+  db.collection('receiptScans').where('status', '==', 'pending').onSnapshot(snap => {
+    snap.docChanges().forEach(async ch => {
+      if (ch.type !== 'added') return
+      const q = ch.doc.data()
+      try {
+        const b64 = String(q.image || '').replace(/^data:[^,]+,/, '')
+        if (!b64) throw new Error('לא התקבלה תמונה')
+        const buf = Buffer.from(b64, 'base64')
+        if (buf.length > 8 * 1024 * 1024) throw new Error('התמונה גדולה מדי')
+        await ch.doc.ref.update({ status: 'reading' })      // so the app can show "קורא את הקבלה…"
+        const t0 = Date.now()
+        const text = await ocrReceipt(buf, DATA_DIR, log)
+        log(`קבלה נקראה (${text.length} תווים, ${Date.now() - t0}ms)`)
+        // the image is bulky; drop it once we have the text
+        await ch.doc.ref.update({ status: 'done', text, image: FieldValue.delete(), answeredAt: FieldValue.serverTimestamp() })
+      } catch (e) {
+        if (e.code === 5) return
+        log('קריאת קבלה נכשלה:', e.message)
+        await ch.doc.ref.update({ status: 'error', error: e.message, image: FieldValue.delete() }).catch(() => {})
+      }
+    })
+  }, e => { log('האזנה לקבלות נפלה:', e.message); setTimeout(watchReceipts, 10000) })
+  setInterval(async () => {
+    const old = await db.collection('receiptScans').where('createdAt', '<', Timestamp.fromMillis(Date.now() - 15 * 60 * 1000)).get().catch(() => null)
+    old?.docs.forEach(d => d.ref.delete().catch(() => {}))
+  }, 5 * 60 * 1000)
+  log('מאזין לסריקות קבלות')
+}
+
 function watchPriceLookups() {
   db.collection('priceLookups').where('status', '==', 'pending').onSnapshot(snap => {
     snap.docChanges().forEach(async ch => {
@@ -435,6 +468,7 @@ setTimeout(tick, 5000)
 
 watchHouseholdBranches()
 watchPriceLookups()
+watchReceipts()
 setTimeout(() => warm(DATA_DIR, wantedKeys(), log).catch(e => log('טעינת סניפים נכשלה:', e.message)), 5000)
 watchTransactions()
 watchTests()
